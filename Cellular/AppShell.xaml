@@ -11,9 +11,15 @@
         Title="Home"
         ContentTemplate="{DataTemplate local:MainPage}"
         Route="MainPage" />
+    
     <ShellContent
-    Title="Ball Arsenal"
-    ContentTemplate="{DataTemplate local:BallArsenal}"
-    Route="BallArsenal" />
+        Title="Ball Arsenal"
+        ContentTemplate="{DataTemplate local:BallArsenal}"
+        Route="BallArsenal" />
+
+    <ShellContent 
+        Title="Clicker"
+        ContentTemplate="{DataTemplate local:ClickerPage}"
+        Route="ClickerPage" />
 
 </Shell>
