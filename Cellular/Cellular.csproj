@@ -68,4 +68,16 @@
 	  <None Include=".github\workflows\discord-webhook.yml" />
 	</ItemGroup>
 
+	<ItemGroup>
+	  <Compile Update="ClickerPage.xaml.cs">
+	    <DependentUpon>ClickerPage.xaml</DependentUpon>
+	  </Compile>
+	</ItemGroup>
+
+	<ItemGroup>
+	  <MauiXaml Update="ClickerPage.xaml">
+	    <Generator>MSBuild:Compile</Generator>
+	  </MauiXaml>
+	</ItemGroup>
+
 </Project>
