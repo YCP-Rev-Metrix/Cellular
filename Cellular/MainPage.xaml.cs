@@ -6,14 +6,16 @@
         {
             InitializeComponent();
         }
+
+        private async void OnLoginClicked(object sender, EventArgs e)
+        {
+            await Navigation.PushAsync(new LoginPage());
+        }
         private void OnSignupClicked(object sender, EventArgs e)
         {
             
         }
-        private void OnLoginClicked(object sender, EventArgs e)
-        {
-
-        }
+      
     }
 
 }
