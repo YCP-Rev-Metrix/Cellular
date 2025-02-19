@@ -1,4 +1,6 @@
-﻿namespace Cellular
+﻿using Microsoft.Maui.Storage;
+
+namespace Cellular
 {
     public partial class LoginPage : ContentPage
     {
@@ -6,13 +8,26 @@
         {
             InitializeComponent();
         }
+
         private void OnLoginClicked(object sender, EventArgs e)
         {
-            bool isLoggedIn = true; // Set based on authentication
-            ((AppShell)Shell.Current).UpdateMenuForLoginStatus(isLoggedIn);
+            string username = entryUsername.Text;
+            string password = entryPassword.Text;
 
+            // Hardcoded credentials
+            if (username == "string" && password == "string")
+            {
+                Preferences.Set("IsLoggedIn", true);
+
+                // Update menu and navigate to Home
+                ((AppShell)Shell.Current).UpdateMenuForLoginStatus(true);
+                Shell.Current.GoToAsync("//MainPage");
+            }
+            else
+            {
+                DisplayAlert("Login Failed", "Invalid username or password", "OK");
+            }
         }
-
     }
-
 }
+

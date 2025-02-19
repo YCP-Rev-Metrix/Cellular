@@ -19,11 +19,13 @@
                 SemanticProperties.HeadingLevel="Level1" />
 
             <Entry
+                x:Name="entryUsername"
                 Placeholder="Username"
                 MaxLength="20"
                 Style="{StaticResource CommonEntryStyle}"/>
 
             <Entry
+                x:Name="entryPassword"
                 Placeholder="Password"
                 MaxLength="20"
                 Style="{StaticResource CommonEntryStyle}"/>
