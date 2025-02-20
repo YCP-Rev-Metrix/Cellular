@@ -22,13 +22,13 @@
                 x:Name="entryUsername"
                 Placeholder="Username"
                 MaxLength="20"
-                Style="{StaticResource CommonEntryStyle}"/>
+                Style="{DynamicResource CommonEntryStyle}"/>
 
             <Entry
                 x:Name="entryPassword"
                 Placeholder="Password"
                 MaxLength="20"
-                Style="{StaticResource CommonEntryStyle}"/>
+                Style="{DynamicResource CommonEntryStyle}"/>
 
             <Button
                 x:Name="login"
