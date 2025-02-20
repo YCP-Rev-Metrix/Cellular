@@ -20,7 +20,7 @@ namespace Cellular
             {
                 DisplayAlert("Registration Error", "User already exists", "OK");
             }
-            else if (password.Equals(cpassword))
+            else if (password != cpassword)
             {
                 DisplayAlert("Registration Error", "Passwords do not match", "OK");
             }
