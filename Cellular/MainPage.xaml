@@ -26,10 +26,10 @@
                 HorizontalOptions="Fill" />
 
             <Button
-                x:Name="signup"
-                Text="Sign Up" 
-                SemanticProperties.Hint="Takes you to the sign up page"
-                Clicked="OnSignupClicked"
+                x:Name="register"
+                Text="Register" 
+                SemanticProperties.Hint="Takes you to the register page"
+                Clicked="OnRegisterClicked"
                 HorizontalOptions="Fill" />
             
         </VerticalStackLayout>
