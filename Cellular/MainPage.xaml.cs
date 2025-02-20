@@ -11,7 +11,7 @@
         {
             await Navigation.PushAsync(new LoginPage());
         }
-        private void OnSignupClicked(object sender, EventArgs e)
+        private void OnRegisterClicked(object sender, EventArgs e)
         {
             
         }
