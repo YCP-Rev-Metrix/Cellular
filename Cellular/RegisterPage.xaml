@@ -1,0 +1,49 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="Cellular.RegisterPage">
+
+    <ScrollView>
+        <VerticalStackLayout
+            Padding="30,0"
+            Spacing="25">
+            <Image
+                Source="logo.png"
+                HeightRequest="185"
+                Aspect="AspectFit"
+                SemanticProperties.Description="RevMetrix Bowling Ball Logo" />
+
+            <Label
+                Text="Register"
+                Style="{StaticResource Headline}"
+                SemanticProperties.HeadingLevel="Level1" />
+
+            <Entry
+                x:Name="entryUsername"
+                Placeholder="Username"
+                MaxLength="20"
+                Style="{DynamicResource CommonEntryStyle}"/>
+
+            <Entry
+                x:Name="entryPassword"
+                Placeholder="Password"
+                MaxLength="20"
+                Style="{DynamicResource CommonEntryStyle}"/>
+
+            <Entry
+                x:Name="entryConfirmPassword"
+                Placeholder="Confirm Password"
+                MaxLength="20"
+                Style="{DynamicResource CommonEntryStyle}"/>
+
+            <Button
+                x:Name="Register"
+                Text="Register" 
+                SemanticProperties.Hint="Creates a new account (not implemented yet, just redirects to home page logged in)"
+                Clicked="OnRegisterClicked"
+                HorizontalOptions="Fill" />
+
+        </VerticalStackLayout>
+    </ScrollView>
+
+</ContentPage>
