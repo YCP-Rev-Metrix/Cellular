@@ -9,7 +9,7 @@
 
         private async void OnAddClicked(object sender, EventArgs e)
         {
-            await Navigation.PushAsync(new MainPage()); 
+            await Shell.Current.GoToAsync("//MainPage");
         }
       
     }

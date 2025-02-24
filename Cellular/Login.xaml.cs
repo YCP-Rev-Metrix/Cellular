@@ -28,6 +28,11 @@ namespace Cellular
                 DisplayAlert("Login Failed", "Invalid username or password", "OK");
             }
         }
+
+        private void OnRegisterTapped(object sender, EventArgs e)
+        {
+            Navigation.PushAsync(new RegisterPage());
+        }
     }
 }
 
