@@ -27,12 +27,14 @@
             <Entry
                 x:Name="entryPassword"
                 Placeholder="Password"
+                IsPassword="True"
                 MaxLength="20"
                 Style="{DynamicResource CommonEntryStyle}"/>
 
             <Entry
                 x:Name="entryConfirmPassword"
                 Placeholder="Confirm Password"
+                IsPassword="True"
                 MaxLength="20"
                 Style="{DynamicResource CommonEntryStyle}"/>
 

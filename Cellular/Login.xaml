@@ -27,6 +27,7 @@
             <Entry
                 x:Name="entryPassword"
                 Placeholder="Password"
+                IsPassword="True"
                 MaxLength="20"
                 Style="{DynamicResource CommonEntryStyle}"/>
 
