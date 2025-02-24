@@ -69,6 +69,9 @@
 	  <Compile Update="BallArsenal.xaml.cs">
 	    <DependentUpon>BallArsenal.xaml</DependentUpon>
 	  </Compile>
+	  <Compile Update="Account.xaml.cs">
+	    <DependentUpon>Account.xaml</DependentUpon>
+	  </Compile>
 	  <Compile Update="RegisterPage.xaml.cs">
 	    <DependentUpon>RegisterPage.xaml</DependentUpon>
 	  </Compile>
@@ -98,6 +101,9 @@
 
 	<ItemGroup>
 	  <MauiXaml Update="ClickerPage.xaml">
+	    <Generator>MSBuild:Compile</Generator>
+	  </MauiXaml>
+	  <MauiXaml Update="Account.xaml">
 	    <Generator>MSBuild:Compile</Generator>
 	  </MauiXaml>
 	  <MauiXaml Update="RegisterPage.xaml">
