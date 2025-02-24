@@ -70,7 +70,10 @@
 	    <DependentUpon>BallArsenal.xaml</DependentUpon>
 	  </Compile>
 	  <Compile Update="Account.xaml.cs">
-	    <DependentUpon>Account.xaml</DependentUpon>
+		<DependentUpon>Account.xaml</DependentUpon>
+	  </Compile>
+	  <Compile Update="Bluetooth.xaml.cs">
+	    <DependentUpon>Bluetooth.xaml</DependentUpon>
 	  </Compile>
 	  <Compile Update="RegisterPage.xaml.cs">
 	    <DependentUpon>RegisterPage.xaml</DependentUpon>
@@ -104,6 +107,9 @@
 	    <Generator>MSBuild:Compile</Generator>
 	  </MauiXaml>
 	  <MauiXaml Update="Account.xaml">
+		<Generator>MSBuild:Compile</Generator>
+	  </MauiXaml>
+	  <MauiXaml Update="Bluetooth.xaml">
 	    <Generator>MSBuild:Compile</Generator>
 	  </MauiXaml>
 	  <MauiXaml Update="RegisterPage.xaml">
