@@ -9,7 +9,7 @@ namespace Cellular
             InitializeComponent();
         }
 
-        private void OnLoginClicked(object sender, EventArgs e)
+        private async void OnLoginClicked(object sender, EventArgs e)
         {
             string username = entryUsername.Text;
             string password = entryPassword.Text;
@@ -21,11 +21,14 @@ namespace Cellular
 
                 // Update menu and navigate to Home
                 ((AppShell)Shell.Current).UpdateMenuForLoginStatus(true);
-                Shell.Current.GoToAsync("//MainPage");
+
+                await ((AppShell)Shell.Current).OnLoginSuccess();
+
+                await Shell.Current.GoToAsync("//MainPage");
             }
             else
             {
-                DisplayAlert("Login Failed", "Invalid username or password", "OK");
+                await DisplayAlert("Login Failed", "Invalid username or password", "OK");
             }
         }
 

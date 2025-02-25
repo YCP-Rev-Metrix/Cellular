@@ -4,34 +4,53 @@
              x:Class="Cellular.MainPage">
 
     <ScrollView>
-        <VerticalStackLayout
-            Padding="30,0"
-            Spacing="25">
-            <Image
-                Source="logo.png"
-                HeightRequest="185"
-                Aspect="AspectFit"
-                SemanticProperties.Description="RevMetrix Bowling Ball Logo" />
+        <VerticalStackLayout Padding="30,0" Spacing="25">
+            <Image Source="logo.png"
+                   HeightRequest="185"
+                   Aspect="AspectFit"
+                   SemanticProperties.Description="RevMetrix Bowling Ball Logo" />
 
-            <Label
-                Text="RevMetrix"
-                Style="{StaticResource Headline}"
-                SemanticProperties.HeadingLevel="Level1" />
+            <Label Text="RevMetrix"
+                   Style="{StaticResource Headline}"
+                   SemanticProperties.HeadingLevel="Level1" />
 
-            <Button
-                x:Name="login"
-                Text="Login" 
-                SemanticProperties.Hint="Takes you to the login page"
-                Clicked="OnLoginClicked"
-                HorizontalOptions="Fill" />
+            <!-- Show only when logged out -->
+            <Button x:Name="login"
+                    Text="Login" 
+                    SemanticProperties.Hint="Takes you to the login page"
+                    Clicked="OnLoginClicked"
+                    HorizontalOptions="Fill"
+                    IsVisible="False" />
 
-            <Button
-                x:Name="register"
-                Text="Register" 
-                SemanticProperties.Hint="Takes you to the register page"
-                Clicked="OnRegisterClicked"
-                HorizontalOptions="Fill" />
-            
+            <Button x:Name="register"
+                    Text="Register" 
+                    SemanticProperties.Hint="Takes you to the register page"
+                    Clicked="OnRegisterClicked"
+                    HorizontalOptions="Fill"
+                    IsVisible="False" />
+
+            <!-- Show only when logged in -->
+            <Button x:Name="arsenal"
+                    Text="Ball Arsenal" 
+                    SemanticProperties.Hint="Go to your ball arsenal"
+                    Clicked="OnArsenalClicked"
+                    HorizontalOptions="Fill"
+                    IsVisible="True" />
+
+            <Button x:Name="bluetooth"
+                    Text="Bluetooth" 
+                    SemanticProperties.Hint="Access bluetooth devices"
+                    Clicked="OnBluetoothClicked"
+                    HorizontalOptions="Fill"
+                    IsVisible="True" />
+
+            <Button x:Name="account"
+                    Text="Account" 
+                    SemanticProperties.Hint="takes you to the account page"
+                    Clicked="OnAccountClicked"
+                    HorizontalOptions="Fill"
+                    IsVisible="True" />
+
         </VerticalStackLayout>
     </ScrollView>
 
