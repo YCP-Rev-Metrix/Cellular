@@ -27,6 +27,7 @@ namespace Cellular
             {
                 Items.Add(new ShellContent { Content = new MainPage(), Title = "Home", Route = "MainPage" });
                 Items.Add(new ShellContent { Content = new LoginPage(), Title = "Login", Route = "login" });
+                Items.Add(new ShellContent { Content = new RegisterPage(), Title = "Register", Route = "RegisterPage" });
                 signout.IsVisible = false;
             }
             else

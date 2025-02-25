@@ -7,11 +7,16 @@ namespace Cellular
         public App()
         {
             InitializeComponent();
-            SecureStorage.SetAsync("IsLoggedIn", "false");
+            SetLogin();
         }
         protected override Window CreateWindow(IActivationState? activationState)
         {
             return new Window(new AppShell());
+        }
+
+        public async void SetLogin()
+        {
+            await SecureStorage.SetAsync("IsLoggedIn", "false");
         }
     }
 }

@@ -13,10 +13,9 @@ namespace Cellular
             UpdateUI();
         }
 
-        private void LoadLoginState()
+        private async void LoadLoginState()
         {
-            isLoggedIn = SecureStorage.GetAsync("IsLoggedIn").Result == "true";
-            Console.WriteLine(isLoggedIn);
+            isLoggedIn = await SecureStorage.GetAsync("IsLoggedIn") == "true";
             UpdateUI();
         }
 
