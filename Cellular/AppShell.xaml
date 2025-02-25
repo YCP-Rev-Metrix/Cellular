@@ -22,9 +22,9 @@
             x:Name="signout"
             Text="Sign Out" 
             SemanticProperties.Hint="Redirects to the home page, logged out."
-            Clicked="OnSignoutClicked" />
+            Clicked="OnSignoutClicked"
+            IsVisible="False"/>
     </Shell.FlyoutFooter>
-    <!--Message for carson- Figure out how to make sign out not visible when logged out.-->
 
     <!--Don't add any more pages here-->
 
