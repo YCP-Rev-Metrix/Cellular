@@ -7,7 +7,7 @@ namespace Cellular
     public partial class MainPage : ContentPage
     {
         private bool isLoggedIn;
-        private MainViewModel viewModel;
+        private readonly MainViewModel viewModel;
         public MainPage()
         {
             InitializeComponent();
@@ -27,6 +27,7 @@ namespace Cellular
         {
             login.IsVisible = !isLoggedIn;
             register.IsVisible = !isLoggedIn;
+            guest.IsVisible = !isLoggedIn;
 
             welcome.IsVisible = isLoggedIn;
             user.IsVisible = isLoggedIn;
@@ -44,6 +45,20 @@ namespace Cellular
         private async void OnRegisterClicked(object sender, EventArgs e)
         {
             await Navigation.PushAsync(new RegisterPage());
+        }
+
+        private async void OnGuestClicked(object sender, EventArgs e)
+        {
+            Preferences.Set("IsLoggedIn", true);
+
+            // Update menu and navigate to Home
+            ((AppShell)Shell.Current).UpdateMenuForLoginStatus(true);
+
+            Preferences.Set("UserName", "Guest"); //stores the users username
+
+            await ((AppShell)Shell.Current).OnLoginSuccess();
+
+            await Shell.Current.GoToAsync("//MainPage");
         }
 
         private async void OnArsenalClicked(object sender, EventArgs e)

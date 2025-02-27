@@ -1,7 +1,9 @@
 ﻿<?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-             x:Class="Cellular.MainPage">
+             x:Class="Cellular.MainPage"
+             xmlns:local="clr-namespace:Cellular.ViewModel"
+             x:DataType="local:MainViewModel">
 
     <ScrollView>
         <VerticalStackLayout Padding="30,0" Spacing="25">
@@ -14,12 +16,14 @@
                    Style="{StaticResource Headline}"
                    SemanticProperties.HeadingLevel="Level1" />
 
-            <!-- Displays a welcome message when loggen in-->
-            <Label Text="Welcome," FontSize="18" 
-                   x:Name="welcome"/>
-          
-            <Label Text="{Binding UserName}" FontSize="24" FontAttributes="Bold"
-                   x:Name= "user"/>
+            <!-- Displays a welcome message when logged in-->
+            <HorizontalStackLayout HorizontalOptions="Center" Spacing="5">
+                <Label Text="Welcome," FontSize="18" 
+                       x:Name="welcome"/>
+
+                <Label Text="{Binding UserName}" FontSize="18" FontAttributes="Bold"
+                    x:Name="user"/>
+            </HorizontalStackLayout>
 
             <!-- Show only when logged out -->
             <Button x:Name="login"
@@ -33,6 +37,13 @@
                     Text="Register" 
                     SemanticProperties.Hint="Takes you to the register page"
                     Clicked="OnRegisterClicked"
+                    HorizontalOptions="Fill"
+                    IsVisible="False" />
+
+            <Button x:Name="guest"
+                    Text="Guest" 
+                    SemanticProperties.Hint="Logs user in as guest"
+                    Clicked="OnGuestClicked"
                     HorizontalOptions="Fill"
                     IsVisible="False" />
 
