@@ -27,6 +27,7 @@ namespace Cellular
             arsenal.IsVisible = isLoggedIn;
             bluetooth.IsVisible = isLoggedIn;
             account.IsVisible = isLoggedIn;
+            gamelist.IsVisible = isLoggedIn;
         }
 
         private async void OnLoginClicked(object sender, EventArgs e)
@@ -42,6 +43,10 @@ namespace Cellular
         private async void OnArsenalClicked(object sender, EventArgs e)
         {
             await Navigation.PushAsync(new BallArsenal());
+        }
+        private async void OnGameListClicked(object sender, EventArgs e)
+        {
+            await Navigation.PushAsync(new GameList());
         }
 
         private async void OnBluetoothClicked(object sender, EventArgs e)
