@@ -1,16 +1,20 @@
 ﻿using System;
 using Microsoft.Maui.Storage;
+using Cellular.ViewModel;
 
 namespace Cellular
 {
     public partial class MainPage : ContentPage
     {
         private bool isLoggedIn;
+        private MainViewModel viewModel;
         public MainPage()
         {
             InitializeComponent();
             LoadLoginState();
             UpdateUI();
+            viewModel = new MainViewModel();
+            BindingContext = viewModel; // Set ViewModel for data binding
         }
 
         private async void LoadLoginState()
@@ -19,11 +23,13 @@ namespace Cellular
             UpdateUI();
         }
 
-        private void UpdateUI()
+        private void UpdateUI()//Sets which buttons show up when loggen in or out
         {
             login.IsVisible = !isLoggedIn;
             register.IsVisible = !isLoggedIn;
 
+            welcome.IsVisible = isLoggedIn;
+            user.IsVisible = isLoggedIn;
             arsenal.IsVisible = isLoggedIn;
             bluetooth.IsVisible = isLoggedIn;
             account.IsVisible = isLoggedIn;

@@ -22,6 +22,8 @@ namespace Cellular
                 // Update menu and navigate to Home
                 ((AppShell)Shell.Current).UpdateMenuForLoginStatus(true);
 
+                Preferences.Set("UserName", username); //stores the users username
+
                 await ((AppShell)Shell.Current).OnLoginSuccess();
 
                 await Shell.Current.GoToAsync("//MainPage");

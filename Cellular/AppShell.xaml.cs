@@ -36,7 +36,7 @@ namespace Cellular
                 Items.Add(new ShellContent { Content = new BallArsenal(), Title = "Ball Arsenal", Route = "BallArsenal" });
                 Items.Add(new ShellContent { Content = new Bluetooth(), Title = "Bluetooth", Route = "Bluetooth" });
                 Items.Add(new ShellContent { Content = new AccountPage(), Title = "Account", Route = "AccountPage" });
-                Items.Add(new ShellContent { Content = new ClickerPage(), Title = "Clicker", Route = "ClickerPage" });
+                //Items.Add(new ShellContent { Content = new ClickerPage(), Title = "Clicker", Route = "ClickerPage" });
                 signout.IsVisible = true;
             }
         }

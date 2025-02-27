@@ -4,19 +4,22 @@ namespace Cellular
 {
     public partial class App : Application
     {
+        public static string LoggedInUserName { get; set; } = "Guest"; // Default name
+
         public App()
         {
             InitializeComponent();
-            SetLogin();
+            App.SetLogin();
         }
         protected override Window CreateWindow(IActivationState? activationState)
         {
             return new Window(new AppShell());
         }
 
-        public async void SetLogin()
+        public static async void SetLogin()
         {
             await SecureStorage.SetAsync("IsLoggedIn", "false");
         }
+
     }
 }
