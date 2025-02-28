@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using Cellular.Data;
+using Microsoft.Extensions.Logging;
 
 namespace Cellular
 {
@@ -14,12 +15,20 @@ namespace Cellular
                     fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
                     fonts.AddFont("OpenSans-Semibold.ttf", "OpenSansSemibold");
                 });
+            builder.Services.AddSingleton<CellularDatabase>();
+
+            var app = builder.Build();
+
+            using var scope = app.Services.CreateScope();
+            var databaseService = scope.ServiceProvider.GetRequiredService<CellularDatabase>();
+            Task.Run(async () => await databaseService.InitializeAsync()).Wait();
+
 
 #if DEBUG
-    		builder.Logging.AddDebug();
+            builder.Logging.AddDebug();
 #endif
 
-            return builder.Build();
+            return app;
         }
     }
 }

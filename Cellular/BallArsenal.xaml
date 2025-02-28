@@ -47,7 +47,7 @@
             </Grid>
 
             <Grid Margin="20">
-                <Frame BackgroundColor="LightGray">
+                <Border BackgroundColor="LightGray">
                     <Grid>
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto" />
@@ -70,7 +70,7 @@
                         <!-- Image -->
                         <Image Source="mcswirly.png" HeightRequest="100" WidthRequest="100" Grid.Row="0" Grid.Column="1" HorizontalOptions="End"/>
                     </Grid>
-                </Frame>
+                </Border>
             </Grid>
 
         </VerticalStackLayout>
