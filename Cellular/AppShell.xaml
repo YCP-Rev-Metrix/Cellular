@@ -16,7 +16,16 @@
         Title="Login"
         ContentTemplate="{DataTemplate local:LoginPage}"
         Route="LoginPage" />
-    
+
+    <Shell.FlyoutFooter>
+        <Button
+            x:Name="signout"
+            Text="Sign Out" 
+            SemanticProperties.Hint="Redirects to the home page, logged out."
+            Clicked="OnSignoutClicked"
+            IsVisible="False"/>
+    </Shell.FlyoutFooter>
+
     <!--Don't add any more pages here-->
 
 </Shell>

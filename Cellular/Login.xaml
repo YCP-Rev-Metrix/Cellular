@@ -27,6 +27,7 @@
             <Entry
                 x:Name="entryPassword"
                 Placeholder="Password"
+                IsPassword="True"
                 MaxLength="20"
                 Style="{DynamicResource CommonEntryStyle}"/>
 
@@ -36,6 +37,15 @@
                 SemanticProperties.Hint="Logs the user in"
                 Clicked="OnLoginClicked"
                 HorizontalOptions="Fill" />
+
+            <Label 
+                Text="New user? Click here to register!" 
+                TextColor="Blue"
+                HorizontalOptions="Center">
+                <Label.GestureRecognizers>
+                    <TapGestureRecognizer Tapped="OnRegisterTapped"/>
+                </Label.GestureRecognizers>
+            </Label>
 
         </VerticalStackLayout>
     </ScrollView>

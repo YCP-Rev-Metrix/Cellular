@@ -1,0 +1,31 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="Cellular.Bluetooth">
+
+    <ScrollView>
+        <VerticalStackLayout
+            Padding="30,0"
+            Spacing="25">
+            <Image
+                Source="logo.png"
+                HeightRequest="185"
+                Aspect="AspectFit"
+                SemanticProperties.Description="RevMetrix Bowling Ball Logo" />
+
+            <Label
+                Text="Bluetooth"
+                Style="{StaticResource Headline}"
+                SemanticProperties.HeadingLevel="Level1" />
+
+            <Button
+                x:Name="addDevice"
+                Text="Add Device" 
+                SemanticProperties.Hint="Adds a device"
+                Clicked="OnAddClicked"
+                HorizontalOptions="Fill" /> 
+
+        </VerticalStackLayout>
+    </ScrollView>
+
+</ContentPage>

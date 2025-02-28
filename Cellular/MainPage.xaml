@@ -1,37 +1,81 @@
 ﻿<?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-             x:Class="Cellular.MainPage">
+             x:Class="Cellular.MainPage"
+             xmlns:local="clr-namespace:Cellular.ViewModel"
+             x:DataType="local:MainViewModel">
 
     <ScrollView>
-        <VerticalStackLayout
-            Padding="30,0"
-            Spacing="25">
-            <Image
-                Source="logo.png"
-                HeightRequest="185"
-                Aspect="AspectFit"
-                SemanticProperties.Description="RevMetrix Bowling Ball Logo" />
+        <VerticalStackLayout Padding="30,0" Spacing="25">
+            <Image Source="logo.png"
+                   HeightRequest="185"
+                   Aspect="AspectFit"
+                   SemanticProperties.Description="RevMetrix Bowling Ball Logo" />
 
-            <Label
-                Text="RevMetrix"
-                Style="{StaticResource Headline}"
-                SemanticProperties.HeadingLevel="Level1" />
+            <Label Text="RevMetrix"
+                   Style="{StaticResource Headline}"
+                   SemanticProperties.HeadingLevel="Level1" />
 
-            <Button
-                x:Name="login"
-                Text="Login" 
-                SemanticProperties.Hint="Takes you to the login page"
-                Clicked="OnLoginClicked"
-                HorizontalOptions="Fill" />
+            <!-- Displays a welcome message when logged in-->
+            <HorizontalStackLayout HorizontalOptions="Center" Spacing="5">
+                <Label Text="Welcome," FontSize="18" 
+                       x:Name="welcome"/>
 
-            <Button
-                x:Name="register"
-                Text="Register" 
-                SemanticProperties.Hint="Takes you to the register page"
-                Clicked="OnRegisterClicked"
-                HorizontalOptions="Fill" />
-            
+                <Label Text="{Binding UserName}" FontSize="18" FontAttributes="Bold"
+                    x:Name="user"/>
+            </HorizontalStackLayout>
+
+            <!-- Show only when logged out -->
+            <Button x:Name="login"
+                    Text="Login" 
+                    SemanticProperties.Hint="Takes you to the login page"
+                    Clicked="OnLoginClicked"
+                    HorizontalOptions="Fill"
+                    IsVisible="False" />
+
+            <Button x:Name="register"
+                    Text="Register" 
+                    SemanticProperties.Hint="Takes you to the register page"
+                    Clicked="OnRegisterClicked"
+                    HorizontalOptions="Fill"
+                    IsVisible="False" />
+
+            <Button x:Name="guest"
+                    Text="Guest" 
+                    SemanticProperties.Hint="Logs user in as guest"
+                    Clicked="OnGuestClicked"
+                    HorizontalOptions="Fill"
+                    IsVisible="False" />
+
+            <!-- Show only when logged in -->
+            <Button x:Name="arsenal"
+                    Text="Ball Arsenal" 
+                    SemanticProperties.Hint="Go to your ball arsenal"
+                    Clicked="OnArsenalClicked"
+                    HorizontalOptions="Fill"
+                    IsVisible="True" />
+
+            <Button x:Name="gamelist"
+                    Text="Game List" 
+                    SemanticProperties.Hint="Goes to the game list page"
+                    Clicked="OnGameListClicked"
+                    HorizontalOptions="Fill"
+                    IsVisible="True" />
+
+            <Button x:Name="bluetooth"
+                    Text="Bluetooth" 
+                    SemanticProperties.Hint="Access bluetooth devices"
+                    Clicked="OnBluetoothClicked"
+                    HorizontalOptions="Fill"
+                    IsVisible="True" />
+
+            <Button x:Name="account"
+                    Text="Account" 
+                    SemanticProperties.Hint="takes you to the account page"
+                    Clicked="OnAccountClicked"
+                    HorizontalOptions="Fill"
+                    IsVisible="True" />
+
         </VerticalStackLayout>
     </ScrollView>
 

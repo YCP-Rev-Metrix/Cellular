@@ -69,6 +69,24 @@
 	  <Compile Update="BallArsenal.xaml.cs">
 	    <DependentUpon>BallArsenal.xaml</DependentUpon>
 	  </Compile>
+	  <Compile Update="Account.xaml.cs">
+		<DependentUpon>Account.xaml</DependentUpon>
+	  </Compile>
+	  <Compile Update="GameInterface.xaml.cs">
+	    <DependentUpon>GameInterface.xaml</DependentUpon>
+	  </Compile>
+	  <Compile Update="SessionSetup.xaml.cs">
+	    <DependentUpon>SessionSetup.xaml</DependentUpon>
+	  </Compile>
+	  <Compile Update="GameSetup.xaml.cs">
+	    <DependentUpon>GameSetup.xaml</DependentUpon>
+	  </Compile>
+	  <Compile Update="GameList.xaml.cs">
+	    <DependentUpon>GameList.xaml</DependentUpon>
+	  </Compile>
+	  <Compile Update="Bluetooth.xaml.cs">
+	    <DependentUpon>Bluetooth.xaml</DependentUpon>
+	  </Compile>
 	  <Compile Update="RegisterPage.xaml.cs">
 	    <DependentUpon>RegisterPage.xaml</DependentUpon>
 	  </Compile>
@@ -97,7 +115,25 @@
 	</ItemGroup>
 
 	<ItemGroup>
+	  <MauiXaml Update="GameInterface.xaml">
+	    <Generator>MSBuild:Compile</Generator>
+	  </MauiXaml>
+	  <MauiXaml Update="SessionSetup.xaml">
+	    <Generator>MSBuild:Compile</Generator>
+	  </MauiXaml>
+	  <MauiXaml Update="GameSetup.xaml">
+	    <Generator>MSBuild:Compile</Generator>
+	  </MauiXaml>
+	  <MauiXaml Update="GameList.xaml">
+	    <Generator>MSBuild:Compile</Generator>
+	  </MauiXaml>
 	  <MauiXaml Update="ClickerPage.xaml">
+	    <Generator>MSBuild:Compile</Generator>
+	  </MauiXaml>
+	  <MauiXaml Update="Account.xaml">
+		<Generator>MSBuild:Compile</Generator>
+	  </MauiXaml>
+	  <MauiXaml Update="Bluetooth.xaml">
 	    <Generator>MSBuild:Compile</Generator>
 	  </MauiXaml>
 	  <MauiXaml Update="RegisterPage.xaml">
