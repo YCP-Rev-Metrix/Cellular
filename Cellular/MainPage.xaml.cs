@@ -6,32 +6,40 @@ namespace Cellular
 {
     public partial class MainPage : ContentPage
     {
-        private readonly bool isLoggedIn;
-        private readonly MainViewModel viewModel;
+        private bool isLoggedIn;
+        private MainViewModel? viewModel;
 
-        // Readonly page instances (initialized in constructor)
-        private readonly BallArsenal arsenalPage;
-        private readonly GameList gameListPage;
-        private readonly Bluetooth bluetoothPage;
-        private readonly AccountPage accountPage;
+        private BallArsenal? arsenalPage;
+        private GameList? gameListPage;
+        private Bluetooth? bluetoothPage;
+        private AccountPage? accountPage;
 
         public MainPage()
         {
             InitializeComponent();
-            isLoggedIn = SecureStorage.GetAsync("IsLoggedIn").Result == "true"; // Use .Result to avoid async in constructor
+            InitializePageAsync();
+        }
+
+        private async void InitializePageAsync()
+        {
+            // Asynchronously get the login status from SecureStorage
+            var isLoggedInValue = await SecureStorage.GetAsync("IsLoggedIn");
+            isLoggedIn = isLoggedInValue == "true";
             UpdateUI();
+
+            // Initialize the ViewModel and pages
             viewModel = new MainViewModel();
             BindingContext = viewModel;
 
-            // Initialize readonly pages
             arsenalPage = new BallArsenal();
             gameListPage = new GameList();
             bluetoothPage = new Bluetooth();
             accountPage = new AccountPage();
         }
 
-        private void UpdateUI() // Sets which buttons show up when logged in or out
+        private void UpdateUI()
         {
+            // Set which buttons show up when logged in or out
             login.IsVisible = !isLoggedIn;
             register.IsVisible = !isLoggedIn;
             guest.IsVisible = !isLoggedIn;
@@ -56,6 +64,7 @@ namespace Cellular
 
         private async void OnGuestClicked(object sender, EventArgs e)
         {
+            // Set preferences for guest login
             Preferences.Set("IsLoggedIn", true);
             ((AppShell)Shell.Current).UpdateMenuForLoginStatus(true);
             Preferences.Set("UserName", "Guest"); // Stores the user's username
