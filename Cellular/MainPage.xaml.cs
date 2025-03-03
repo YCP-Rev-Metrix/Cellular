@@ -6,24 +6,31 @@ namespace Cellular
 {
     public partial class MainPage : ContentPage
     {
-        private bool isLoggedIn;
+        private readonly bool isLoggedIn;
         private readonly MainViewModel viewModel;
+
+        // Readonly page instances (initialized in constructor)
+        private readonly BallArsenal arsenalPage;
+        private readonly GameList gameListPage;
+        private readonly Bluetooth bluetoothPage;
+        private readonly AccountPage accountPage;
+
         public MainPage()
         {
             InitializeComponent();
-            LoadLoginState();
+            isLoggedIn = SecureStorage.GetAsync("IsLoggedIn").Result == "true"; // Use .Result to avoid async in constructor
             UpdateUI();
             viewModel = new MainViewModel();
-            BindingContext = viewModel; // Set ViewModel for data binding
+            BindingContext = viewModel;
+
+            // Initialize readonly pages
+            arsenalPage = new BallArsenal();
+            gameListPage = new GameList();
+            bluetoothPage = new Bluetooth();
+            accountPage = new AccountPage();
         }
 
-        private async void LoadLoginState()
-        {
-            isLoggedIn = await SecureStorage.GetAsync("IsLoggedIn") == "true";
-            UpdateUI();
-        }
-
-        private void UpdateUI()//Sets which buttons show up when loggen in or out
+        private void UpdateUI() // Sets which buttons show up when logged in or out
         {
             login.IsVisible = !isLoggedIn;
             register.IsVisible = !isLoggedIn;
@@ -50,35 +57,31 @@ namespace Cellular
         private async void OnGuestClicked(object sender, EventArgs e)
         {
             Preferences.Set("IsLoggedIn", true);
-
-            // Update menu and navigate to Home
             ((AppShell)Shell.Current).UpdateMenuForLoginStatus(true);
-
-            Preferences.Set("UserName", "Guest"); //stores the users username
+            Preferences.Set("UserName", "Guest"); // Stores the user's username
 
             await ((AppShell)Shell.Current).OnLoginSuccess();
-
             await Shell.Current.GoToAsync("//MainPage");
         }
 
         private async void OnArsenalClicked(object sender, EventArgs e)
         {
-            await Navigation.PushAsync(new BallArsenal());
+            await Navigation.PushAsync(arsenalPage);
         }
+
         private async void OnGameListClicked(object sender, EventArgs e)
         {
-            await Navigation.PushAsync(new GameList());
+            await Navigation.PushAsync(gameListPage);
         }
 
         private async void OnBluetoothClicked(object sender, EventArgs e)
         {
-            await Navigation.PushAsync(new Bluetooth());
+            await Navigation.PushAsync(bluetoothPage);
         }
 
         private async void OnAccountClicked(object sender, EventArgs e)
         {
-            await Navigation.PushAsync(new AccountPage());
+            await Navigation.PushAsync(accountPage);
         }
-
     }
 }
