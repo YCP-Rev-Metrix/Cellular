@@ -1,5 +1,6 @@
 ﻿using Cellular.Data;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Cellular
 {
@@ -17,6 +18,7 @@ namespace Cellular
                 });
 
             builder.Services.AddSingleton<CellularDatabase>();
+            builder.Services.AddSingleton<UserRepository>();
 
 #if DEBUG
             builder.Logging.AddDebug();

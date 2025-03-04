@@ -1,6 +1,7 @@
 ﻿using System;
 using Microsoft.Maui.Storage;
 using Cellular.ViewModel;
+using Cellular.Data;
 
 namespace Cellular
 {
@@ -13,6 +14,8 @@ namespace Cellular
         private GameList? gameListPage;
         private Bluetooth? bluetoothPage;
         private AccountPage? accountPage;
+        private RegisterPage? registerPage;
+        private LoginPage? loginPage;
 
         public MainPage()
         {
@@ -35,6 +38,8 @@ namespace Cellular
             gameListPage = new GameList();
             bluetoothPage = new Bluetooth();
             accountPage = new AccountPage();
+            registerPage = new RegisterPage();
+            loginPage = new LoginPage();
         }
 
         private void UpdateUI()
@@ -54,13 +59,14 @@ namespace Cellular
 
         private async void OnLoginClicked(object sender, EventArgs e)
         {
-            await Navigation.PushAsync(new LoginPage());
+            await Navigation.PushAsync(loginPage);
         }
 
         private async void OnRegisterClicked(object sender, EventArgs e)
         {
-            await Navigation.PushAsync(new RegisterPage());
+            await Navigation.PushAsync(registerPage);
         }
+
 
         private async void OnGuestClicked(object sender, EventArgs e)
         {
