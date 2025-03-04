@@ -1,15 +1,19 @@
 ﻿using Cellular.Data;
 using Cellular.ViewModel;
 using Microsoft.Maui.Storage;
-using SQLite;
+using System;
 
 namespace Cellular
 {
     public partial class RegisterPage : ContentPage
     {
+        private readonly UserRepository _userRepository;
+
+        // Constructor where we initialize the UserRepository
         public RegisterPage()
         {
             InitializeComponent();
+            _userRepository = new UserRepository(new CellularDatabase().GetConnection());
         }
 
         private async void OnRegisterClicked(object sender, EventArgs e)
@@ -34,7 +38,10 @@ namespace Cellular
             }
 
             // Get the user repository from the database
-            var userRepository = new UserRepository(DependencyService.Get<SQLiteAsyncConnection>());
+            var userRepository = new UserRepository(new CellularDatabase().GetConnection());
+
+            // Ensure the table exists before querying it
+            await userRepository.InitAsync();
 
             // Check if a user with the given username or email already exists
             var existingUserByUsername = await userRepository.GetUserByUsernameAsync(username);
@@ -78,7 +85,5 @@ namespace Cellular
                 await Shell.Current.GoToAsync("//MainPage");
             }
         }
-
     }
 }
-

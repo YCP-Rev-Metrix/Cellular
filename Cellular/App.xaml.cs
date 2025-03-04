@@ -1,4 +1,5 @@
 ﻿using Microsoft.Maui.Storage;
+using SQLite;
 
 namespace Cellular
 {
@@ -10,6 +11,8 @@ namespace Cellular
         {
             InitializeComponent();
             App.SetLogin();
+            // Register SQLite dependency
+            DependencyService.RegisterSingleton<SQLiteAsyncConnection>(new SQLiteAsyncConnection(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "appdata.db")));
         }
         protected override Window CreateWindow(IActivationState? activationState)
         {

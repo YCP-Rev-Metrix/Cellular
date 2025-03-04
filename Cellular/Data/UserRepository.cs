@@ -11,13 +11,13 @@ namespace Cellular.Data
     {
         private readonly SQLiteAsyncConnection _conn;
 
-        // Constructor
+        // Constructor initializes the SQLiteAsyncConnection
         public UserRepository(SQLiteAsyncConnection conn)
         {
-            _conn = conn ?? throw new ArgumentNullException(nameof(conn)); // Ensure the connection is not null
+            _conn = conn ?? throw new ArgumentNullException(nameof(conn));
         }
 
-        // Initialize the database connection and create the table asynchronously
+        // Initialize the database and create the table asynchronously
         public async Task InitAsync()
         {
             Console.WriteLine("Init method called");
