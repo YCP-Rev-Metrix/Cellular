@@ -38,6 +38,24 @@
                 MaxLength="20"
                 Style="{DynamicResource CommonEntryStyle}"/>
 
+            <Entry
+                x:Name="entryFirstName"
+                Placeholder="Firstname"
+                MaxLength="20"
+                Style="{DynamicResource CommonEntryStyle}"/>
+
+            <Entry
+                x:Name="entryLastName"
+                Placeholder="Lastname"
+                MaxLength="20"
+                Style="{DynamicResource CommonEntryStyle}"/>
+
+            <Entry
+                x:Name="entryEmail"
+                Placeholder="Email"
+                MaxLength="20"
+                Style="{DynamicResource CommonEntryStyle}"/>
+
             <Button
                 x:Name="Register"
                 Text="Register" 
