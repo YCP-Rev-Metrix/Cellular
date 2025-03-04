@@ -9,13 +9,14 @@ namespace Cellular
             InitializeComponent();
         }
 
-        private void OnSignoutClicked(object sender, EventArgs e)
+        private async void OnSignoutClicked(object sender, EventArgs e)
         {
-             Preferences.Set("IsLoggedIn", false);
+            await SecureStorage.SetAsync("IsLoggedIn", "false");
 
-             // Update menu and navigate to Home after logging out
-             ((AppShell)Shell.Current).UpdateMenuForLoginStatus(false);
-             Shell.Current.GoToAsync("//MainPage");
+            // Update menu and navigate to Home after logging out
+            ((AppShell)Shell.Current).UpdateMenuForLoginStatus(false);
+
+             await Shell.Current.GoToAsync("//MainPage");
         }
 
         private void OnStatsClicked(object sender, EventArgs e)
