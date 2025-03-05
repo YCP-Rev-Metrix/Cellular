@@ -2,6 +2,7 @@
 using System;
 using System.IO;
 using System.Threading.Tasks;
+using System.Collections.Generic;
 using Microsoft.Maui.Storage;
 using Cellular.ViewModel;
 
@@ -11,55 +12,71 @@ namespace Cellular.Data
     {
         private readonly SQLiteAsyncConnection _database;
 
-        // Constructor initializes the SQLiteAsyncConnection
         public CellularDatabase()
         {
             var dbPath = Path.Combine(FileSystem.AppDataDirectory, "appdata.db");
             _database = new SQLiteAsyncConnection(dbPath);
         }
 
-        // Initialize the database and create table asynchronously
         public async Task InitializeAsync()
         {
-            // Create the User table if it doesn't exist
             await _database.CreateTableAsync<User>();
+            await ImportUsersFromCsvAsync();
+        }
 
-            // Optionally, check if the default user exists and create one if not
-            var existingUser = await _database.Table<User>().FirstOrDefaultAsync(u => u.UserName == "string");
+        private async Task ImportUsersFromCsvAsync()
+        {
+            var csvFileName = "users.csv"; // File in Resources/Raw
 
-            // Hardcoded "string" user is used for testing or initial setup
-            if (existingUser == null)
+            try
             {
-                var defaultUser = new User
+                using var stream = await FileSystem.OpenAppPackageFileAsync(csvFileName);
+                using var reader = new StreamReader(stream);
+
+                var users = new List<User>();
+                while (!reader.EndOfStream)
                 {
-                    UserName = "string", // Example username
-                    Password = "string", // Example password
-                    FirstName = "Default",
-                    LastName = "User",
-                    Email = "defaultuser@example.com",
-                    BallList = null,
-                    LastLogin = DateTime.Now
-                };
+                    var line = await reader.ReadLineAsync();
+                    var data = line?.Split(',');
 
-                await _database.InsertAsync(defaultUser);
-                Console.WriteLine("Default user added.");
+                    if (data == null || data.Length < 6) continue; // Ensure valid data
+
+                    var user = new User
+                    {
+                        UserName = data[0].Trim(),
+                        Password = data[1].Trim(),
+                        FirstName = data[2].Trim(),
+                        LastName = data[3].Trim(),
+                        Email = data[4].Trim(),
+                        BallList = data[5].Trim(),
+                        LastLogin = DateTime.TryParse(data[5].Trim(), out DateTime lastLogin) ? lastLogin : DateTime.Now
+                    };
+
+                    var existingUser = await _database.Table<User>().FirstOrDefaultAsync(u => u.UserName == user.UserName);
+                    if (existingUser == null)
+                    {
+                        users.Add(user);
+                    }
+                }
+
+                if (users.Count > 0)
+                {
+                    await _database.InsertAllAsync(users);
+                    Console.WriteLine("Users imported successfully.");
+                }
+                else
+                {
+                    Console.WriteLine("No new users to import.");
+                }
             }
-            else
+            catch (Exception ex)
             {
-                Console.WriteLine("User with username 'string' already exists.");
+                Console.WriteLine($"Error reading CSV: {ex.Message}");
             }
         }
 
-        // Return the database connection for external usage
-        public SQLiteAsyncConnection GetConnection()
-        {
-            return _database;
-        }
+        public SQLiteAsyncConnection GetConnection() => _database;
 
-        // Create and return a new UserRepository with the database connection
-        public UserRepository CreateUserRepository()
-        {
-            return new UserRepository(_database);
-        }
+        public UserRepository CreateUserRepository() => new(_database);
     }
 }
