@@ -18,6 +18,11 @@
                 Style="{StaticResource Headline}"
                 SemanticProperties.HeadingLevel="Level1" />
 
+            <Button
+                Text="Go To Interface"
+                Clicked="OnGameClicked"
+                HorizontalOptions="Fill" />
+
 
         </VerticalStackLayout>
     </ScrollView>
