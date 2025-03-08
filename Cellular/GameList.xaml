@@ -1,7 +1,9 @@
 ﻿<?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-             x:Class="Cellular.GameList">
+             x:Class="Cellular.GameList"
+             xmlns:local="clr-namespace:Cellular.ViewModel"
+             x:DataType="local:GameListViewModel">
 
     <ScrollView>
         <VerticalStackLayout
@@ -15,13 +17,18 @@
 
             <Label
                 Text="text"
+                x:Name="labelname"
                 Style="{StaticResource Headline}"
                 SemanticProperties.HeadingLevel="Level1" />
 
             <Button
-                Text="Go To Interface"
+                Text="Test Interface"
                 Clicked="OnGameClicked"
                 HorizontalOptions="Fill" />
+
+            <StackLayout Orientation="Vertical" x:Name="_sessionlist">
+                
+            </StackLayout>
 
 
         </VerticalStackLayout>

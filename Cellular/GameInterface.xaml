@@ -6,22 +6,25 @@
              x:DataType="local:GameInterfaceViewModel">
 
     <ScrollView>
-        <Grid>
+        <Grid HorizontalOptions="Center" VerticalOptions="Start">
             <Grid.RowDefinitions>
-                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
                 <RowDefinition Height="*" />
                 <RowDefinition Height="*" />
                 <RowDefinition Height="*" />
             </Grid.RowDefinitions>
 
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="Auto" />
-                <ColumnDefinition Width="Auto" />
-                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="100" />
+                <ColumnDefinition Width="300" />
+                <ColumnDefinition Width="100" />
             </Grid.ColumnDefinitions>
 
             <!-- Player Picker -->
-            <StackLayout Grid.Row="0" Grid.Column="0">
+            <StackLayout Grid.Row="0" Grid.Column="0" VerticalOptions="Start" HorizontalOptions="Center">
+                <Label>
+                    Player
+                </Label>
                 <Picker Height="20" Width="100" ItemsSource="{Binding Players}"></Picker>
             </StackLayout>
 
@@ -54,6 +57,53 @@
                 <Button Text="_"></Button>
                 <Button Text="/"></Button>
                 <Button Text="X"></Button>
+            </StackLayout>
+            
+            <!-- Board Selector -->
+            <StackLayout Grid.Row="2" Grid.Column="1">
+                <Slider>
+                    
+                </Slider>
+            </StackLayout>
+            
+            <!-- Ball Selectors -->
+            <StackLayout Grid.Row="1" Grid.Column="0" Orientation="Vertical">
+                <StackLayout Orientation="Vertical">
+                    <Label>1st Ball</Label>
+                    <Picker Height="20" Width="100" ItemsSource="{Binding Arsenal}"></Picker>
+                </StackLayout>
+                <StackLayout Orientation="Vertical">
+                    <Label>2nd Ball</Label>
+                    <Picker Height="20" Width="100" ItemsSource="{Binding Arsenal}"></Picker>
+                </StackLayout>
+            </StackLayout>
+            
+            <!-- Comments Button -->
+            <StackLayout Grid.Row="2" Grid.Column="0">
+                <Button Text="Comment">
+                    
+                </Button>
+            </StackLayout>
+            
+            <!-- Frame Preview -->
+            <StackLayout Grid.Row="3" Grid.Column="1">
+                <CarouselView ItemsSource="{Binding Frames}" IndicatorView="frameIndicator" PeekAreaInsets="100" MaximumHeightRequest="150" MaximumWidthRequest="400">
+                    <CarouselView.ItemTemplate>
+                        <DataTemplate x:DataType="local:Frame">
+                            <StackLayout MaximumWidthRequest="600">
+                                <Border Stroke="DarkGray" StrokeShape="RoundRectangle 5" Margin="20" Padding="20" HeightRequest="100" HorizontalOptions="Center" VerticalOptions="Center">
+                                    <StackLayout>
+                                        <Label Text="{Binding frameNumber}" HorizontalOptions="Center"/>
+                                        <Label Text="{Binding rollingScore}" HorizontalOptions="Center"/>
+                                    </StackLayout>
+                                </Border>
+                            </StackLayout>
+                        </DataTemplate>
+                    </CarouselView.ItemTemplate>
+                </CarouselView>
+                <IndicatorView x:Name="frameIndicator" IndicatorColor="LightGray" SelectedIndicatorColor="DarkGray" HorizontalOptions="Center">
+                    
+                </IndicatorView>
             </StackLayout>
         </Grid>
     </ScrollView>
