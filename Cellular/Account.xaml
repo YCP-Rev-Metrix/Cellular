@@ -50,6 +50,12 @@
                 Clicked="OnStatsClicked" />
 
             <Button
+                x:Name="editAccountButton"
+                Text="Edit Account Info"
+                SemanticProperties.Hint="Allows the user to edit their account info"
+                Clicked="OnEditAccountClicked" />
+
+            <Button
                 x:Name="signout"
                 Text="Sign Out" 
                 SemanticProperties.Hint="Signs the user out"

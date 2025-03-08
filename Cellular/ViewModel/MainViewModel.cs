@@ -1,14 +1,16 @@
-﻿using System.ComponentModel;
+﻿using System;
+using System.ComponentModel;
+using System.IO;
 using System.Runtime.CompilerServices;
+using System.Threading.Tasks;
 using Microsoft.Maui.Storage;
 using SQLite;
-using System.IO;
 
 namespace Cellular.ViewModel
 {
     internal partial class MainViewModel : INotifyPropertyChanged
     {
-        private readonly SQLiteConnection _database;
+        private readonly SQLiteAsyncConnection _database;
         private string? _userName;
         private string? _password;
         private string? _firstName;
@@ -20,9 +22,12 @@ namespace Cellular.ViewModel
             get => _userName ?? "Guest";
             set
             {
-                _userName = value;
-                OnPropertyChanged();
-                LoadUserData(); // Load user info when username changes
+                if (_userName != value)
+                {
+                    _userName = value;
+                    OnPropertyChanged();
+                    LoadUserData(); // Load user info when username changes
+                }
             }
         }
 
@@ -31,8 +36,11 @@ namespace Cellular.ViewModel
             get => _password ?? "N/A";
             set
             {
-                _password = value;
-                OnPropertyChanged();
+                if (_password != value)
+                {
+                    _password = value;
+                    OnPropertyChanged();
+                }
             }
         }
 
@@ -41,8 +49,11 @@ namespace Cellular.ViewModel
             get => _firstName ?? "N/A";
             set
             {
-                _firstName = value;
-                OnPropertyChanged();
+                if (_firstName != value)
+                {
+                    _firstName = value;
+                    OnPropertyChanged();
+                }
             }
         }
 
@@ -51,8 +62,11 @@ namespace Cellular.ViewModel
             get => _lastName ?? "N/A";
             set
             {
-                _lastName = value;
-                OnPropertyChanged();
+                if (_lastName != value)
+                {
+                    _lastName = value;
+                    OnPropertyChanged();
+                }
             }
         }
 
@@ -61,19 +75,22 @@ namespace Cellular.ViewModel
             get => _email ?? "N/A";
             set
             {
-                _email = value;
-                OnPropertyChanged();
+                if (_email != value)
+                {
+                    _email = value;
+                    OnPropertyChanged();
+                }
             }
         }
 
         public MainViewModel()
         {
-            // Initialize SQLite connection
+            // Initialize SQLite async connection
             string dbPath = Path.Combine(FileSystem.AppDataDirectory, "appdata.db");
-            _database = new SQLiteConnection(dbPath);
-            _database.CreateTable<User>();
+            _database = new SQLiteAsyncConnection(dbPath);
+            _database.CreateTableAsync<User>().Wait(); // Initialize the table asynchronously
 
-            // Load stored username
+            // Load stored username from Preferences
             UserName = Preferences.Get("UserName", "Guest");
         }
 
@@ -81,14 +98,14 @@ namespace Cellular.ViewModel
         {
             UserName = newName;
             Preferences.Set("UserName", newName);
-            LoadUserData(); // Reload user details
+            LoadUserData(); // Reload user details when the username changes
         }
 
-        private void LoadUserData()
+        private async void LoadUserData()
         {
+            // If user is "Guest", reset all fields to N/A
             if (UserName == "Guest")
             {
-                // If Guest, reset all fields to N/A
                 Password = "N/A";
                 FirstName = "N/A";
                 LastName = "N/A";
@@ -96,7 +113,8 @@ namespace Cellular.ViewModel
                 return;
             }
 
-            var user = _database.Table<User>().FirstOrDefault(u => u.UserName == UserName);
+            // Retrieve user details asynchronously from the database
+            var user = await _database.Table<User>().FirstOrDefaultAsync(u => u.UserName == UserName);
 
             if (user != null)
             {
@@ -107,6 +125,7 @@ namespace Cellular.ViewModel
             }
             else
             {
+                // If no user found, reset to N/A
                 Password = "N/A";
                 FirstName = "N/A";
                 LastName = "N/A";
@@ -117,8 +136,9 @@ namespace Cellular.ViewModel
             }
         }
 
-
+        // INotifyPropertyChanged implementation
         public event PropertyChangedEventHandler? PropertyChanged;
+
         protected void OnPropertyChanged([CallerMemberName] string? propertyName = null)
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName ?? string.Empty));

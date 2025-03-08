@@ -70,6 +70,9 @@
 	</ItemGroup>
 
 	<ItemGroup>
+	  <Compile Update="EditAccount.xaml.cs">
+	    <DependentUpon>EditAccount.xaml</DependentUpon>
+	  </Compile>
 	  <Compile Update="BallArsenal.xaml.cs">
 	    <DependentUpon>BallArsenal.xaml</DependentUpon>
 	  </Compile>
@@ -100,6 +103,9 @@
 	</ItemGroup>
 
 	<ItemGroup>
+	  <MauiXaml Update="EditAccount.xaml">
+	    <Generator>MSBuild:Compile</Generator>
+	  </MauiXaml>
 	  <MauiXaml Update="AppShell.xaml">
 	    <Generator>MSBuild:Compile</Generator>
 	  </MauiXaml>

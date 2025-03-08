@@ -2,25 +2,20 @@ using Cellular.ViewModel;
 using SQLite;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 
 namespace Cellular.Data
 {
-    public class UserRepository
+    public class UserRepository(SQLiteAsyncConnection conn)
     {
-        private readonly SQLiteAsyncConnection _conn;
+        private readonly SQLiteAsyncConnection _conn = conn ?? throw new ArgumentNullException(nameof(conn));
 
-        // Constructor initializes the SQLiteAsyncConnection
-        public UserRepository(SQLiteAsyncConnection conn)
-        {
-            _conn = conn ?? throw new ArgumentNullException(nameof(conn));
-        }
 
         // Initialize the database and create the table asynchronously
         public async Task InitAsync()
         {
-            Console.WriteLine("Init method called");
             await _conn.CreateTableAsync<User>();  // Create the table if it doesn't exist
         }
 
@@ -31,10 +26,7 @@ namespace Cellular.Data
         }
 
         // Get all users from the database asynchronously
-        public async Task<List<User>> GetAllUsersAsync()
-        {
-            return await _conn.Table<User>().ToListAsync();  // Retrieve all users from the table
-        }
+        public async Task<List<User>> GetAllUsersAsync() => await _conn.Table<User>().ToListAsync();  // Retrieve all users from the table
 
         // Delete a user from the database by ID asynchronously
         public async Task DeleteAsync(int id)
@@ -43,11 +35,10 @@ namespace Cellular.Data
             await _conn.DeleteAsync(userToDelete);
         }
 
-        // Update a user's ball list asynchronously
-        public async Task EditBallListAsync(User user, string ballList)
+        // Update a user's details asynchronously
+        public async Task UpdateUserAsync(User user)
         {
-            user.BallList = ballList;
-            await _conn.UpdateAsync(user);
+            await _conn.UpdateAsync(user);  // Update the user in the database
         }
 
         // Get a user by credentials asynchronously
@@ -59,8 +50,10 @@ namespace Cellular.Data
         // Get a user by username asynchronously
         public async Task<User?> GetUserByUsernameAsync(string username)
         {
+
             return await _conn.Table<User>().FirstOrDefaultAsync(u => u.UserName == username);
         }
+
 
         // Get a user by email asynchronously
         public async Task<User?> GetUserByEmailAsync(string email)
