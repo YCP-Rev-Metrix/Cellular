@@ -1,4 +1,4 @@
-﻿using Microsoft.Maui.Storage;
+﻿using Cellular.ViewModel;
 
 namespace Cellular
 {
@@ -7,6 +7,7 @@ namespace Cellular
         public AccountPage()
         {
             InitializeComponent();
+            BindingContext = new MainViewModel();
         }
 
         private async void OnSignoutClicked(object sender, EventArgs e)

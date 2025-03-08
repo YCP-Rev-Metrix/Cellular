@@ -1,7 +1,9 @@
 ﻿<?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-             x:Class="Cellular.AccountPage">
+             x:Class="Cellular.AccountPage"
+             xmlns:viewModel="clr-namespace:Cellular.ViewModel"
+             x:DataType="viewModel:MainViewModel">
 
     <ScrollView>
         <VerticalStackLayout
@@ -18,6 +20,28 @@
                 Style="{StaticResource Headline}"
                 SemanticProperties.HeadingLevel="Level1" />
 
+            <HorizontalStackLayout HorizontalOptions="Center" Spacing="5">
+                <Label Text="Username: " FontSize="18"/>
+
+                <Label Text="{Binding UserName}" FontSize="18" FontAttributes="Bold"
+                    x:Name="user"/>
+            </HorizontalStackLayout>
+
+            <!-- Display account info -->
+            <HorizontalStackLayout HorizontalOptions="Center" Spacing="5">
+                <Label Text="First Name: " FontSize="18"/>
+                <Label Text="{Binding FirstName} " FontSize="18" FontAttributes="Bold"/>
+            </HorizontalStackLayout>
+
+            <HorizontalStackLayout HorizontalOptions="Center" Spacing="5">
+                <Label Text="Last Name: " FontSize="18"/>
+                <Label Text="{Binding LastName} " FontSize="18" FontAttributes="Bold"/>
+            </HorizontalStackLayout>
+
+            <HorizontalStackLayout HorizontalOptions="Center" Spacing="5">
+                <Label Text="Email: " FontSize="18"/>
+                <Label Text="{Binding Email}" FontSize="18" FontAttributes="Bold"/>
+            </HorizontalStackLayout>
 
             <Button
                 x:Name="stats"

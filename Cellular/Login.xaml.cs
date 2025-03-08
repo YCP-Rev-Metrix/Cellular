@@ -32,6 +32,10 @@ namespace Cellular
 
                 Preferences.Set("UserName", username); // Store the user's username
 
+                // Call the method that sets up the user data in MainViewModel
+                var mainViewModel = new MainViewModel();
+                mainViewModel.UserName = username;
+
                 await ((AppShell)Shell.Current).OnLoginSuccess();
 
                 await Shell.Current.GoToAsync("//MainPage");
