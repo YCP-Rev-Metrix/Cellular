@@ -21,7 +21,7 @@
             <!-- Username -->
             <HorizontalStackLayout HorizontalOptions="Center" Spacing="5">
                 <Label Text="Username: " FontSize="18"/>
-                <Entry x:Name="entryUsername" Text="{Binding UserName}" FontSize="18"/>
+                <Entry x:Name="entryUsername" Text="{Binding NewUserName}" FontSize="18"/>
             </HorizontalStackLayout>
 
             <!-- First Name -->

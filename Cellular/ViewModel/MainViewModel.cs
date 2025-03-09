@@ -11,11 +11,29 @@ namespace Cellular.ViewModel
     internal partial class MainViewModel : INotifyPropertyChanged
     {
         private readonly SQLiteAsyncConnection _database;
+        private int? _userID;
         private string? _userName;
         private string? _password;
         private string? _firstName;
         private string? _lastName;
         private string? _email;
+        public string? _newUserName;
+
+
+        public int? UserID
+        {
+            get => _userID;
+            set
+            {
+                if (_userID != value)
+                {
+                    _userID = value;
+                    OnPropertyChanged();
+                    LoadUserData();
+                }
+            }
+        }
+
 
         public string UserName
         {
@@ -26,7 +44,20 @@ namespace Cellular.ViewModel
                 {
                     _userName = value;
                     OnPropertyChanged();
-                    LoadUserData(); // Load user info when username changes
+                    LoadUserData();
+                }
+            }
+        }
+
+        public string NewUserName
+        {
+            get => _newUserName ?? UserName;
+            set
+            {
+                if (_newUserName != value)
+                {
+                    _newUserName = value;
+                    OnPropertyChanged();
                 }
             }
         }
@@ -118,6 +149,7 @@ namespace Cellular.ViewModel
 
             if (user != null)
             {
+                UserID = user.UserId;
                 Password = user.Password ?? "N/A";
                 FirstName = user.FirstName ?? "N/A";
                 LastName = user.LastName ?? "N/A";
@@ -126,6 +158,7 @@ namespace Cellular.ViewModel
             else
             {
                 // If no user found, reset to N/A
+                UserID = null;
                 Password = "N/A";
                 FirstName = "N/A";
                 LastName = "N/A";

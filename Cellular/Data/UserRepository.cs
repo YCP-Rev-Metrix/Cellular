@@ -60,5 +60,11 @@ namespace Cellular.Data
         {
             return await _conn.Table<User>().FirstOrDefaultAsync(u => u.Email == email);
         }
+
+        public async Task<User?> GetUserByIdAsync(int userId)
+        {
+            return await _conn.Table<User>().FirstOrDefaultAsync(u => u.UserId == userId);
+        }
+
     }
 }
