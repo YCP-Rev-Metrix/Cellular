@@ -73,7 +73,18 @@
                 </Border>
             </Grid>
 
+            <ListView x:Name="BallsListView">
+                <ListView.ItemTemplate>
+                    <DataTemplate>
+                        <TextCell Text="{Binding Text}" Detail="{Binding Date}"/>
+                    </DataTemplate>
+                </ListView.ItemTemplate>
+            </ListView>
+
         </VerticalStackLayout>
     </ScrollView>
+
+    
+
 
 </ContentPage>

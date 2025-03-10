@@ -25,5 +25,17 @@ namespace Cellular.Data
         {
             await _database.CreateTableAsync<User>();
         }
+
+        public Task<int> SaveBallAsync(Ball ball)
+        {
+            return _database.InsertAsync(ball);
+        }
+
+
+
+        public Task<List<Ball>> GetBallsAsync()
+        {
+            return _database.Table<Ball>().ToListAsync();
+        }
     }
 }

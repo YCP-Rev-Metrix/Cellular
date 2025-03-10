@@ -28,6 +28,8 @@ namespace Cellular
             var databaseService = scope.ServiceProvider.GetRequiredService<CellularDatabase>();
             Task.Run(async () => await databaseService.InitializeAsync()).Wait();
 
+
+
             return app;
         }
     }
