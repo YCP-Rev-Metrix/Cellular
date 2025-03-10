@@ -21,7 +21,7 @@
                 <Label Text="Welcome," FontSize="18" 
                        x:Name="welcome"/>
 
-                <Label Text="{Binding UserName}" FontSize="18" FontAttributes="Bold"
+                <Label Text="{Binding FirstName}" FontSize="18" FontAttributes="Bold"
                     x:Name="user"/>
             </HorizontalStackLayout>
 
