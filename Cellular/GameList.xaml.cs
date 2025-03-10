@@ -31,7 +31,7 @@ namespace Cellular
                 Button sessionButton = new Button { Text = x };
                 sessionButton.Clicked += OnSessionClicked;
                 _sessionlist.Children.Add(sessionButton);
-                StackLayout sessiongames = new StackLayout { IsVisible = false };
+                StackLayout sessiongames = new StackLayout { IsVisible = false, Padding = 20 };
                 sessionGames.Add(x, sessiongames);
 
                 foreach ((string session, string gamename) y in viewModel.Games)
