@@ -1,40 +1,70 @@
 using Cellular.ViewModel;
 using SQLite;
-namespace Cellular.Data;
+using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.Linq;
+using System.Threading.Tasks;
 
-public class UserRepository(string dbPath)
+namespace Cellular.Data
 {
-    private readonly string _dbPath = dbPath;
-    private SQLiteConnection? conn;
+    public class UserRepository(SQLiteAsyncConnection conn)
+    {
+        private readonly SQLiteAsyncConnection _conn = conn ?? throw new ArgumentNullException(nameof(conn));
 
-    public void Init()
-    {
-        conn = new SQLiteConnection(_dbPath);
-        conn.CreateTable<User>();
-    }
-    
-    public void Add(User user)
-    {
-        conn = new SQLiteConnection(_dbPath);
-        conn.Insert(user);
-    }
-    
-    public List<User> GetAllUsers()
-    {
-        Init();
-        return [.. conn.Table<User>()];
-    }
-    public void Delete(int id)
-    {
-        conn = new SQLiteConnection(_dbPath);
-        conn.Delete(new User {UserId=id});
-        
-    }
 
-    public void EditBallList(User user, string ballList)
-    {   
-        user.BallList = ballList;
-        conn = new SQLiteConnection(_dbPath);
-        conn.Update(user);
+        // Initialize the database and create the table asynchronously
+        public async Task InitAsync()
+        {
+            await _conn.CreateTableAsync<User>();  // Create the table if it doesn't exist
+        }
+
+        // Add a user to the database asynchronously
+        public async Task AddAsync(User user)
+        {
+            await _conn.InsertAsync(user);
+        }
+
+        // Get all users from the database asynchronously
+        public async Task<List<User>> GetAllUsersAsync() => await _conn.Table<User>().ToListAsync();  // Retrieve all users from the table
+
+        // Delete a user from the database by ID asynchronously
+        public async Task DeleteAsync(int id)
+        {
+            var userToDelete = new User { UserId = id };
+            await _conn.DeleteAsync(userToDelete);
+        }
+
+        // Update a user's details asynchronously
+        public async Task UpdateUserAsync(User user)
+        {
+            await _conn.UpdateAsync(user);  // Update the user in the database
+        }
+
+        // Get a user by credentials asynchronously
+        public async Task<User?> GetUserByCredentialsAsync(string username, string password)
+        {
+            return await _conn.Table<User>().FirstOrDefaultAsync(u => u.UserName == username && u.Password == password);
+        }
+
+        // Get a user by username asynchronously
+        public async Task<User?> GetUserByUsernameAsync(string username)
+        {
+
+            return await _conn.Table<User>().FirstOrDefaultAsync(u => u.UserName == username);
+        }
+
+
+        // Get a user by email asynchronously
+        public async Task<User?> GetUserByEmailAsync(string email)
+        {
+            return await _conn.Table<User>().FirstOrDefaultAsync(u => u.Email == email);
+        }
+
+        public async Task<User?> GetUserByIdAsync(int userId)
+        {
+            return await _conn.Table<User>().FirstOrDefaultAsync(u => u.UserId == userId);
+        }
+
     }
 }

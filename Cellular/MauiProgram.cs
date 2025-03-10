@@ -1,5 +1,6 @@
 ﻿using Cellular.Data;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Cellular
 {
@@ -16,7 +17,9 @@ namespace Cellular
                     fonts.AddFont("OpenSans-Semibold.ttf", "OpenSansSemibold");
                 });
 
-            builder.Services.AddSingleton<CellularDatabase>();
+            // Register services with dependency injection (DI)
+            builder.Services.AddSingleton<CellularDatabase>(); // Register CellularDatabase as a Singleton
+            builder.Services.AddSingleton<UserRepository>();
 
 #if DEBUG
             builder.Logging.AddDebug();
@@ -24,9 +27,12 @@ namespace Cellular
 
             var app = builder.Build();
 
-            using var scope = app.Services.CreateScope();
-            var databaseService = scope.ServiceProvider.GetRequiredService<CellularDatabase>();
-            Task.Run(async () => await databaseService.InitializeAsync()).Wait();
+            // Initialize the database asynchronously
+            using (var scope = app.Services.CreateScope())
+            {
+                var databaseService = scope.ServiceProvider.GetRequiredService<CellularDatabase>();
+                Task.Run(async () => await databaseService.InitializeAsync()).Wait();
+            }
 
 
 

@@ -1,38 +1,89 @@
-﻿using Microsoft.Maui.Storage;
+﻿using Cellular.Data;
+using Cellular.ViewModel;
+using Microsoft.Maui.Storage;
+using System;
 
 namespace Cellular
 {
     public partial class RegisterPage : ContentPage
     {
+        private readonly UserRepository _userRepository;
+
+        // Constructor where we initialize the UserRepository
         public RegisterPage()
         {
             InitializeComponent();
+            _userRepository = new UserRepository(new CellularDatabase().GetConnection());
         }
 
-        private void OnRegisterClicked(object sender, EventArgs e)
+        private async void OnRegisterClicked(object sender, EventArgs e)
         {
             string username = entryUsername.Text;
             string password = entryPassword.Text;
             string cpassword = entryConfirmPassword.Text;
+            string firstName = entryFirstName.Text;
+            string lastName = entryLastName.Text;
+            string email = entryEmail.Text;
 
-            // checks for username existing
-            if (username == "string")
+            // Check if any field is empty
+            if (string.IsNullOrWhiteSpace(username) ||
+                string.IsNullOrWhiteSpace(password) ||
+                string.IsNullOrWhiteSpace(cpassword) ||
+                string.IsNullOrWhiteSpace(firstName) ||
+                string.IsNullOrWhiteSpace(lastName) ||
+                string.IsNullOrWhiteSpace(email))
             {
-                DisplayAlert("Registration Error", "User already exists", "OK");
+                await DisplayAlert("Registration Error", "Please fill in all fields", "OK");
+                return;
+            }
+
+            // Get the user repository from the database
+            var userRepository = new UserRepository(new CellularDatabase().GetConnection());
+
+            // Ensure the table exists before querying it
+            await userRepository.InitAsync();
+
+            // Check if a user with the given username or email already exists
+            var existingUserByUsername = await userRepository.GetUserByUsernameAsync(username);
+            var existingUserByEmail = await userRepository.GetUserByEmailAsync(email);
+
+            // Check if the username or email already exists in the database
+            if (existingUserByUsername != null)
+            {
+                await DisplayAlert("Registration Error", "Username already exists", "OK");
+            }
+            else if (existingUserByEmail != null)
+            {
+                await DisplayAlert("Registration Error", "Email already exists", "OK");
             }
             else if (password != cpassword)
             {
-                DisplayAlert("Registration Error", "Passwords do not match", "OK");
+                await DisplayAlert("Registration Error", "Passwords do not match", "OK");
             }
             else
             {
-                Preferences.Set("IsLoggedIn", true);
+                // Create a new user
+                var newUser = new User
+                {
+                    UserName = username,
+                    Password = password,
+                    FirstName = firstName,
+                    LastName = lastName,
+                    Email = email,
+                    LastLogin = DateTime.Now
+                };
 
-                // Update menu and navigate to Home
+                // Add the new user to the database
+                await userRepository.AddAsync(newUser);
+
+                // Set the user as logged in
+                Preferences.Set("IsLoggedIn", true);
+                Preferences.Set("UserName", username);
+
+                // Update the menu and navigate to Home
                 ((AppShell)Shell.Current).UpdateMenuForLoginStatus(true);
-                Shell.Current.GoToAsync("//MainPage");
+                await Shell.Current.GoToAsync("//MainPage");
             }
         }
     }
 }
-

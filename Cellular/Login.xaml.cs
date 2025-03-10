@@ -1,12 +1,18 @@
-﻿using Microsoft.Maui.Storage;
+﻿using Cellular.Data;
+using Cellular.ViewModel;
+using Microsoft.Maui.Storage;
 
 namespace Cellular
 {
     public partial class LoginPage : ContentPage
     {
+        private readonly UserRepository _userRepository;
+
+        // Constructor where we initialize the UserRepository
         public LoginPage()
         {
             InitializeComponent();
+            _userRepository = new UserRepository(new CellularDatabase().GetConnection());
         }
 
         private async void OnLoginClicked(object sender, EventArgs e)
@@ -14,18 +20,19 @@ namespace Cellular
             string username = entryUsername.Text;
             string password = entryPassword.Text;
 
-            // Hardcoded credentials
-            if (username == "string" && password == "string")
+            var user = await _userRepository.GetUserByCredentialsAsync(username, password);
+
+            if (user != null)
             {
                 Preferences.Set("IsLoggedIn", true);
+                Preferences.Set("UserId", user.UserId); // Store UserId properly
 
-                // Update menu and navigate to Home
                 ((AppShell)Shell.Current).UpdateMenuForLoginStatus(true);
 
-                Preferences.Set("UserName", username); //stores the users username
+                var mainViewModel = new MainViewModel();
+                mainViewModel.UserID = user.UserId; // Set UserId instead of UserName
 
                 await ((AppShell)Shell.Current).OnLoginSuccess();
-
                 await Shell.Current.GoToAsync("//MainPage");
             }
             else
@@ -34,10 +41,10 @@ namespace Cellular
             }
         }
 
+
         private void OnRegisterTapped(object sender, EventArgs e)
         {
             Navigation.PushAsync(new RegisterPage());
         }
     }
 }
-
