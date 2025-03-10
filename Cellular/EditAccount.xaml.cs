@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using System.Text.RegularExpressions;
 using Cellular.Data;
 using Cellular.ViewModel;
 
@@ -33,6 +34,7 @@ namespace Cellular
                 _viewModel.FirstName = user.FirstName ?? "N/A";
                 _viewModel.LastName = user.LastName ?? "N/A";
                 _viewModel.Email = user.Email ?? "N/A";
+                _viewModel.PhoneNumber = user.PhoneNumber ?? "N/A";
             }
             else
             {
@@ -50,7 +52,6 @@ namespace Cellular
                 return;
             }
 
-            // Fetch the user using UserID instead of UserName
             var user = await _userRepository.GetUserByIdAsync(_viewModel.UserID.Value);
 
             if (user == null)
@@ -59,33 +60,28 @@ namespace Cellular
                 return;
             }
 
-            // Update the user's details
+            // Update user details
             user.UserName = entryUsername.Text;
             user.FirstName = entryFirstName.Text;
             user.LastName = entryLastName.Text;
             user.Email = entryEmail.Text;
+            user.PhoneNumber = entryPhone.Text;
 
             if (!string.IsNullOrEmpty(newPasswordEntry.Text))
             {
                 user.Password = newPasswordEntry.Text;
             }
 
-            // Save changes in the database
             await _userRepository.UpdateUserAsync(user);
 
-            // Update ViewModel with new values
+            // Update ViewModel
             _viewModel.UserName = user.UserName;
             _viewModel.FirstName = user.FirstName;
             _viewModel.LastName = user.LastName;
             _viewModel.Email = user.Email;
+            _viewModel.PhoneNumber = user.PhoneNumber;
 
-            // Ensure UserID is still stored
-            _viewModel.UserID = user.UserId;
-
-            // Update Preferences for new username
             Preferences.Set("UserName", user.UserName);
-
-            // Notify UI of changes
             _viewModel.NotifyUserDetailsChanged();
 
             await DisplayAlert("Success", "Your account has been updated.", "OK");

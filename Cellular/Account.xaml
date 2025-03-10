@@ -43,6 +43,11 @@
                 <Label Text="{Binding Email}" FontSize="18" FontAttributes="Bold"/>
             </HorizontalStackLayout>
 
+            <HorizontalStackLayout HorizontalOptions="Center" Spacing="5">
+                <Label Text="Phone Number: " FontSize="18"/>
+                <Label Text="{Binding PhoneNumber}" FontSize="18" FontAttributes="Bold"/>
+            </HorizontalStackLayout>
+
             <Button
                 x:Name="stats"
                 Text="Get Stats" 

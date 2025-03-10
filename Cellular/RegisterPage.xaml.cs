@@ -2,6 +2,8 @@
 using Cellular.ViewModel;
 using Microsoft.Maui.Storage;
 using System;
+using System.Diagnostics;
+using System.Text.RegularExpressions;
 
 namespace Cellular
 {
@@ -24,6 +26,7 @@ namespace Cellular
             string firstName = entryFirstName.Text;
             string lastName = entryLastName.Text;
             string email = entryEmail.Text;
+            string phoneNumber = entryPhone.Text;
 
             // Check if any field is empty
             if (string.IsNullOrWhiteSpace(username) ||
@@ -31,7 +34,8 @@ namespace Cellular
                 string.IsNullOrWhiteSpace(cpassword) ||
                 string.IsNullOrWhiteSpace(firstName) ||
                 string.IsNullOrWhiteSpace(lastName) ||
-                string.IsNullOrWhiteSpace(email))
+                string.IsNullOrWhiteSpace(email) ||
+                string.IsNullOrWhiteSpace(phoneNumber))
             {
                 await DisplayAlert("Registration Error", "Please fill in all fields", "OK");
                 return;
@@ -70,7 +74,8 @@ namespace Cellular
                     FirstName = firstName,
                     LastName = lastName,
                     Email = email,
-                    LastLogin = DateTime.Now
+                    LastLogin = DateTime.Now,
+                    PhoneNumber = phoneNumber
                 };
 
                 // Add the new user to the database

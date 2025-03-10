@@ -2,6 +2,7 @@
 using System.ComponentModel;
 using System.IO;
 using System.Runtime.CompilerServices;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Microsoft.Maui.Storage;
 using SQLite;
@@ -18,6 +19,7 @@ namespace Cellular.ViewModel
         private string? _lastName;
         private string? _email;
         public string? _newUserName;
+        public string? _phoneNumber;
 
 
         public int? UserID
@@ -114,6 +116,19 @@ namespace Cellular.ViewModel
             }
         }
 
+        public string PhoneNumber
+        {
+            get => _phoneNumber ?? "N/A";
+            set
+            {
+                if (_phoneNumber != value)
+                {
+                    _phoneNumber = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
         public MainViewModel()
         {
             string dbPath = Path.Combine(FileSystem.AppDataDirectory, "appdata.db");
@@ -146,6 +161,7 @@ namespace Cellular.ViewModel
                 FirstName = "N/A";
                 LastName = "N/A";
                 Email = "N/A";
+                PhoneNumber = "N/A";
                 return;
             }
 
@@ -159,6 +175,7 @@ namespace Cellular.ViewModel
                 FirstName = user.FirstName ?? "N/A";
                 LastName = user.LastName ?? "N/A";
                 Email = user.Email ?? "N/A";
+                PhoneNumber = user.PhoneNumber ?? "N/A";
             }
             else
             {
@@ -168,6 +185,7 @@ namespace Cellular.ViewModel
                 FirstName = "N/A";
                 LastName = "N/A";
                 Email = "N/A";
+                PhoneNumber = "N/A";
             }
         }
 
@@ -177,6 +195,7 @@ namespace Cellular.ViewModel
             OnPropertyChanged(nameof(FirstName));
             OnPropertyChanged(nameof(LastName));
             OnPropertyChanged(nameof(Email));
+            OnPropertyChanged(nameof(PhoneNumber));
         }
         // INotifyPropertyChanged implementation
         public event PropertyChangedEventHandler? PropertyChanged;

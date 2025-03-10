@@ -49,7 +49,8 @@ namespace Cellular.Data
                         LastName = data[3].Trim(),
                         Email = data[4].Trim(),
                         BallList = data[5].Trim(),
-                        LastLogin = DateTime.TryParse(data[5].Trim(), out DateTime lastLogin) ? lastLogin : DateTime.Now
+                        LastLogin = DateTime.TryParse(data[5].Trim(), out DateTime lastLogin) ? lastLogin : DateTime.Now,
+                        PhoneNumber = data[6].Trim()
                     };
 
                     var existingUser = await _database.Table<User>().FirstOrDefaultAsync(u => u.UserName == user.UserName);

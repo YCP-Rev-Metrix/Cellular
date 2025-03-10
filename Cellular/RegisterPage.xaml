@@ -40,13 +40,13 @@
 
             <Entry
                 x:Name="entryFirstName"
-                Placeholder="Firstname"
+                Placeholder="First Name"
                 MaxLength="20"
                 Style="{DynamicResource CommonEntryStyle}"/>
 
             <Entry
                 x:Name="entryLastName"
-                Placeholder="Lastname"
+                Placeholder="Last Name"
                 MaxLength="20"
                 Style="{DynamicResource CommonEntryStyle}"/>
 
@@ -54,6 +54,13 @@
                 x:Name="entryEmail"
                 Placeholder="Email"
                 MaxLength="20"
+                Style="{DynamicResource CommonEntryStyle}"/>
+
+            <Entry
+                x:Name="entryPhone"
+                Placeholder="Phone Number"
+                MaxLength="20"
+                Keyboard="Telephone"
                 Style="{DynamicResource CommonEntryStyle}"/>
 
             <Button
