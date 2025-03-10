@@ -5,14 +5,14 @@ using System.Collections.ObjectModel;
 
 namespace Cellular
 {
-    public partial class GameList : ContentPage
+    public partial class SessionList : ContentPage
     {
-        private readonly GameListViewModel viewModel;
+        private readonly SessionListViewModel viewModel;
         private Dictionary<string, StackLayout> sessionGames;
-        public GameList()
+        public SessionList()
         {
             InitializeComponent();
-            viewModel = new GameListViewModel();
+            viewModel = new SessionListViewModel();
             BindingContext = viewModel;
             sessionGames = new Dictionary<string, StackLayout>();
             PopulateList();

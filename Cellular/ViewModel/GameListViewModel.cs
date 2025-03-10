@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace Cellular.ViewModel
 {
-    internal partial class GameListViewModel : INotifyPropertyChanged
+    internal partial class SessionListViewModel : INotifyPropertyChanged
     {
         private ObservableCollection<object> sessions;
         private ObservableCollection<object> games;
@@ -37,7 +37,7 @@ namespace Cellular.ViewModel
             }
         }
 
-        public GameListViewModel()
+        public SessionListViewModel()
         {
             sessions = new ObservableCollection<object>();
             sessions.Add("First Session");
