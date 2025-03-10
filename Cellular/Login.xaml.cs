@@ -20,24 +20,19 @@ namespace Cellular
             string username = entryUsername.Text;
             string password = entryPassword.Text;
 
-            // Query the database to validate the user's credentials
             var user = await _userRepository.GetUserByCredentialsAsync(username, password);
 
             if (user != null)
             {
                 Preferences.Set("IsLoggedIn", true);
+                Preferences.Set("UserId", user.UserId); // Store UserId properly
 
-                // Update menu and navigate to Home
                 ((AppShell)Shell.Current).UpdateMenuForLoginStatus(true);
 
-                Preferences.Set("UserName", username); // Store the user's username
-
-                // Call the method that sets up the user data in MainViewModel
                 var mainViewModel = new MainViewModel();
-                mainViewModel.UserName = username;
+                mainViewModel.UserID = user.UserId; // Set UserId instead of UserName
 
                 await ((AppShell)Shell.Current).OnLoginSuccess();
-
                 await Shell.Current.GoToAsync("//MainPage");
             }
             else
@@ -45,6 +40,7 @@ namespace Cellular
                 await DisplayAlert("Login Failed", "Invalid username or password", "OK");
             }
         }
+
 
         private void OnRegisterTapped(object sender, EventArgs e)
         {

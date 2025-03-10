@@ -25,12 +25,21 @@ namespace Cellular
 
             var user = await _userRepository.GetUserByIdAsync(_viewModel.UserID.Value);
             Debug.WriteLine(_viewModel.UserID);
+
             if (user != null)
             {
-                _viewModel.UserName = user.UserName;
-                _viewModel.NewUserName = user.UserName;
+                _viewModel.UserName = user.UserName ?? "Guest";
+                _viewModel.NewUserName = user.UserName ?? "Guest";
+                _viewModel.FirstName = user.FirstName ?? "N/A";
+                _viewModel.LastName = user.LastName ?? "N/A";
+                _viewModel.Email = user.Email ?? "N/A";
+            }
+            else
+            {
+                Debug.WriteLine("User not found.");
             }
         }
+
 
         private async void OnSaveChangesClicked(object sender, EventArgs e)
         {
@@ -64,15 +73,23 @@ namespace Cellular
             // Save changes in the database
             await _userRepository.UpdateUserAsync(user);
 
+            // Update ViewModel with new values
+            _viewModel.UserName = user.UserName;
+            _viewModel.FirstName = user.FirstName;
+            _viewModel.LastName = user.LastName;
+            _viewModel.Email = user.Email;
+
             // Ensure UserID is still stored
             _viewModel.UserID = user.UserId;
-            _viewModel.UserName = user.UserName;
 
             // Update Preferences for new username
             Preferences.Set("UserName", user.UserName);
 
+            // Notify UI of changes
+            _viewModel.NotifyUserDetailsChanged();
+
             await DisplayAlert("Success", "Your account has been updated.", "OK");
-            await Shell.Current.GoToAsync("//AccountPage");
+            await Shell.Current.GoToAsync("..");
         }
     }
 }

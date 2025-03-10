@@ -25,15 +25,15 @@ namespace Cellular
 
         private async void InitializePageAsync()
         {
-            // Asynchronously get the login status from SecureStorage
+            viewModel = new MainViewModel();
+            BindingContext = viewModel;
+
+            // Check login status
             var isLoggedInValue = await SecureStorage.GetAsync("IsLoggedIn");
             isLoggedIn = isLoggedInValue == "true";
             UpdateUI();
 
-            // Initialize the ViewModel and pages
-            viewModel = new MainViewModel();
-            BindingContext = viewModel;
-
+            // Initialize other pages
             arsenalPage = new BallArsenal();
             gameListPage = new GameList();
             bluetoothPage = new Bluetooth();
@@ -42,6 +42,17 @@ namespace Cellular
             loginPage = new LoginPage();
         }
 
+        protected override async void OnAppearing()
+        {
+            base.OnAppearing();
+
+            // Refresh the username or other necessary details
+            if (viewModel != null)
+            {
+                await viewModel.LoadUserData();
+                user.Text = viewModel.FirstName;
+            }
+        }
         private void UpdateUI()
         {
             // Set which buttons show up when logged in or out

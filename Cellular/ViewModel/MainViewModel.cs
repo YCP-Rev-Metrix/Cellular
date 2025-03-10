@@ -29,7 +29,7 @@ namespace Cellular.ViewModel
                 {
                     _userID = value;
                     OnPropertyChanged();
-                    LoadUserData();
+                    _ = LoadUserData();
                 }
             }
         }
@@ -44,7 +44,7 @@ namespace Cellular.ViewModel
                 {
                     _userName = value;
                     OnPropertyChanged();
-                    LoadUserData();
+                    _ = LoadUserData();
                 }
             }
         }
@@ -116,27 +116,32 @@ namespace Cellular.ViewModel
 
         public MainViewModel()
         {
-            // Initialize SQLite async connection
             string dbPath = Path.Combine(FileSystem.AppDataDirectory, "appdata.db");
             _database = new SQLiteAsyncConnection(dbPath);
-            _database.CreateTableAsync<User>().Wait(); // Initialize the table asynchronously
+            _database.CreateTableAsync<User>().Wait();
 
-            // Load stored username from Preferences
-            UserName = Preferences.Get("UserName", "Guest");
+            // Retrieve UserId from Preferences
+            int storedUserId = Preferences.Get("UserId", -1); // Default to -1 if not set
+            UserID = storedUserId != -1 ? storedUserId : null;
+
+            if (UserID != null)
+            {
+                _ = LoadUserData();
+            }
         }
 
         public void UpdateUserName(string newName)
         {
             UserName = newName;
             Preferences.Set("UserName", newName);
-            LoadUserData(); // Reload user details when the username changes
+            _ = LoadUserData(); // Reload user details when the username changes
         }
 
-        private async void LoadUserData()
+        public async Task LoadUserData()
         {
-            // If user is "Guest", reset all fields to N/A
-            if (UserName == "Guest")
+            if (UserID == null)
             {
+                UserName = "Guest";
                 Password = "N/A";
                 FirstName = "N/A";
                 LastName = "N/A";
@@ -144,12 +149,12 @@ namespace Cellular.ViewModel
                 return;
             }
 
-            // Retrieve user details asynchronously from the database
-            var user = await _database.Table<User>().FirstOrDefaultAsync(u => u.UserName == UserName);
+            var user = await _database.Table<User>().FirstOrDefaultAsync(u => u.UserId == UserID);
 
             if (user != null)
             {
                 UserID = user.UserId;
+                UserName = user.UserName ?? "Guest"; // Ensure this is set properly
                 Password = user.Password ?? "N/A";
                 FirstName = user.FirstName ?? "N/A";
                 LastName = user.LastName ?? "N/A";
@@ -157,18 +162,22 @@ namespace Cellular.ViewModel
             }
             else
             {
-                // If no user found, reset to N/A
                 UserID = null;
+                UserName = "Guest";
                 Password = "N/A";
                 FirstName = "N/A";
                 LastName = "N/A";
                 Email = "N/A";
-
-                // Log that no user was found
-                Console.WriteLine("User not found in the database.");
             }
         }
 
+        public void NotifyUserDetailsChanged()
+        {
+            OnPropertyChanged(nameof(UserName));
+            OnPropertyChanged(nameof(FirstName));
+            OnPropertyChanged(nameof(LastName));
+            OnPropertyChanged(nameof(Email));
+        }
         // INotifyPropertyChanged implementation
         public event PropertyChangedEventHandler? PropertyChanged;
 

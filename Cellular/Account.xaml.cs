@@ -13,11 +13,18 @@ namespace Cellular
         {
             InitializeComponent();
 
-            // Initialize UserRepository and ViewModel
+            // Initialize repository and use the shared ViewModel
             _userRepository = new UserRepository(new CellularDatabase().GetConnection());
-            _viewModel = new MainViewModel();  // ViewModel instance
+            _viewModel = new MainViewModel();
             BindingContext = _viewModel;
+        }
 
+        protected override async void OnAppearing()
+        {
+            base.OnAppearing();
+
+            // Reload user details whenever the page appears
+            await _viewModel.LoadUserData();
         }
 
         private async void OnSignoutClicked(object sender, EventArgs e)
@@ -41,4 +48,3 @@ namespace Cellular
         }
     }
 }
-
