@@ -6,7 +6,7 @@ namespace Cellular.ViewModel;
 public class Ball
 {
     [PrimaryKey, AutoIncrement]
-    public int Id { get; set; }
+    public int BallId { get; set; }
     public string Name { get; set; }
     public int Diameter { get; set; }
     public int Weight { get;set; }

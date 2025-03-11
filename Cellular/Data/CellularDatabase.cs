@@ -22,19 +22,58 @@ namespace Cellular.Data
         {
             await _database.CreateTableAsync<User>();
             await ImportUsersFromCsvAsync();
+            await _database.CreateTableAsync<Ball>();
+            await ImportBallsFromCsvAsync();
         }
 
-        public Task<int> SaveBallAsync(Ball ball)
+        private async Task ImportBallsFromCsvAsync()
         {
-            return _database.InsertAsync(ball);
+            var csvFileName = "ball.csv"; // File in Resources/Raw
+
+            try
+            {
+                using var stream = await FileSystem.OpenAppPackageFileAsync(csvFileName);
+                using var reader = new StreamReader(stream);
+
+                var balls = new List<Ball>();
+                while (!reader.EndOfStream)
+                {
+                    var line = await reader.ReadLineAsync();
+                    var data = line?.Split(',');
+
+                    if (data == null || data.Length < 3) continue; // Ensure valid data
+
+                    var ball = new Ball
+                    {
+                        Name = data[0].Trim(),
+                        Diameter = int.TryParse(data[1].Trim(), out int diameter) ? diameter : 0,
+                        Weight = int.TryParse(data[2].Trim(), out int weight) ? weight : 0,
+                        Core = data[3].Trim(),
+                    };
+
+                    var existingUser = await _database.Table<Ball>().FirstOrDefaultAsync(u => u.Name == ball.Name);
+                    if (existingUser == null)
+                    {
+                        balls.Add(ball);
+                    }
+                }
+
+                if (balls.Count > 0)
+                {
+                    await _database.InsertAllAsync(balls);
+                    Console.WriteLine("Balls imported successfully.");
+                }
+                else
+                {
+                    Console.WriteLine("No new balls to import.");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error reading CSV: {ex.Message}");
+            }
         }
-
-
-
-        public Task<List<Ball>> GetBallsAsync()
-        {
-            return _database.Table<Ball>().ToListAsync();
-        }
+    
         private async Task ImportUsersFromCsvAsync()
         {
             var csvFileName = "users.csv"; // File in Resources/Raw
@@ -91,3 +130,5 @@ namespace Cellular.Data
         public UserRepository CreateUserRepository() => new(_database);
     }
 }
+
+
