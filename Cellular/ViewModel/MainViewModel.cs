@@ -5,6 +5,7 @@ using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Microsoft.Maui.Storage;
+using BCrypt.Net;
 using SQLite;
 
 namespace Cellular.ViewModel
@@ -171,7 +172,7 @@ namespace Cellular.ViewModel
             {
                 UserID = user.UserId;
                 UserName = user.UserName ?? "Guest"; // Ensure this is set properly
-                Password = user.Password ?? "N/A";
+                Password = user.PasswordHash ?? "N/A";
                 FirstName = user.FirstName ?? "N/A";
                 LastName = user.LastName ?? "N/A";
                 Email = user.Email ?? "N/A";
@@ -187,6 +188,11 @@ namespace Cellular.ViewModel
                 Email = "N/A";
                 PhoneNumber = "N/A";
             }
+        }
+
+        public static bool VerifyPassword(string enteredPassword, string storedHash)
+        {
+            return BCrypt.Net.BCrypt.Verify(enteredPassword, storedHash);
         }
 
         public void NotifyUserDetailsChanged()

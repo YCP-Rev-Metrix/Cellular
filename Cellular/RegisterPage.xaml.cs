@@ -70,7 +70,7 @@ namespace Cellular
                 var newUser = new User
                 {
                     UserName = username,
-                    Password = password,
+                    PasswordHash = HashPassword(password),
                     FirstName = firstName,
                     LastName = lastName,
                     Email = email,
@@ -89,6 +89,11 @@ namespace Cellular
                 ((AppShell)Shell.Current).UpdateMenuForLoginStatus(true);
                 await Shell.Current.GoToAsync("//MainPage");
             }
+
+        }
+        public static string HashPassword(string password)
+        {
+            return BCrypt.Net.BCrypt.HashPassword(password);
         }
     }
 }

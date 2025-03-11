@@ -20,9 +20,9 @@ namespace Cellular
             string username = entryUsername.Text;
             string password = entryPassword.Text;
 
-            var user = await _userRepository.GetUserByCredentialsAsync(username, password);
+            var user = await _userRepository.GetUserByUsernameAsync(username);
 
-            if (user != null)
+            if (user != null && VerifyPassword(password, user.PasswordHash))
             {
                 Preferences.Set("IsLoggedIn", true);
                 Preferences.Set("UserId", user.UserId); // Store UserId properly
@@ -41,7 +41,10 @@ namespace Cellular
             }
         }
 
-
+        public static bool VerifyPassword(string enteredPassword, string storedHash)
+        {
+            return BCrypt.Net.BCrypt.Verify(enteredPassword, storedHash);
+        }
         private void OnRegisterTapped(object sender, EventArgs e)
         {
             Navigation.PushAsync(new RegisterPage());

@@ -69,7 +69,7 @@ namespace Cellular
 
             if (!string.IsNullOrEmpty(newPasswordEntry.Text))
             {
-                user.Password = newPasswordEntry.Text;
+                user.PasswordHash = HashPassword(newPasswordEntry.Text);
             }
 
             await _userRepository.UpdateUserAsync(user);
@@ -86,6 +86,11 @@ namespace Cellular
 
             await DisplayAlert("Success", "Your account has been updated.", "OK");
             await Shell.Current.GoToAsync("..");
+        }
+
+        public static string HashPassword(string password)
+        {
+            return BCrypt.Net.BCrypt.HashPassword(password);
         }
     }
 }
