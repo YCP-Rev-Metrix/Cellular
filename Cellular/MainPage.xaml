@@ -55,10 +55,10 @@
                     HorizontalOptions="Fill"
                     IsVisible="True" />
 
-            <Button x:Name="gamelist"
-                    Text="Game List" 
-                    SemanticProperties.Hint="Goes to the game list page"
-                    Clicked="OnGameListClicked"
+            <Button x:Name="SessionList"
+                    Text="Session List" 
+                    SemanticProperties.Hint="Goes to the session list page"
+                    Clicked="OnSessionListClicked"
                     HorizontalOptions="Fill"
                     IsVisible="True" />
 

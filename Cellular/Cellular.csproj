@@ -88,8 +88,8 @@
 	  <Compile Update="GameSetup.xaml.cs">
 	    <DependentUpon>GameSetup.xaml</DependentUpon>
 	  </Compile>
-	  <Compile Update="GameList.xaml.cs">
-	    <DependentUpon>GameList.xaml</DependentUpon>
+	  <Compile Update="SessionList.xaml.cs">
+	    <DependentUpon>SessionList.xaml</DependentUpon>
 	  </Compile>
 	  <Compile Update="Bluetooth.xaml.cs">
 	    <DependentUpon>Bluetooth.xaml</DependentUpon>
@@ -134,7 +134,7 @@
 	  <MauiXaml Update="GameSetup.xaml">
 	    <Generator>MSBuild:Compile</Generator>
 	  </MauiXaml>
-	  <MauiXaml Update="GameList.xaml">
+	  <MauiXaml Update="SessionList.xaml">
 	    <Generator>MSBuild:Compile</Generator>
 	  </MauiXaml>
 	  <MauiXaml Update="ClickerPage.xaml">

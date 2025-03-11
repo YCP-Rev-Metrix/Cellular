@@ -11,7 +11,7 @@ namespace Cellular
         private MainViewModel? viewModel;
 
         private BallArsenal? arsenalPage;
-        private GameList? gameListPage;
+        private SessionList? SessionListPage;
         private Bluetooth? bluetoothPage;
         private AccountPage? accountPage;
         private RegisterPage? registerPage;
@@ -35,7 +35,7 @@ namespace Cellular
 
             // Initialize other pages
             arsenalPage = new BallArsenal();
-            gameListPage = new GameList();
+            SessionListPage = new SessionList();
             bluetoothPage = new Bluetooth();
             accountPage = new AccountPage();
             registerPage = new RegisterPage();
@@ -65,7 +65,7 @@ namespace Cellular
             arsenal.IsVisible = isLoggedIn;
             bluetooth.IsVisible = isLoggedIn;
             account.IsVisible = isLoggedIn;
-            gamelist.IsVisible = isLoggedIn;
+            SessionList.IsVisible = isLoggedIn;
         }
 
         private async void OnLoginClicked(object sender, EventArgs e)
@@ -95,9 +95,9 @@ namespace Cellular
             await Navigation.PushAsync(arsenalPage);
         }
 
-        private async void OnGameListClicked(object sender, EventArgs e)
+        private async void OnSessionListClicked(object sender, EventArgs e)
         {
-            await Navigation.PushAsync(gameListPage);
+            await Navigation.PushAsync(SessionListPage);
         }
 
         private async void OnBluetoothClicked(object sender, EventArgs e)
