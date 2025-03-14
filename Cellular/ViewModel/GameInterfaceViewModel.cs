@@ -70,7 +70,13 @@ namespace Cellular.ViewModel
             frames.Add(new Frame(1, 30));
             frames.Add(new Frame(2, 60));
             frames.Add(new Frame(3, 90));
-            
+            frames.Add(new Frame(4, 30));
+            frames.Add(new Frame(5, 60));
+            frames.Add(new Frame(6, 90));
+            frames.Add(new Frame(7, 30));
+            frames.Add(new Frame(8, 60));
+            frames.Add(new Frame(9, 90));
+            frames.Add(new Frame(10, 30));
         }
 
         public event PropertyChangedEventHandler? PropertyChanged;
