@@ -15,9 +15,9 @@
             </Grid.RowDefinitions>
 
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="100" />
-                <ColumnDefinition Width="300" />
-                <ColumnDefinition Width="100" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="200" />
+                <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
 
             <!-- Player Picker -->
@@ -89,12 +89,17 @@
             </StackLayout>
             
             <!-- Frame Preview -->
-            <StackLayout Grid.Row="3" Grid.Column="1">
-                <CarouselView ItemsSource="{Binding Frames}" IndicatorView="frameIndicator" PeekAreaInsets="100" MaximumHeightRequest="150" MaximumWidthRequest="400">
+            <StackLayout Grid.Row="3" Grid.Column="1" MaximumWidthRequest="400">
+                <CarouselView ItemsSource="{Binding Frames}" IndicatorView="frameIndicator" PeekAreaInsets="100" HeightRequest="150" Loop="False" VerticalOptions="Start">
+                    <CarouselView.ItemsLayout>
+                        <LinearItemsLayout Orientation="Horizontal" SnapPointsType="Mandatory" SnapPointsAlignment="Center">
+                            
+                        </LinearItemsLayout>
+                    </CarouselView.ItemsLayout>
                     <CarouselView.ItemTemplate>
                         <DataTemplate x:DataType="local:Frame">
-                            <StackLayout MaximumWidthRequest="600">
-                                <Border Stroke="DarkGray" StrokeShape="RoundRectangle 5" Margin="20" Padding="20" HeightRequest="100" HorizontalOptions="Center" VerticalOptions="Center">
+                            <StackLayout MaximumWidthRequest="600" HeightRequest="100">
+                                <Border Stroke="DarkGray" StrokeShape="RoundRectangle 5" Margin="0" Padding="20" HeightRequest="100" HorizontalOptions="Center" VerticalOptions="Center">
                                     <StackLayout>
                                         <Label Text="{Binding frameNumber}" HorizontalOptions="Center"/>
                                         <Label Text="{Binding rollingScore}" HorizontalOptions="Center"/>
