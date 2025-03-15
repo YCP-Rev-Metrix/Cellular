@@ -60,6 +60,25 @@ namespace Cellular
                 return;
             }
 
+            // Validate passwords
+            if (!string.IsNullOrEmpty(newPasswordEntry.Text) || !string.IsNullOrEmpty(confirmPasswordEntry.Text))
+            {
+                if (newPasswordEntry.Text != confirmPasswordEntry.Text)
+                {
+                    await DisplayAlert("Error", "New passwords do not match.", "OK");
+                    return;
+                }
+            }
+
+            // Validate emails
+            if (!string.IsNullOrEmpty(entryEmail.Text) || !string.IsNullOrEmpty(confirmEntryEmail.Text))
+            {
+                if (entryEmail.Text != confirmEntryEmail.Text)
+                {
+                    await DisplayAlert("Error", "Emails do not match.", "OK");
+                    return;
+                }
+            }
             // Update user details
             user.UserName = entryUsername.Text;
             user.FirstName = entryFirstName.Text;

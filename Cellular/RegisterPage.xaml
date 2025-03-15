@@ -53,7 +53,13 @@
             <Entry
                 x:Name="entryEmail"
                 Placeholder="Email"
-                MaxLength="20"
+                MaxLength="30"
+                Style="{DynamicResource CommonEntryStyle}"/>
+
+            <Entry
+                x:Name="confirmEntryEmail"
+                Placeholder="Confirm Email"
+                MaxLength="30"
                 Style="{DynamicResource CommonEntryStyle}"/>
 
             <Entry

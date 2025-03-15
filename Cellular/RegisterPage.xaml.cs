@@ -26,6 +26,7 @@ namespace Cellular
             string firstName = entryFirstName.Text;
             string lastName = entryLastName.Text;
             string email = entryEmail.Text;
+            string cemail = confirmEntryEmail.Text;
             string phoneNumber = entryPhone.Text;
 
             // Check if any field is empty
@@ -35,6 +36,7 @@ namespace Cellular
                 string.IsNullOrWhiteSpace(firstName) ||
                 string.IsNullOrWhiteSpace(lastName) ||
                 string.IsNullOrWhiteSpace(email) ||
+                string.IsNullOrWhiteSpace(cemail) ||
                 string.IsNullOrWhiteSpace(phoneNumber))
             {
                 await DisplayAlert("Registration Error", "Please fill in all fields", "OK");
@@ -63,6 +65,10 @@ namespace Cellular
             else if (password != cpassword)
             {
                 await DisplayAlert("Registration Error", "Passwords do not match", "OK");
+            }
+            else if (email != cemail)
+            {
+                await DisplayAlert("Registration Error", "Emails do not match", "OK");
             }
             else
             {
