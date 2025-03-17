@@ -2,6 +2,7 @@ using Cellular.Data;
 using Cellular.ViewModel;
 using Microsoft.Maui.Controls;
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 using System.Threading.Tasks;
 
 namespace Cellular
@@ -10,6 +11,7 @@ namespace Cellular
     {
         private readonly BallRepository _ballRepository;
         public ObservableCollection<Ball> Balls { get; set; }
+        private int userId;
 
         public BallArsenal()
         {
@@ -19,13 +21,21 @@ namespace Cellular
             BallsListView.BindingContext = this;
             LoadBalls();
             BallsListView.ItemsSource = Balls;
+            userId = Preferences.Get("UserId", 0);
         }
         private async void LoadBalls()
         {
-            var ballsFromDb = await _ballRepository.GetAllBallsAsync();
+            
+            Debug.WriteLine("This is USer ID"+ userId);
+            if (userId == 0)
+            {
+                return;
+            }
+            var ballsFromDb = await _ballRepository.GetBallsByUserIdAsync(userId);
             Balls.Clear();
             foreach (var ball in ballsFromDb)
             {
+                Debug.WriteLine("This is ball name" + ball.Name);
                 Balls.Add(ball);
             }
         }
@@ -33,7 +43,8 @@ namespace Cellular
         async private void OnAddBallBtnClicked(object sender, EventArgs e)
         {
             // Add a new ball to the database
-            var newBall = new Ball { Name = "New Ball", Diameter = 15, Weight = 2, Core = "Foam" };
+            Debug.WriteLine("This is NEW BALL");
+            var newBall = new Ball { Name = "New Ball", UserId =  userId, Diameter = 15, Weight = 2, Core = "Foam" };
             await _ballRepository.AddAsync(newBall);
             Balls.Add(newBall);
         }

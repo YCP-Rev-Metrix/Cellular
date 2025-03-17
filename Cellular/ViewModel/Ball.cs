@@ -7,6 +7,7 @@ public class Ball
 {
     [PrimaryKey, AutoIncrement]
     public int BallId { get; set; }
+    public int UserId { get; set; }
     public string Name { get; set; }
     public int Diameter { get; set; }
     public int Weight { get;set; }

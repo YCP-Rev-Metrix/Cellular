@@ -41,14 +41,15 @@ namespace Cellular.Data
                     var line = await reader.ReadLineAsync();
                     var data = line?.Split(',');
 
-                    if (data == null || data.Length < 3) continue; // Ensure valid data
+                    if (data == null || data.Length < 4) continue; // Ensure valid data
 
                     var ball = new Ball
                     {
-                        Name = data[0].Trim(),
-                        Diameter = int.TryParse(data[1].Trim(), out int diameter) ? diameter : 0,
-                        Weight = int.TryParse(data[2].Trim(), out int weight) ? weight : 0,
-                        Core = data[3].Trim(),
+                        UserId = int.TryParse(data[0].Trim(), out int UserId) ? UserId : 0,
+                        Name = data[1].Trim(),
+                        Diameter = int.TryParse(data[2].Trim(), out int diameter) ? diameter : 0,
+                        Weight = int.TryParse(data[3].Trim(), out int weight) ? weight : 0,
+                        Core = data[4].Trim(),
                     };
 
                     var existingUser = await _database.Table<Ball>().FirstOrDefaultAsync(u => u.Name == ball.Name);

@@ -24,6 +24,7 @@ namespace Cellular
 #if DEBUG
             builder.Logging.AddDebug();
 #endif
+            builder.Logging.AddDebug();
 
             var app = builder.Build();
 
