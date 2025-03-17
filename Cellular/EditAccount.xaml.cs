@@ -60,6 +60,25 @@ namespace Cellular
                 return;
             }
 
+            // Validate passwords
+            if (!string.IsNullOrEmpty(newPasswordEntry.Text) || !string.IsNullOrEmpty(confirmPasswordEntry.Text))
+            {
+                if (newPasswordEntry.Text != confirmPasswordEntry.Text)
+                {
+                    await DisplayAlert("Error", "New passwords do not match.", "OK");
+                    return;
+                }
+            }
+
+            // Validate emails
+            if (!string.IsNullOrEmpty(entryEmail.Text) || !string.IsNullOrEmpty(confirmEntryEmail.Text))
+            {
+                if (entryEmail.Text != confirmEntryEmail.Text)
+                {
+                    await DisplayAlert("Error", "Emails do not match.", "OK");
+                    return;
+                }
+            }
             // Update user details
             user.UserName = entryUsername.Text;
             user.FirstName = entryFirstName.Text;
@@ -69,7 +88,7 @@ namespace Cellular
 
             if (!string.IsNullOrEmpty(newPasswordEntry.Text))
             {
-                user.Password = newPasswordEntry.Text;
+                user.PasswordHash = HashPassword(newPasswordEntry.Text);
             }
 
             await _userRepository.UpdateUserAsync(user);
@@ -86,6 +105,11 @@ namespace Cellular
 
             await DisplayAlert("Success", "Your account has been updated.", "OK");
             await Shell.Current.GoToAsync("..");
+        }
+
+        public static string HashPassword(string password)
+        {
+            return BCrypt.Net.BCrypt.HashPassword(password);
         }
     }
 }

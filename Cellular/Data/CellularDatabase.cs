@@ -95,7 +95,7 @@ namespace Cellular.Data
                     var user = new User
                     {
                         UserName = data[0].Trim(),
-                        Password = data[1].Trim(),
+                        PasswordHash = HashPassword(data[1].Trim()),
                         FirstName = data[2].Trim(),
                         LastName = data[3].Trim(),
                         Email = data[4].Trim(),
@@ -125,6 +125,11 @@ namespace Cellular.Data
             {
                 Console.WriteLine($"Error reading CSV: {ex.Message}");
             }
+        }
+
+        public static string HashPassword(string password)
+        {
+            return BCrypt.Net.BCrypt.HashPassword(password);
         }
 
         public SQLiteAsyncConnection GetConnection() => _database;

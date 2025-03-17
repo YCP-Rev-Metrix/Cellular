@@ -44,7 +44,7 @@ namespace Cellular.Data
         // Get a user by credentials asynchronously
         public async Task<User?> GetUserByCredentialsAsync(string username, string password)
         {
-            return await _conn.Table<User>().FirstOrDefaultAsync(u => u.UserName == username && u.Password == password);
+            return await _conn.Table<User>().FirstOrDefaultAsync(u => u.UserName == username && u.PasswordHash == password);
         }
 
         // Get a user by username asynchronously

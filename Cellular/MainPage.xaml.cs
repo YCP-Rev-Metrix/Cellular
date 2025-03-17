@@ -9,6 +9,7 @@ namespace Cellular
     {
         private bool isLoggedIn;
         private MainViewModel? viewModel;
+        private UserRepository? _userRepository;
 
         private BallArsenal? arsenalPage;
         private SessionList? SessionListPage;
@@ -25,6 +26,7 @@ namespace Cellular
 
         private async void InitializePageAsync()
         {
+            _userRepository = new UserRepository(new CellularDatabase().GetConnection());
             viewModel = new MainViewModel();
             BindingContext = viewModel;
 
@@ -81,13 +83,18 @@ namespace Cellular
 
         private async void OnGuestClicked(object sender, EventArgs e)
         {
-            // Set preferences for guest login
-            Preferences.Set("IsLoggedIn", true);
-            ((AppShell)Shell.Current).UpdateMenuForLoginStatus(true);
-            Preferences.Set("UserName", "Guest"); // Stores the user's username
+            var user = await _userRepository.GetUserByUsernameAsync("Guest");
+           
+            if (user != null)
+            {
+                // Set preferences for guest login
+                Preferences.Set("IsLoggedIn", true);
+                Preferences.Set("UserId", user.UserId);
+                ((AppShell)Shell.Current).UpdateMenuForLoginStatus(true);
 
-            await ((AppShell)Shell.Current).OnLoginSuccess();
-            await Shell.Current.GoToAsync("//MainPage");
+                await ((AppShell)Shell.Current).OnLoginSuccess();
+                await Shell.Current.GoToAsync("//MainPage");
+            }
         }
 
         private async void OnArsenalClicked(object sender, EventArgs e)

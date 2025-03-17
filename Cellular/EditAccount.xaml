@@ -42,6 +42,12 @@
                 <Entry x:Name="entryEmail" Text="{Binding Email}" FontSize="18"/>
             </HorizontalStackLayout>
 
+            <!-- Confirm Email -->
+            <HorizontalStackLayout HorizontalOptions="Center" Spacing="5">
+                <Label Text="Confirm Email: " FontSize="18"/>
+                <Entry x:Name="confirmEntryEmail" FontSize="18"/>
+            </HorizontalStackLayout>
+
             <!-- Phone Number -->
             <HorizontalStackLayout HorizontalOptions="Center" Spacing="5">
                 <Label Text="Phone Number: " FontSize="18"/>
