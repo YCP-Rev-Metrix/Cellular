@@ -21,12 +21,13 @@ namespace Cellular
             BallsListView.BindingContext = this;
             LoadBalls();
             BallsListView.ItemsSource = Balls;
-            userId = Preferences.Get("UserId", 0);
+            
         }
         private async void LoadBalls()
         {
-            
-            Debug.WriteLine("This is USer ID"+ userId);
+            userId = Preferences.Get("UserId", 0);
+            //Debug.WriteLine("This is USer ID"+ userId);
+            //Debug.WriteLine("This is strighat form the pref" + Preferences.Get("UserId", 0));
             if (userId == 0)
             {
                 return;

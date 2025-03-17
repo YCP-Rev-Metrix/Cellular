@@ -1,4 +1,5 @@
-﻿using Cellular.Data;
+﻿using System.Diagnostics;
+using Cellular.Data;
 using Cellular.ViewModel;
 using Microsoft.Maui.Storage;
 
@@ -27,6 +28,7 @@ namespace Cellular
                 Preferences.Set("IsLoggedIn", true);
                 Preferences.Set("UserId", user.UserId); // Store UserId properly
 
+                Debug.WriteLine("This is the login page "+Preferences.Get("UserId", 0));
                 ((AppShell)Shell.Current).UpdateMenuForLoginStatus(true);
 
                 var mainViewModel = new MainViewModel();
