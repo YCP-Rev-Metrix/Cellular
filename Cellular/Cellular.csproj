@@ -12,7 +12,7 @@
 		<AndroidApiLevel>34</AndroidApiLevel>
 
 		<!-- Display name -->
-		<ApplicationTitle>Cellular</ApplicationTitle>
+		<ApplicationTitle>RevMetrix</ApplicationTitle>
 
 		<!-- App Identifier -->
 		<ApplicationId>com.companyname.cellular</ApplicationId>
