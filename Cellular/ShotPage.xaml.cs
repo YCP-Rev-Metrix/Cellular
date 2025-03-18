@@ -24,7 +24,14 @@ namespace Cellular
                 if (typedSender != null)
                 {
                     double roundedValue = Math.Round(typedSender.Value);
-                    TestingLabel.Text = roundedValue.ToString(); // Update the label text
+                    if(roundedValue == 0 || roundedValue == 40)
+                    {
+                        TestingLabel.Text = "Gutter";
+                    }
+                    else
+                    {
+                        TestingLabel.Text = roundedValue.ToString(); // Update the label text
+                    }
                 }
             }
             else
