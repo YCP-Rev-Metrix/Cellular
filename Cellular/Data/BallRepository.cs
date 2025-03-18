@@ -26,7 +26,7 @@ namespace Cellular.Data
         }
 
         // Get all users from the database asynchronously
-        public async Task<List<Ball>> GetAllBallsAsync() => await _conn.Table<Ball>().ToListAsync();  // Retrieve all users from the table
+        public async Task<List<Ball>> GetAllBallsAsync() => await _conn.Table<Ball>().ToListAsync(); 
 
         // Delete a user from the database by ID asynchronously
         public async Task DeleteAsync(int id)
@@ -50,6 +50,8 @@ namespace Cellular.Data
         {
             return await _conn.Table<Ball>().FirstOrDefaultAsync(u => u.BallId == ballID);
         }
+
+        public async Task<List<Ball>> GetBallsByUserIdAsync(int userID) => await _conn.Table<Ball>().Where(u => u.UserId == userID).ToListAsync();
 
     }
 }
