@@ -6,20 +6,20 @@
 
     <ScrollView>
         <!-- Wrap the entire Grid in a StackLayout to center it -->
-        <StackLayout VerticalOptions="CenterAndExpand" HorizontalOptions="CenterAndExpand">
+        <StackLayout VerticalOptions="Center" HorizontalOptions="Center">
             <Grid Padding="10">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
 
                 <Grid.ColumnDefinitions>
                     <!-- Left Column with fixed width -->
                     <ColumnDefinition Width="Auto" />
                     <!-- Center column with responsive width -->
-                    <ColumnDefinition Width="{OnIdiom Phone=200, Tablet=250, Desktop=250}" />
+                    <ColumnDefinition Width="{OnIdiom Phone=210, Tablet=250, Desktop=250}" />
                     <!-- Right Column with fixed width -->
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
@@ -64,8 +64,18 @@
 
                     <!-- Board Selector -->
                     <StackLayout Padding="10, 20, 10, 10" HorizontalOptions="Center">
-                        <Slider Maximum="41" Minimum="0" ValueChanged="boardChanged" WidthRequest="250" HorizontalOptions="Center"/>
-                        <Label Text="Select a Value" x:Name="TestingLabel" HorizontalOptions="Center"/>
+                        <Slider x:Name="CustomSlider" 
+                            Maximum="40" 
+                            Minimum="0" 
+                            ValueChanged="boardChanged" 
+                            Value="20.5" 
+                            WidthRequest="250" 
+                            HorizontalOptions="Center" 
+                            VerticalOptions="Center" 
+                            MinimumTrackColor="Transparent" 
+                            MaximumTrackColor="White" 
+                            ThumbColor="White" />
+                        <Label Text="Select a Board" x:Name="TestingLabel" HorizontalOptions="Center"/>
                     </StackLayout>
                 </StackLayout>
 
@@ -78,15 +88,18 @@
                 </StackLayout>
 
                 <!-- Frames Scroll -->
-                <StackLayout Grid.Row="3" Grid.Column="1">
-                    <CollectionView ItemsSource="{Binding Frames}" HorizontalScrollBarVisibility="Always" VerticalScrollBarVisibility="Never">
+                <StackLayout Grid.Row="4" Grid.Column="1" HorizontalOptions="Center" Padding="-25, 0, 0, 0">
+                    <CollectionView ItemsSource="{Binding Frames}" 
+                    HorizontalScrollBarVisibility="Always" 
+                    VerticalScrollBarVisibility="Never" 
+                    WidthRequest="{OnIdiom Phone=325, Tablet=350, Desktop=500}">
                         <CollectionView.ItemsLayout>
-                            <LinearItemsLayout Orientation="Horizontal" ItemSpacing="10"/>
+                            <LinearItemsLayout Orientation="Horizontal" />
                         </CollectionView.ItemsLayout>
                         <CollectionView.ItemTemplate>
                             <DataTemplate>
                                 <Border Stroke="DarkGray" StrokeThickness="1" Padding="5"
-                                        BackgroundColor="Transparent" HeightRequest="80" WidthRequest="50">
+                        BackgroundColor="White" HeightRequest="100" WidthRequest="70">
                                     <StackLayout VerticalOptions="Center" HorizontalOptions="Center">
                                         <Label Text="{Binding FrameNumber}" HorizontalOptions="Center" FontSize="14"/>
                                         <Label Text="{Binding RollingScore}" HorizontalOptions="Center" FontSize="14"/>

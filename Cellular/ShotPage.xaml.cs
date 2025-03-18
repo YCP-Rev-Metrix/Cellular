@@ -17,17 +17,22 @@ namespace Cellular
 
         public void boardChanged(object sender, EventArgs e)
         {
-            Slider typedSender = (Slider)sender;
-            if (typedSender.Value == 0 || typedSender.Value == 40)
+            if (TestingLabel != null) // Ensure TestingLabel is not null
             {
-                TestingLabel.Text = "Gutter";
+                Slider typedSender = (Slider)sender;
+                // Ensure you only set the value if it is not null
+                if (typedSender != null)
+                {
+                    double roundedValue = Math.Round(typedSender.Value);
+                    TestingLabel.Text = roundedValue.ToString(); // Update the label text
+                }
             }
             else
             {
-                TestingLabel.Text = typedSender.Value.ToString();
+                Console.WriteLine("TestingLabel is null.");  // Log for debugging purposes
             }
         }
-    
+
     }
 
 }

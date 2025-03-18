@@ -16,7 +16,7 @@
                 SemanticProperties.Description="RevMetrix Bowling Ball Logo" />
 
             <Label
-                Text="Bowling Joke"
+                Text="Sessions"
                 x:Name="labelname"
                 Style="{StaticResource Headline}"
                 SemanticProperties.HeadingLevel="Level1" />
