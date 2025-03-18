@@ -1,0 +1,128 @@
+﻿<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="Cellular.ShotPage"
+             xmlns:local="clr-namespace:Cellular.ViewModel"
+             x:DataType="local:GameInterfaceViewModel">
+
+    <ScrollView>
+        <!-- Wrap the entire Grid in a StackLayout to center it -->
+        <StackLayout VerticalOptions="CenterAndExpand" HorizontalOptions="CenterAndExpand">
+            <Grid Padding="10">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <Grid.ColumnDefinitions>
+                    <!-- Left Column with fixed width -->
+                    <ColumnDefinition Width="Auto" />
+                    <!-- Center column with responsive width -->
+                    <ColumnDefinition Width="{OnIdiom Phone=200, Tablet=250, Desktop=250}" />
+                    <!-- Right Column with fixed width -->
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <!-- Left Side: Player Picker, Ball Selectors, Comment Button -->
+                <StackLayout Grid.Row="1" Grid.Column="0" VerticalOptions="Start" HorizontalOptions="End" Padding="0, 10" Spacing="10">
+                    <StackLayout>
+                        <Label Text="Player" />
+                        <Picker x:Name="PlayerPicker" HeightRequest="30" WidthRequest="{OnIdiom Phone=80, Tablet=100, Desktop=120}" ItemsSource="{Binding Players}" />
+                    </StackLayout>
+                    <StackLayout>
+                        <Label Text="1st Ball" />
+                        <Picker x:Name="BallPicker1" HeightRequest="30" WidthRequest="{OnIdiom Phone=80, Tablet=100, Desktop=120}" ItemsSource="{Binding Arsenal}" />
+                    </StackLayout>
+                    <StackLayout>
+                        <Label Text="2nd Ball" />
+                        <Picker x:Name="BallPicker2" HeightRequest="30" WidthRequest="{OnIdiom Phone=80, Tablet=100, Desktop=120}" ItemsSource="{Binding Arsenal}" />
+                    </StackLayout>
+                </StackLayout>
+
+                <!-- Center: Pin Buttons and Board Selector -->
+                <StackLayout Grid.Row="1" Grid.Column="1" Orientation="Vertical" Spacing="10" WidthRequest="{OnIdiom Phone=200, Tablet=250, Desktop=250}" HorizontalOptions="Center" Padding="0, 10">
+                    <!-- Pin Buttons -->
+                    <FlexLayout x:Name="PinButtonLayout" Direction="Row" JustifyContent="Center" Wrap="Wrap" HorizontalOptions="Center">
+                        <Button Text="7" CornerRadius="25"/>
+                        <Button Text="8" CornerRadius="25"/>
+                        <Button Text="9" CornerRadius="25"/>
+                        <Button Text="10" CornerRadius="25"/>
+                    </FlexLayout>
+                    <FlexLayout Direction="Row" JustifyContent="Center" Wrap="Wrap" HorizontalOptions="Center">
+                        <Button Text="4" CornerRadius="25"/>
+                        <Button Text="5" CornerRadius="25"/>
+                        <Button Text="6" CornerRadius="25"/>
+                    </FlexLayout>
+                    <FlexLayout Direction="Row" JustifyContent="Center" Wrap="Wrap" HorizontalOptions="Center">
+                        <Button Text="2" CornerRadius="25"/>
+                        <Button Text="3" CornerRadius="25"/>
+                    </FlexLayout>
+                    <FlexLayout Direction="Row" JustifyContent="Center" Wrap="Wrap" HorizontalOptions="Center">
+                        <Button Text="1" CornerRadius="25"/>
+                    </FlexLayout>
+
+                    <!-- Board Selector -->
+                    <StackLayout Padding="10, 20, 10, 10" HorizontalOptions="Center">
+                        <Slider Maximum="41" Minimum="0" ValueChanged="boardChanged" WidthRequest="250" HorizontalOptions="Center"/>
+                        <Label Text="Select a Value" x:Name="TestingLabel" HorizontalOptions="Center"/>
+                    </StackLayout>
+                </StackLayout>
+
+                <!-- Right Side: Quick Scoring Buttons -->
+                <StackLayout Grid.Row="1" Grid.Column="2" Orientation="Vertical" Padding="0, 10" Spacing="10" HorizontalOptions="Start">
+                    <Button Text="F" WidthRequest="40" HeightRequest="40" CornerRadius="20" />
+                    <Button Text="_" WidthRequest="40" HeightRequest="40" CornerRadius="20" />
+                    <Button Text="/" WidthRequest="40" HeightRequest="40" CornerRadius="20" />
+                    <Button Text="X" WidthRequest="40" HeightRequest="40" CornerRadius="20" />
+                </StackLayout>
+
+                <!-- Frames Scroll -->
+                <StackLayout Grid.Row="3" Grid.Column="1">
+                    <CollectionView ItemsSource="{Binding Frames}" HorizontalScrollBarVisibility="Always" VerticalScrollBarVisibility="Never">
+                        <CollectionView.ItemsLayout>
+                            <LinearItemsLayout Orientation="Horizontal" ItemSpacing="10"/>
+                        </CollectionView.ItemsLayout>
+                        <CollectionView.ItemTemplate>
+                            <DataTemplate>
+                                <Border Stroke="DarkGray" StrokeThickness="1" Padding="5"
+                                        BackgroundColor="Transparent" HeightRequest="80" WidthRequest="50">
+                                    <StackLayout VerticalOptions="Center" HorizontalOptions="Center">
+                                        <Label Text="{Binding FrameNumber}" HorizontalOptions="Center" FontSize="14"/>
+                                        <Label Text="{Binding RollingScore}" HorizontalOptions="Center" FontSize="14"/>
+                                    </StackLayout>
+                                </Border>
+                            </DataTemplate>
+                        </CollectionView.ItemTemplate>
+                    </CollectionView>
+                </StackLayout>
+            </Grid>
+        </StackLayout>
+    </ScrollView>
+
+    <!-- Visual State Manager for Adaptive Button Sizes -->
+    <VisualStateManager.VisualStateGroups>
+        <VisualStateGroup x:Name="AdaptiveStates">
+            <VisualState x:Name="Narrow">
+                <VisualState.Setters>
+                    <Setter Property="FlexLayout.Wrap" Value="NoWrap" />
+                    <Setter Property="Button.WidthRequest" Value="35"/>
+                    <Setter Property="Button.HeightRequest" Value="35"/>
+                    <Setter Property="Button.FontSize" Value="12"/>
+                    <Setter Property="Button.CornerRadius" Value="15"/>
+                </VisualState.Setters>
+            </VisualState>
+
+            <VisualState x:Name="Wide">
+                <VisualState.Setters>
+                    <Setter Property="FlexLayout.Wrap" Value="Wrap" />
+                    <Setter Property="Button.WidthRequest" Value="50"/>
+                    <Setter Property="Button.HeightRequest" Value="50"/>
+                    <Setter Property="Button.FontSize" Value="16"/>
+                    <Setter Property="Button.CornerRadius" Value="25"/>
+                </VisualState.Setters>
+            </VisualState>
+        </VisualStateGroup>
+    </VisualStateManager.VisualStateGroups>
+
+</ContentPage>

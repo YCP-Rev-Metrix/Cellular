@@ -4,11 +4,11 @@ using Cellular.ViewModel;
 
 namespace Cellular
 {
-    public partial class GameInterface : ContentPage
+    public partial class ShotPage : ContentPage
     {
 
         private readonly GameInterfaceViewModel viewModel;
-        public GameInterface()
+        public ShotPage()
         {
             InitializeComponent();
             viewModel = new GameInterfaceViewModel();

@@ -20,7 +20,7 @@ namespace Cellular
 
         private async void OnGameClicked(object sender, EventArgs e)
         {
-            await Navigation.PushAsync(new GameInterface());
+            await Navigation.PushAsync(new ShotPage());
 
         }
 
