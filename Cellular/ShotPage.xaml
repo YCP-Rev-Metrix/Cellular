@@ -92,15 +92,28 @@
                     <CollectionView ItemsSource="{Binding Frames}" 
                             HorizontalScrollBarVisibility="Always" 
                             VerticalScrollBarVisibility="Never" 
-                            WidthRequest="{OnIdiom Phone=325, Tablet=350, Desktop=500}">    
+                            WidthRequest="{OnIdiom Phone=325, Tablet=350, Desktop=500}">
                         <CollectionView.ItemsLayout>
                             <LinearItemsLayout Orientation="Horizontal" />
                         </CollectionView.ItemsLayout>
                         <CollectionView.ItemTemplate>
                             <DataTemplate>
                                 <Border Stroke="DarkGray" StrokeThickness="1" Padding="5"
-                    BackgroundColor="White" HeightRequest="120" WidthRequest="80">
+                                       BackgroundColor="White" HeightRequest="120" WidthRequest="80">
                                     <StackLayout VerticalOptions="Center" HorizontalOptions="Center" Padding="5">
+
+                                        <!-- Two Score Boxes at the Top -->
+                                        <FlexLayout Direction="Row" JustifyContent="Center" AlignItems="Center">
+                                            <!-- First Score Box -->
+                                            <Border Stroke="Black" StrokeThickness="1" Margin="0,0">
+                                                <BoxView HeightRequest="20" WidthRequest="20" BackgroundColor="LightGray"/>
+                                            </Border>
+
+                                            <!-- Second Score Box -->
+                                            <Border Stroke="Black" StrokeThickness="1" Margin="0,0">
+                                                <BoxView HeightRequest="20" WidthRequest="20" BackgroundColor="LightGray"/>
+                                            </Border>
+                                        </FlexLayout>
 
                                         <!-- Bowling Pin Formation -->
                                         <StackLayout Padding="5">
@@ -133,14 +146,13 @@
                                             <!-- Frame Number -->
                                             <Label Text="{Binding FrameNumber}" HorizontalOptions="Center" FontSize="14"/>
                                             <Label Text="{Binding RollingScore}" HorizontalOptions="Center" FontSize="14"/>
-                                            
+
                                         </StackLayout>
                                     </StackLayout>
                                 </Border>
                             </DataTemplate>
                         </CollectionView.ItemTemplate>
                     </CollectionView>
-
                 </StackLayout>
 
             </Grid>
