@@ -88,27 +88,61 @@
                 </StackLayout>
 
                 <!-- Frames Scroll -->
-                <StackLayout Grid.Row="4" Grid.Column="1" HorizontalOptions="Center" Padding="-25, 0, 0, 0">
+                <StackLayout Grid.Row="4" Grid.Column="1" HorizontalOptions="Center" Padding="40, 0, 75, 0">
                     <CollectionView ItemsSource="{Binding Frames}" 
-                    HorizontalScrollBarVisibility="Always" 
-                    VerticalScrollBarVisibility="Never" 
-                    WidthRequest="{OnIdiom Phone=325, Tablet=350, Desktop=500}">
+                            HorizontalScrollBarVisibility="Always" 
+                            VerticalScrollBarVisibility="Never" 
+                            WidthRequest="{OnIdiom Phone=325, Tablet=350, Desktop=500}">    
                         <CollectionView.ItemsLayout>
                             <LinearItemsLayout Orientation="Horizontal" />
                         </CollectionView.ItemsLayout>
                         <CollectionView.ItemTemplate>
                             <DataTemplate>
                                 <Border Stroke="DarkGray" StrokeThickness="1" Padding="5"
-                        BackgroundColor="White" HeightRequest="100" WidthRequest="70">
-                                    <StackLayout VerticalOptions="Center" HorizontalOptions="Center">
-                                        <Label Text="{Binding FrameNumber}" HorizontalOptions="Center" FontSize="14"/>
-                                        <Label Text="{Binding RollingScore}" HorizontalOptions="Center" FontSize="14"/>
+                    BackgroundColor="White" HeightRequest="120" WidthRequest="80">
+                                    <StackLayout VerticalOptions="Center" HorizontalOptions="Center" Padding="5">
+
+                                        <!-- Bowling Pin Formation -->
+                                        <StackLayout Padding="5">
+                                            <!-- Top Row (4 Pins) -->
+                                            <FlexLayout Direction="Row" JustifyContent="Center">
+                                                <BoxView HeightRequest="10" WidthRequest="10" CornerRadius="5" BackgroundColor="Black" Margin="1"/>
+                                                <BoxView HeightRequest="10" WidthRequest="10" CornerRadius="5" BackgroundColor="Black" Margin="1"/>
+                                                <BoxView HeightRequest="10" WidthRequest="10" CornerRadius="5" BackgroundColor="Black" Margin="1"/>
+                                                <BoxView HeightRequest="10" WidthRequest="10" CornerRadius="5" BackgroundColor="Black" Margin="1"/>
+                                            </FlexLayout>
+
+                                            <!-- Second Row (3 Pins) -->
+                                            <FlexLayout Direction="Row" JustifyContent="Center">
+                                                <BoxView HeightRequest="10" WidthRequest="10" CornerRadius="5" BackgroundColor="Black" Margin="1"/>
+                                                <BoxView HeightRequest="10" WidthRequest="10" CornerRadius="5" BackgroundColor="Black" Margin="1"/>
+                                                <BoxView HeightRequest="10" WidthRequest="10" CornerRadius="5" BackgroundColor="Black" Margin="1"/>
+                                            </FlexLayout>
+
+                                            <!-- Third Row (2 Pins) -->
+                                            <FlexLayout Direction="Row" JustifyContent="Center">
+                                                <BoxView HeightRequest="10" WidthRequest="10" CornerRadius="5" BackgroundColor="Black" Margin="1"/>
+                                                <BoxView HeightRequest="10" WidthRequest="10" CornerRadius="5" BackgroundColor="Black" Margin="1"/>
+                                            </FlexLayout>
+
+                                            <!-- Bottom Row (1 Pin) -->
+                                            <FlexLayout Direction="Row" JustifyContent="Center">
+                                                <BoxView HeightRequest="10" WidthRequest="10" CornerRadius="5" BackgroundColor="Black" Margin="1"/>
+                                            </FlexLayout>
+
+                                            <!-- Frame Number -->
+                                            <Label Text="{Binding FrameNumber}" HorizontalOptions="Center" FontSize="14"/>
+                                            <Label Text="{Binding RollingScore}" HorizontalOptions="Center" FontSize="14"/>
+                                            
+                                        </StackLayout>
                                     </StackLayout>
                                 </Border>
                             </DataTemplate>
                         </CollectionView.ItemTemplate>
                     </CollectionView>
+
                 </StackLayout>
+
             </Grid>
         </StackLayout>
     </ScrollView>
