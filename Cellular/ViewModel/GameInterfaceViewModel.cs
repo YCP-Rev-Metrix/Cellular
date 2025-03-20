@@ -7,11 +7,11 @@ namespace Cellular.ViewModel
 {
     internal partial class GameInterfaceViewModel : INotifyPropertyChanged
     {
-        private ObservableCollection<object> players;
-        private ObservableCollection<object> arsenal;
-        private ObservableCollection<object> frames;
+        private ObservableCollection<string> players;
+        private ObservableCollection<string> arsenal;
+        private ObservableCollection<Frame> frames;
 
-        public ObservableCollection<object> Players
+        public ObservableCollection<string> Players
         {
             get => players;
             set
@@ -21,7 +21,7 @@ namespace Cellular.ViewModel
             }
         }
 
-        public ObservableCollection<object> Arsenal
+        public ObservableCollection<string> Arsenal
         {
             get => arsenal;
             set
@@ -31,7 +31,7 @@ namespace Cellular.ViewModel
             }
         }
 
-        public ObservableCollection<object> Frames
+        public ObservableCollection<Frame> Frames
         {
             get => frames;
             set
@@ -41,51 +41,49 @@ namespace Cellular.ViewModel
             }
         }
 
-        // Property to return only the first 12 frames
-        public ObservableCollection<object> First12Frames
+        // Property to return the first 12 frames
+        public ObservableCollection<Frame> First12Frames
         {
             get
             {
                 // Returns the first 12 frames, or fewer if there are not enough frames
-                return new ObservableCollection<object>(frames.Take(10));
+                return [.. frames.Take(12)];
             }
         }
 
         public GameInterfaceViewModel()
         {
-            players = new ObservableCollection<object>
-            {
+            players =
+            [
                 "Zach",
                 "Carson",
                 "Thomas",
                 "Josh"
-            };
+            ];
 
-            arsenal = new ObservableCollection<object>
-            {
+            arsenal =
+            [
                 "Ball 1",
                 "Ball 2",
                 "Ball 3",
                 "The Perfect Ball",
                 "Ball 5",
                 "Ball 6"
-            };
+            ];
 
-            frames = new ObservableCollection<object>
-            {
-                new Frame(1, 30),
-                new Frame(2, 60),
-                new Frame(3, 90),
-                new Frame(4, 90),
-                new Frame(5, 90),
-                new Frame(6, 90),
-                new Frame(7, 90),
-                new Frame(8, 90),
-                new Frame(9, 90),
-                new Frame(10, 90)
-
-                // Add more frames as needed
-            };
+            frames =
+            [
+                new (1, 30),
+                new (2, 60),
+                new (3, 90),
+                new (4, 90),
+                new (5, 90),
+                /*new (6, 90),
+                new (7, 90),
+                new (8, 90),
+                new (9, 90),
+                new (10, 90)*/
+            ];
         }
 
         // Notify property changed
@@ -102,10 +100,12 @@ namespace Cellular.ViewModel
         public int FrameNumber { get; set; }
         public int RollingScore { get; set; }
 
+        // Constructor
         public Frame(int frameNumber, int rollingScore)
         {
             FrameNumber = frameNumber;
             RollingScore = rollingScore;
         }
     }
+
 }

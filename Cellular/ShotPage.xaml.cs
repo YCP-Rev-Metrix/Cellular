@@ -15,30 +15,22 @@ namespace Cellular
             BindingContext = viewModel;
         }
 
-        public void boardChanged(object sender, EventArgs e)
+        public void BoardChanged(object sender, EventArgs e)
         {
-            if (TestingLabel != null) // Ensure TestingLabel is not null
+            if (sender is Slider slider)
             {
-                Slider typedSender = (Slider)sender;
-                // Ensure you only set the value if it is not null
-                if (typedSender != null)
+                double roundedValue = Math.Round(slider.Value);
+                if (TestingLabel != null) // Ensure TestingLabel is not null
                 {
-                    double roundedValue = Math.Round(typedSender.Value);
-                    if(roundedValue == 0 || roundedValue == 40)
-                    {
-                        TestingLabel.Text = "Gutter";
-                    }
-                    else
-                    {
-                        TestingLabel.Text = roundedValue.ToString(); // Update the label text
-                    }
+                    TestingLabel.Text = (roundedValue == 0 || roundedValue == 40) ? "Gutter" : roundedValue.ToString();
                 }
             }
             else
             {
-                Console.WriteLine("TestingLabel is null.");  // Log for debugging purposes
+                Console.WriteLine("BoardChanged: Sender is not a Slider.");
             }
         }
+
 
     }
 
