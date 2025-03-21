@@ -8,6 +8,7 @@ using Microsoft.Maui.Storage;
 using BCrypt.Net;
 using SQLite;
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 
 namespace Cellular.ViewModel
 {
@@ -222,13 +223,6 @@ namespace Cellular.ViewModel
                     await _database.UpdateAsync(user);
                 }
             }
-        }
-
-        public async Task LoadUserHand()
-        {
-            var mainViewModel = new MainViewModel();
-            await mainViewModel.LoadUserData();
-            Hand = mainViewModel.Hand;
         }
 
         public static bool VerifyPassword(string enteredPassword, string storedHash)

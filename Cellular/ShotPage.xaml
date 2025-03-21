@@ -7,11 +7,17 @@
     <ScrollView>
         <!-- Wrap the entire Grid in a StackLayout to center it -->
         <StackLayout VerticalOptions="Start" HorizontalOptions="Center">
+            <StackLayout Background="Gray">
+                <Label Text="3/21/25"
+                   FontSize="12"
+                   TextColor="White"
+                   HorizontalOptions="Center"/>
+            </StackLayout>
             <Grid Padding="10">
                 <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
 
@@ -96,6 +102,12 @@
 
                 <!-- Left Side: Player Picker, Ball Selectors, Comment Button -->
                 <StackLayout Grid.Row="1" Grid.Column="0" VerticalOptions="Start" HorizontalOptions="End" Padding="0, 10" Spacing="10">
+                    <StackLayout Background="Gray" WidthRequest="50" HorizontalOptions="Start" TranslationY="-30">
+                        <Label Text="Gm 1-1"
+                           FontSize="12"
+                           TextColor="White"
+                           HorizontalOptions="Center"/>
+                    </StackLayout>
                     <StackLayout>
                         <Label Text="Player" />
                         <Picker x:Name="PlayerPicker" HeightRequest="30" WidthRequest="{OnIdiom Phone=80, Tablet=100, Desktop=120}" ItemsSource="{Binding Players}" />
@@ -139,7 +151,7 @@
                             Minimum="0" 
                             ValueChanged="BoardChanged" 
                             Value="20.5" 
-                            WidthRequest="250" 
+                            WidthRequest="200" 
                             HorizontalOptions="Center" 
                             VerticalOptions="Center" 
                             MinimumTrackColor="Transparent" 
@@ -151,10 +163,15 @@
 
                 <!-- Right Side: Quick Scoring Buttons -->
                 <StackLayout Grid.Row="1" Grid.Column="2" Orientation="Vertical" Padding="0, 10" Spacing="10" HorizontalOptions="Start">
-                    <Button Text="F" WidthRequest="40" HeightRequest="40" CornerRadius="3" />
-                    <Button Text="_" WidthRequest="40" HeightRequest="40" CornerRadius="3" />
-                    <Button Text="/" WidthRequest="40" HeightRequest="40" CornerRadius="3" />
-                    <Button Text="X" WidthRequest="40" HeightRequest="40" CornerRadius="3" />
+                    <Button Text="F" WidthRequest="40" HeightRequest="40" CornerRadius="3" BackgroundColor="LightGray"/>
+                    <Button Text="_" WidthRequest="40" HeightRequest="40" CornerRadius="3" BackgroundColor="LightGray"/>
+                    <Button Text="/" WidthRequest="40" HeightRequest="40" CornerRadius="3" BackgroundColor="LightGray"/>
+                    <Button Text="X" WidthRequest="40" HeightRequest="40" CornerRadius="3" BackgroundColor="LightGray"/>
+                </StackLayout>
+
+                <StackLayout Grid.Row="2" Grid.Column="1" Orientation="Horizontal" Padding="0, 10" Spacing="10" HorizontalOptions="Center">
+                    <Button Text="Comment" WidthRequest="100" HeightRequest="40" CornerRadius="3" BackgroundColor="LightGray"/>
+                    <Button Text="Next" WidthRequest="100" HeightRequest="40" CornerRadius="3" BackgroundColor="LightGray"/>
                 </StackLayout>
 
             </Grid>

@@ -54,6 +54,7 @@
                     ItemsSource="{Binding HandOptions}"
                     SelectedItem="{Binding Hand, Mode=TwoWay}"
                     FontSize="18"
+                    Margin="0, -10"
                     WidthRequest="120"/>
             </HorizontalStackLayout>
 

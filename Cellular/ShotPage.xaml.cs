@@ -2,6 +2,7 @@
 using Microsoft.Maui.Storage;
 using Cellular.ViewModel;
 using System.Diagnostics;
+using Cellular.Data;
 
 namespace Cellular
 {
@@ -9,11 +10,20 @@ namespace Cellular
     {
 
         private readonly GameInterfaceViewModel viewModel;
+
         public ShotPage()
         {
             InitializeComponent();
             viewModel = new GameInterfaceViewModel();
             BindingContext = viewModel;
+        }
+
+        protected override void OnAppearing()
+        {
+            base.OnAppearing();
+
+            Debug.WriteLine("Hand: ");
+
         }
 
         public void BoardChanged(object sender, EventArgs e)

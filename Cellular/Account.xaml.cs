@@ -25,7 +25,6 @@ namespace Cellular
 
             // Reload user details whenever the page appears
             await _viewModel.LoadUserData();
-            await _viewModel.LoadUserHand();
         }
 
         private async void OnSignoutClicked(object sender, EventArgs e)
