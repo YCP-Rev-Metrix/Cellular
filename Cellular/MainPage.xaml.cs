@@ -2,6 +2,7 @@
 using Microsoft.Maui.Storage;
 using Cellular.ViewModel;
 using Cellular.Data;
+using System.Diagnostics;
 
 namespace Cellular
 {
@@ -53,6 +54,7 @@ namespace Cellular
             {
                 await viewModel.LoadUserData();
                 user.Text = viewModel.FirstName;
+                Debug.WriteLine("User's Hand: " + viewModel.Hand);
             }
         }
         private void UpdateUI()

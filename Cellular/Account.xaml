@@ -58,8 +58,6 @@
                     WidthRequest="120"/>
             </HorizontalStackLayout>
 
-
-
             <Button
                 x:Name="stats"
                 Text="Get Stats" 

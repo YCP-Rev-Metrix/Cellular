@@ -223,6 +223,7 @@ namespace Cellular.ViewModel
                     await _database.UpdateAsync(user);
                 }
             }
+            Debug.WriteLine("User's Hand: " + Hand);
         }
 
         public static bool VerifyPassword(string enteredPassword, string storedHash)

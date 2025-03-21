@@ -107,7 +107,7 @@ namespace Cellular.ViewModel
         {
             var mainViewModel = new MainViewModel();
             await mainViewModel.LoadUserData();
-            Hand = mainViewModel.Hand;
+            _hand = mainViewModel.Hand;
         }
 
         // Notify property changed

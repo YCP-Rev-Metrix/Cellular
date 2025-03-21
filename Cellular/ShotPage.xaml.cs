@@ -3,6 +3,7 @@ using Microsoft.Maui.Storage;
 using Cellular.ViewModel;
 using System.Diagnostics;
 using Cellular.Data;
+using SQLitePCL;
 
 namespace Cellular
 {
@@ -21,8 +22,8 @@ namespace Cellular
         protected override void OnAppearing()
         {
             base.OnAppearing();
-
-            Debug.WriteLine("Hand: ");
+            _ = viewModel.LoadUserHand();
+            Debug.WriteLine("Hand: " + viewModel.Hand);
 
         }
 
@@ -34,8 +35,17 @@ namespace Cellular
 
                 if (TestingLabel != null) // Ensure TestingLabel is not null
                 {
-                    // Show "Gutter" for values 0 and 40, otherwise display the value
-                    TestingLabel.Text = (roundedValue == 0 || roundedValue == 40) ? "Gutter" : roundedValue.ToString();
+                    if(viewModel.Hand == "Left")
+                    {
+                        // Show "Gutter" for values 0 and 40, otherwise display the value
+                        TestingLabel.Text = (roundedValue == 0 || roundedValue == 40) ? "Gutter" : roundedValue.ToString();
+                    }
+                    else
+                    {
+                        double invertedValue = 40 - roundedValue;
+                        TestingLabel.Text = (invertedValue == 0 || invertedValue == 40) ? "Gutter" : invertedValue.ToString();
+
+                    }
                 }
             }
             else
