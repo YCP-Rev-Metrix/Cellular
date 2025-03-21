@@ -42,7 +42,8 @@ namespace Cellular
                     }
                     else
                     {
-                        double invertedValue = 40 - roundedValue;
+                        int roundedValue2 = (int)Math.Round(slider.Value); // Ensure proper rounding
+                        int invertedValue = 40 - roundedValue2;
                         TestingLabel.Text = (invertedValue == 0 || invertedValue == 40) ? "Gutter" : invertedValue.ToString();
 
                     }
