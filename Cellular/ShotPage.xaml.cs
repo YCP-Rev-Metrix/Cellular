@@ -1,6 +1,7 @@
 ﻿using System;
 using Microsoft.Maui.Storage;
 using Cellular.ViewModel;
+using System.Diagnostics;
 
 namespace Cellular
 {
@@ -20,8 +21,10 @@ namespace Cellular
             if (sender is Slider slider)
             {
                 double roundedValue = Math.Round(slider.Value);
+
                 if (TestingLabel != null) // Ensure TestingLabel is not null
                 {
+                    // Show "Gutter" for values 0 and 40, otherwise display the value
                     TestingLabel.Text = (roundedValue == 0 || roundedValue == 40) ? "Gutter" : roundedValue.ToString();
                 }
             }

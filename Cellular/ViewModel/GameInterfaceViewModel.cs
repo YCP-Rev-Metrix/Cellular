@@ -2,6 +2,7 @@
 using System.ComponentModel;
 using System.Linq; // For LINQ extension methods
 using System.Runtime.CompilerServices;
+using SQLite;
 
 namespace Cellular.ViewModel
 {
@@ -10,6 +11,7 @@ namespace Cellular.ViewModel
         private ObservableCollection<string> players;
         private ObservableCollection<string> arsenal;
         private ObservableCollection<Frame> frames;
+        private string _hand = "Left";
 
         public ObservableCollection<string> Players
         {
@@ -88,6 +90,26 @@ namespace Cellular.ViewModel
             ];
         }
 
+        public string Hand
+        {
+            get => _hand;
+            set
+            {
+                if (_hand != value)
+                {
+                    _hand = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
+        public async Task LoadUserHand()
+        {
+            var mainViewModel = new MainViewModel();
+            await mainViewModel.LoadUserData();
+            Hand = mainViewModel.Hand;
+        }
+
         // Notify property changed
         public event PropertyChangedEventHandler? PropertyChanged;
 
@@ -97,17 +119,10 @@ namespace Cellular.ViewModel
         }
     }
 
-    public class Frame
+    public class Frame(int frameNumber, int rollingScore)
     {
-        public int FrameNumber { get; set; }
-        public int RollingScore { get; set; }
-
-        // Constructor
-        public Frame(int frameNumber, int rollingScore)
-        {
-            FrameNumber = frameNumber;
-            RollingScore = rollingScore;
-        }
+        public int FrameNumber { get; set; } = frameNumber;
+        public int RollingScore { get; set; } = rollingScore;
     }
 
 }

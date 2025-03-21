@@ -48,6 +48,17 @@
                 <Label Text="{Binding PhoneNumber}" FontSize="18" FontAttributes="Bold"/>
             </HorizontalStackLayout>
 
+            <HorizontalStackLayout HorizontalOptions="Center" Spacing="5">
+                <Label Text="Hand: " FontSize="18"/>
+                <Picker x:Name="HandPicker"
+                    ItemsSource="{Binding HandOptions}"
+                    SelectedItem="{Binding Hand, Mode=TwoWay}"
+                    FontSize="18"
+                    WidthRequest="120"/>
+            </HorizontalStackLayout>
+
+
+
             <Button
                 x:Name="stats"
                 Text="Get Stats" 

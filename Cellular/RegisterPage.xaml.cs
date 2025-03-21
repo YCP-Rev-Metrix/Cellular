@@ -81,7 +81,8 @@ namespace Cellular
                     LastName = lastName,
                     Email = email,
                     LastLogin = DateTime.Now,
-                    PhoneNumber = phoneNumber
+                    PhoneNumber = phoneNumber,
+                    Hand = null
                 };
 
                 // Add the new user to the database

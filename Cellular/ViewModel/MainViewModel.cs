@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using Microsoft.Maui.Storage;
 using BCrypt.Net;
 using SQLite;
+using System.Collections.ObjectModel;
 
 namespace Cellular.ViewModel
 {
@@ -21,6 +22,9 @@ namespace Cellular.ViewModel
         private string? _email;
         public string? _newUserName;
         public string? _phoneNumber;
+        public string? _hand;
+        public ObservableCollection<string> HandOptions { get; } = ["Right", "Left"];
+
 
 
         public int? UserID
@@ -130,6 +134,20 @@ namespace Cellular.ViewModel
             }
         }
 
+        public string Hand
+        {
+            get => _hand;
+            set
+            {
+                if (_hand != value)
+                {
+                    _hand = value;
+                    OnPropertyChanged();
+                    _ = SaveHandPreferenceToDatabase();  // Save the updated hand preference
+                }
+            }
+        }
+
         public MainViewModel()
         {
             string dbPath = Path.Combine(FileSystem.AppDataDirectory, "appdata.db");
@@ -163,6 +181,7 @@ namespace Cellular.ViewModel
                 LastName = "N/A";
                 Email = "N/A";
                 PhoneNumber = "N/A";
+                Hand = "Right";
                 return;
             }
 
@@ -171,12 +190,13 @@ namespace Cellular.ViewModel
             if (user != null)
             {
                 UserID = user.UserId;
-                UserName = user.UserName ?? "Guest"; // Ensure this is set properly
+                UserName = user.UserName ?? "Guest";
                 Password = user.PasswordHash ?? "N/A";
                 FirstName = user.FirstName ?? "N/A";
                 LastName = user.LastName ?? "N/A";
                 Email = user.Email ?? "N/A";
                 PhoneNumber = user.PhoneNumber ?? "N/A";
+                Hand = user.Hand ?? "Right";
             }
             else
             {
@@ -187,7 +207,28 @@ namespace Cellular.ViewModel
                 LastName = "N/A";
                 Email = "N/A";
                 PhoneNumber = "N/A";
+                Hand = "Right";
             }
+        }
+
+        private async Task SaveHandPreferenceToDatabase()
+        {
+            if (UserID != null)
+            {
+                var user = await _database.Table<User>().FirstOrDefaultAsync(u => u.UserId == UserID);
+                if (user != null)
+                {
+                    user.Hand = Hand;
+                    await _database.UpdateAsync(user);
+                }
+            }
+        }
+
+        public async Task LoadUserHand()
+        {
+            var mainViewModel = new MainViewModel();
+            await mainViewModel.LoadUserData();
+            Hand = mainViewModel.Hand;
         }
 
         public static bool VerifyPassword(string enteredPassword, string storedHash)

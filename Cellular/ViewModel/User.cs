@@ -17,5 +17,7 @@ namespace Cellular.ViewModel
         public string? Email { get; set; }
 
         public String? PhoneNumber { get; set; }
+
+        public String? Hand { get; set; }
     }
 }
