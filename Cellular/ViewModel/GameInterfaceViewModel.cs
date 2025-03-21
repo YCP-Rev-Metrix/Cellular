@@ -73,16 +73,18 @@ namespace Cellular.ViewModel
 
             frames =
             [
-                new (1, 30),
-                new (2, 60),
-                new (3, 90),
-                new (4, 90),
-                new (5, 90),
-                /*new (6, 90),
-                new (7, 90),
-                new (8, 90),
+                new (1, 10),
+                new (2, 20),
+                new (3, 30),
+                new (4, 40),
+                new (5, 50),
+                new (6, 60),
+                new (7, 70),
+                new (8, 80),
                 new (9, 90),
-                new (10, 90)*/
+                new (10, 100),
+                new (11, 110),
+                new (12, 120)
             ];
         }
 

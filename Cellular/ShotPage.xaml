@@ -25,22 +25,29 @@
                 </Grid.ColumnDefinitions>
 
                 <!-- Frames Scroll -->
-                <StackLayout Grid.Row="0" Grid.Column="1" HorizontalOptions="Center" Padding="40, 0, 75, 30">
+                <StackLayout Grid.Row="0" Grid.Column="1" HorizontalOptions="Center" Padding="40, -10, 75, 30">
                     <CollectionView ItemsSource="{Binding Frames}" 
-                HorizontalScrollBarVisibility="Always" 
-                VerticalScrollBarVisibility="Never" 
-                WidthRequest="{OnIdiom Phone=325, Tablet=350, Desktop=500}">
+                           HorizontalScrollBarVisibility="Always" 
+                           VerticalScrollBarVisibility="Never" 
+                           WidthRequest="{OnIdiom Phone=325, Tablet=350, Desktop=500}">
                         <CollectionView.ItemsLayout>
                             <LinearItemsLayout Orientation="Horizontal" />
                         </CollectionView.ItemsLayout>
                         <CollectionView.ItemTemplate>
                             <!-- Set x:DataType to the type of the item (Frame in this case) -->
                             <DataTemplate x:DataType="local:Frame">
-                                <Border Stroke="DarkGray" StrokeThickness="1" Padding="5"
-                    BackgroundColor="White" HeightRequest="120" WidthRequest="80">
+                                <Border Stroke="DarkGray" StrokeThickness="1" Padding="1"
+                                    BackgroundColor="White" HeightRequest="135" WidthRequest="80">
                                     <StackLayout VerticalOptions="Center" HorizontalOptions="Center" Padding="5">
+                                        <!-- Frame Numbers -->
+                                        <StackLayout Background="Gray">
+                                            <Label Text="{Binding FrameNumber, StringFormat='{0}'}"
+                                               FontSize="12"
+                                               TextColor="Black"
+                                               HorizontalOptions="Center"/>
+                                        </StackLayout>
                                         <!-- Two Score Boxes at the Top -->
-                                        <FlexLayout Direction="Row" JustifyContent="Center" AlignItems="Center">
+                                        <FlexLayout Direction="Row" JustifyContent="Center" AlignItems="Center" Padding="0, 10, 0, 5">
                                             <Border Stroke="Black" StrokeThickness="1" Margin="0,0">
                                                 <BoxView HeightRequest="20" WidthRequest="20" BackgroundColor="LightGray"/>
                                             </Border>
@@ -72,10 +79,13 @@
                                             <FlexLayout Direction="Row" JustifyContent="Center">
                                                 <BoxView HeightRequest="10" WidthRequest="10" CornerRadius="5" BackgroundColor="Black" Margin="1"/>
                                             </FlexLayout>
-
-                                            <!-- Frame Number -->
-                                            <Label Text="{Binding FrameNumber}" HorizontalOptions="Center" FontSize="14"/>
-                                            <Label Text="{Binding RollingScore}" HorizontalOptions="Center" FontSize="14"/>
+                                        </StackLayout>
+                                        <!-- Frame Number and Rolling Score Labels -->
+                                        <StackLayout Spacing="2" VerticalOptions="Center" HorizontalOptions="Center">
+                                            <Label Text="{Binding RollingScore, StringFormat='{0}'}"
+                                               FontSize="12"
+                                               TextColor="Black"
+                                               HorizontalOptions="Center"/>
                                         </StackLayout>
                                     </StackLayout>
                                 </Border>
