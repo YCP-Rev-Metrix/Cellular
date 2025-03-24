@@ -2,6 +2,7 @@
 using System.ComponentModel;
 using System.Linq; // For LINQ extension methods
 using System.Runtime.CompilerServices;
+using Cellular.Data;
 using SQLite;
 
 namespace Cellular.ViewModel
@@ -11,6 +12,7 @@ namespace Cellular.ViewModel
         private ObservableCollection<string> players;
         private ObservableCollection<string> arsenal;
         private ObservableCollection<Frame> frames;
+        private readonly SQLiteAsyncConnection _database;
         private string _hand = "Left";
 
         public ObservableCollection<string> Players
@@ -55,23 +57,8 @@ namespace Cellular.ViewModel
 
         public GameInterfaceViewModel()
         {
-            players =
-            [
-                "Zach",
-                "Carson",
-                "Thomas",
-                "Josh"
-            ];
-
-            arsenal =
-            [
-                "Ball 1",
-                "Ball 2",
-                "Ball 3",
-                "The Perfect Ball",
-                "Ball 5",
-                "Ball 6"
-            ];
+            string dbPath = Path.Combine(FileSystem.AppDataDirectory, "appdata.db");
+            _database = new SQLiteAsyncConnection(dbPath);
 
             frames =
             [
@@ -88,6 +75,9 @@ namespace Cellular.ViewModel
                 new (11, 110),
                 new (12, 120)
             ];
+
+            LoadUsers();
+            LoadArsenal();
         }
 
         public string Hand
@@ -116,6 +106,18 @@ namespace Cellular.ViewModel
         protected void OnPropertyChanged([CallerMemberName] string propertyName = "")
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
+
+        public async void LoadUsers()
+        {
+            var playerList = await _database.Table<User>().ToListAsync();
+            Players = [.. playerList.Select(p => p.FirstName)];
+        }
+
+        public async void LoadArsenal()
+        {
+            var arsenalList = await _database.Table<Ball>().ToListAsync();
+            Arsenal = [.. arsenalList.Select(a => a.Name)];
         }
     }
 

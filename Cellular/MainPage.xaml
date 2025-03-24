@@ -27,7 +27,7 @@
 
             <!-- Show only when logged out -->
             <Button x:Name="login"
-                    Text="Login" 
+                    Text="Login"
                     SemanticProperties.Hint="Takes you to the login page"
                     Clicked="OnLoginClicked"
                     HorizontalOptions="Fill"
