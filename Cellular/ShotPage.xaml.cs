@@ -60,15 +60,20 @@ namespace Cellular
             if (sender is Button button)
             {
                 // Toggle between original color and clicked color
-                if (button.BackgroundColor == Colors.LightSlateGray)
+                if (button.BackgroundColor == Colors.LightSlateGrey)
                 {
                     button.BackgroundColor = Color.FromArgb("#9880e5");
                 }
                 else
                 {
-                    button.BackgroundColor = Colors.LightSlateGray; // Change to clicked color
+                    button.BackgroundColor = Colors.LightSlateGrey; // Change to clicked color
                 }
             }
+        }
+
+        private void OnNextClicked(object sender, EventArgs e)
+        {
+
         }
 
 
