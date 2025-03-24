@@ -110,15 +110,15 @@
                     </StackLayout>
                     <StackLayout>
                         <Label Text="Player" />
-                        <Picker x:Name="PlayerPicker" HeightRequest="30" WidthRequest="{OnIdiom Phone=80, Tablet=100, Desktop=120}" ItemsSource="{Binding Players}" />
+                        <Picker x:Name="PlayerPicker" HeightRequest="30" WidthRequest="{OnIdiom Phone=80, Tablet=100, Desktop=120}" ItemsSource="{Binding Players}" BackgroundColor="Grey"/>
                     </StackLayout>
                     <StackLayout>
                         <Label Text="1st Ball" />
-                        <Picker x:Name="BallPicker1" HeightRequest="30" WidthRequest="{OnIdiom Phone=80, Tablet=100, Desktop=120}" ItemsSource="{Binding Arsenal}" />
+                        <Picker x:Name="BallPicker1" HeightRequest="30" WidthRequest="{OnIdiom Phone=80, Tablet=100, Desktop=120}" ItemsSource="{Binding Arsenal}" BackgroundColor="Grey"/>
                     </StackLayout>
                     <StackLayout>
                         <Label Text="2nd Ball" />
-                        <Picker x:Name="BallPicker2" HeightRequest="30" WidthRequest="{OnIdiom Phone=80, Tablet=100, Desktop=120}" ItemsSource="{Binding Arsenal}" />
+                        <Picker x:Name="BallPicker2" HeightRequest="30" WidthRequest="{OnIdiom Phone=80, Tablet=100, Desktop=120}" ItemsSource="{Binding Arsenal}" BackgroundColor="Grey"/>
                     </StackLayout>
                 </StackLayout>
 
@@ -126,22 +126,22 @@
                 <StackLayout Grid.Row="1" Grid.Column="1" Orientation="Vertical" Spacing="10" WidthRequest="{OnIdiom Phone=200, Tablet=250, Desktop=250}" HorizontalOptions="Center" Padding="0, 10">
                     <!-- Pin Buttons -->
                     <FlexLayout x:Name="PinButtonLayout" Direction="Row" JustifyContent="Center" Wrap="Wrap" HorizontalOptions="Center">
-                        <Button x:Name = "seven" Text="7" CornerRadius="25"/>
-                        <Button x:Name = "eight" Text="8" CornerRadius="25"/>
-                        <Button x:Name = "nine" Text="9" CornerRadius="25"/>
-                        <Button x:Name = "ten" Text="10" CornerRadius="25"/>
+                        <Button x:Name = "seven" Text="7" CornerRadius="25" Clicked="OnPinClicked" BackgroundColor="#9880e5"/>
+                        <Button x:Name = "eight" Text="8" CornerRadius="25" Clicked="OnPinClicked" BackgroundColor="#9880e5"/>
+                        <Button x:Name = "nine" Text="9" CornerRadius="25" Clicked="OnPinClicked" BackgroundColor="#9880e5"/>
+                        <Button x:Name = "ten" Text="10" CornerRadius="25" Clicked="OnPinClicked" BackgroundColor="#9880e5"/>
                     </FlexLayout>
                     <FlexLayout Direction="Row" JustifyContent="Center" Wrap="Wrap" HorizontalOptions="Center">
-                        <Button x:Name = "four" Text="4" CornerRadius="25"/>
-                        <Button x:Name = "five" Text="5" CornerRadius="25"/>
-                        <Button x:Name = "six" Text="6" CornerRadius="25"/>
+                        <Button x:Name = "four" Text="4" CornerRadius="25" Clicked="OnPinClicked" BackgroundColor="#9880e5"/>
+                        <Button x:Name = "five" Text="5" CornerRadius="25" Clicked="OnPinClicked" BackgroundColor="#9880e5"/>
+                        <Button x:Name = "six" Text="6" CornerRadius="25" Clicked="OnPinClicked" BackgroundColor="#9880e5"/>
                     </FlexLayout>
                     <FlexLayout Direction="Row" JustifyContent="Center" Wrap="Wrap" HorizontalOptions="Center">
-                        <Button x:Name = "two" Text="2" CornerRadius="25"/>
-                        <Button x:Name = "three" Text="3" CornerRadius="25"/>
+                        <Button x:Name = "two" Text="2" CornerRadius="25" Clicked="OnPinClicked" BackgroundColor="#9880e5"/>
+                        <Button x:Name = "three" Text="3" CornerRadius="25" Clicked="OnPinClicked" BackgroundColor="#9880e5"/>
                     </FlexLayout>
                     <FlexLayout Direction="Row" JustifyContent="Center" Wrap="Wrap" HorizontalOptions="Center">
-                        <Button x:Name = "one" Text="1" CornerRadius="25"/>
+                        <Button x:Name = "one" Text="1" CornerRadius="25" Clicked="OnPinClicked" BackgroundColor="#9880e5"/>
                     </FlexLayout>
 
                     <!-- Board Selector -->

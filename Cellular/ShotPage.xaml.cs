@@ -55,6 +55,22 @@ namespace Cellular
             }
         }
 
+        private void OnPinClicked(object sender, EventArgs e)
+        {
+            if (sender is Button button)
+            {
+                // Toggle between original color and clicked color
+                if (button.BackgroundColor == Colors.LightSlateGray)
+                {
+                    button.BackgroundColor = Color.FromArgb("#9880e5");
+                }
+                else
+                {
+                    button.BackgroundColor = Colors.LightSlateGray; // Change to clicked color
+                }
+            }
+        }
+
 
     }
 
