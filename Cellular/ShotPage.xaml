@@ -32,15 +32,15 @@
 
                 <!-- Frames Scroll -->
                 <StackLayout Grid.Row="0" Grid.Column="1" HorizontalOptions="Center" Padding="0, -10, 0, 30">
-                    <CollectionView ItemsSource="{Binding Frames}" 
-                           HorizontalScrollBarVisibility="Always" 
+                    <CollectionView x:Name="FramesCollectionView" ItemsSource="{Binding Frames}"
+                           HorizontalScrollBarVisibility="Always"
                            VerticalScrollBarVisibility="Never">
                         <CollectionView.ItemsLayout>
                             <LinearItemsLayout Orientation="Horizontal" />
                         </CollectionView.ItemsLayout>
                         <CollectionView.ItemTemplate>
                             <!-- Set x:DataType to the type of the item (Frame in this case) -->
-                            <DataTemplate x:DataType="local:Frame">
+                            <DataTemplate x:DataType="local:ShotPageFrame">
                                 <Border Stroke="DarkGray" StrokeThickness="1" Padding="0"
                                     BackgroundColor="White" HeightRequest="135" WidthRequest="80">
                                     <StackLayout VerticalOptions="Center" HorizontalOptions="Center" Padding="0">
@@ -64,28 +64,27 @@
                                         <!-- Bowling Pin Formation -->
                                         <StackLayout Padding="5">
                                             <FlexLayout Direction="Row" JustifyContent="Center">
-                                                <BoxView HeightRequest="10" WidthRequest="10" CornerRadius="5" BackgroundColor="Black" Margin="1"/>
-                                                <BoxView HeightRequest="10" WidthRequest="10" CornerRadius="5" BackgroundColor="Black" Margin="1"/>
-                                                <BoxView HeightRequest="10" WidthRequest="10" CornerRadius="5" BackgroundColor="Black" Margin="1"/>
-                                                <BoxView HeightRequest="10" WidthRequest="10" CornerRadius="5" BackgroundColor="Black" Margin="1"/>
+                                                <BoxView HeightRequest="10" WidthRequest="10" CornerRadius="5" BackgroundColor="{Binding PinColors[6]}" Margin="1" x:Name="pin7"/>
+                                                <BoxView HeightRequest="10" WidthRequest="10" CornerRadius="5" BackgroundColor="{Binding PinColors[7]}" Margin="1" x:Name="pin8"/>
+                                                <BoxView HeightRequest="10" WidthRequest="10" CornerRadius="5" BackgroundColor="{Binding PinColors[8]}" Margin="1" x:Name="pin9"/>
+                                                <BoxView HeightRequest="10" WidthRequest="10" CornerRadius="5" BackgroundColor="{Binding PinColors[9]}" Margin="1" x:Name="pin10"/>
                                             </FlexLayout>
 
                                             <FlexLayout Direction="Row" JustifyContent="Center">
-                                                <BoxView HeightRequest="10" WidthRequest="10" CornerRadius="5" BackgroundColor="Black" Margin="1"/>
-                                                <BoxView HeightRequest="10" WidthRequest="10" CornerRadius="5" BackgroundColor="Black" Margin="1"/>
-                                                <BoxView HeightRequest="10" WidthRequest="10" CornerRadius="5" BackgroundColor="Black" Margin="1"/>
+                                                <BoxView HeightRequest="10" WidthRequest="10" CornerRadius="5" BackgroundColor="{Binding PinColors[3]}" Margin="1" x:Name="pin4"/>
+                                                <BoxView HeightRequest="10" WidthRequest="10" CornerRadius="5" BackgroundColor="{Binding PinColors[4]}" Margin="1" x:Name="pin5"/>
+                                                <BoxView HeightRequest="10" WidthRequest="10" CornerRadius="5" BackgroundColor="{Binding PinColors[5]}" Margin="1" x:Name="pin6"/>
                                             </FlexLayout>
 
                                             <FlexLayout Direction="Row" JustifyContent="Center">
-                                                <BoxView HeightRequest="10" WidthRequest="10" CornerRadius="5" BackgroundColor="Black" Margin="1"/>
-                                                <BoxView HeightRequest="10" WidthRequest="10" CornerRadius="5" BackgroundColor="Black" Margin="1"/>
+                                                <BoxView HeightRequest="10" WidthRequest="10" CornerRadius="5" BackgroundColor="{Binding PinColors[1]}" Margin="1" x:Name="pin2"/>
+                                                <BoxView HeightRequest="10" WidthRequest="10" CornerRadius="5" BackgroundColor="{Binding PinColors[2]}" Margin="1" x:Name="pin3"/>
                                             </FlexLayout>
 
                                             <FlexLayout Direction="Row" JustifyContent="Center">
-                                                <BoxView HeightRequest="10" WidthRequest="10" CornerRadius="5" BackgroundColor="Black" Margin="1"/>
+                                                <BoxView HeightRequest="10" WidthRequest="10" CornerRadius="5" BackgroundColor="{Binding PinColors[0]}" Margin="1" x:Name="pin1"/>
                                             </FlexLayout>
                                         </StackLayout>
-                                        <!-- Frame Number and Rolling Score Labels -->
                                         <StackLayout Spacing="2" VerticalOptions="Center" HorizontalOptions="Center">
                                             <Label Text="{Binding RollingScore, StringFormat='{0}'}"
                                                FontSize="12"

@@ -4,6 +4,7 @@ using Cellular.ViewModel;
 using System.Diagnostics;
 using Cellular.Data;
 using SQLitePCL;
+using Microsoft.Maui.Controls;
 
 namespace Cellular
 {
@@ -55,27 +56,65 @@ namespace Cellular
             }
         }
 
+        //Responsible for tracking which pins are up or down and changing their colors on the screen
         private void OnPinClicked(object sender, EventArgs e)
         {
             if (sender is Button button)
             {
-                // Toggle between original color and clicked color
+                // Toggle button color
                 if (button.BackgroundColor == Colors.LightSlateGrey)
                 {
-                    button.BackgroundColor = Color.FromArgb("#9880e5");
+                    button.BackgroundColor = Color.FromArgb("#9880e5"); // Selected color
                 }
                 else
                 {
-                    button.BackgroundColor = Colors.LightSlateGrey; // Change to clicked color
+                    button.BackgroundColor = Colors.LightSlateGrey; // Default color
+                }
+
+                // Get the pin number from the button text
+                if (int.TryParse(button.Text, out int pinNumber) && pinNumber >= 1 && pinNumber <= 10)
+                {
+                    // Toggle the bit in pinStates
+                    viewModel.pinStates ^= (short)(1 << (pinNumber - 1));
+
+                    // Get the new state of the pin (0 or 1)
+                    int pinState = (viewModel.pinStates & (1 << (pinNumber - 1))) != 0 ? 1 : 0;
+
+                    // Print the pin number and its new state to the console
+                    Console.WriteLine($"Pin {pinNumber} is now {(pinState == 1 ? "Up" : "Down")}");
+
+                    // Notify the ViewModel that pinStates has changed (if needed)
+                    viewModel.OnPropertyChanged(nameof(viewModel.pinStates));
                 }
             }
         }
 
         private void OnNextClicked(object sender, EventArgs e)
         {
+            var currentFrame = viewModel.Frames.FirstOrDefault(f => f.FrameNumber == viewModel.currentFrame);
 
+            if (currentFrame == null)
+            {
+                Console.WriteLine($"No frame found for {viewModel.currentFrame}");
+                return;
+            }
+
+            short pinStates = viewModel.pinStates; // Use the pin states for the current frame
+
+            // Update the pin colors based on the pin states
+            for (int i = 0; i < 10; i++)
+            {
+                bool isPinDown = (pinStates & (1 << i)) != 0;
+                currentFrame.PinColors[i] = isPinDown ? Colors.Black : Colors.White;
+            }
+
+            // Refresh the CollectionView to show updated data
+            FramesCollectionView.ItemsSource = null;
+            FramesCollectionView.ItemsSource = viewModel.Frames;
+
+            // Notify the frame has been updated
+            viewModel.OnPropertyChanged(nameof(viewModel.Frames));
         }
-
 
     }
 

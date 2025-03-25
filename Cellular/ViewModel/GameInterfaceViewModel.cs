@@ -14,6 +14,9 @@ namespace Cellular.ViewModel
         private ObservableCollection<ShotPageFrame> frames;
         private readonly SQLiteAsyncConnection _database;
         private string _hand = "Left";
+        public short pinStates = 0;
+        public int currentFrame = 1;
+        public int currentShot = 1;
 
         public ObservableCollection<string> Players
         {
@@ -103,7 +106,7 @@ namespace Cellular.ViewModel
         // Notify property changed
         public event PropertyChangedEventHandler? PropertyChanged;
 
-        protected void OnPropertyChanged([CallerMemberName] string propertyName = "")
+        public void OnPropertyChanged([CallerMemberName] string propertyName = "")
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
@@ -119,12 +122,45 @@ namespace Cellular.ViewModel
             var arsenalList = await _database.Table<Ball>().ToListAsync();
             Arsenal = [.. arsenalList.Select(a => a.Name)];
         }
+
     }
 
-    public class ShotPageFrame(int frameNumber, int rollingScore)
+    public class ShotPageFrame : INotifyPropertyChanged
     {
-        public int FrameNumber { get; set; } = frameNumber;
-        public int RollingScore { get; set; } = rollingScore;
+        public int FrameNumber { get; set; }
+        public int RollingScore { get; set; }
+
+        private ObservableCollection<Color> _pinColors;
+        public ObservableCollection<Color> PinColors
+        {
+            get => _pinColors;
+            set
+            {
+                _pinColors = value;
+                OnPropertyChanged();
+            }
+        }
+
+        public ShotPageFrame(int frameNumber, int rollingScore)
+        {
+            FrameNumber = frameNumber;
+            RollingScore = rollingScore;
+            PinColors = [.. Enumerable.Repeat(Colors.Black, 10)];
+        }
+
+        public event PropertyChangedEventHandler PropertyChanged;
+
+        protected void OnPropertyChanged([CallerMemberName] string propertyName = "")
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
+
+        public void UpdatePinColor(int pinIndex, Color newColor)
+        {
+            PinColors[pinIndex] = newColor;
+            // Notify that the entire object has changed
+            OnPropertyChanged(nameof(PinColors));  // This tells the CollectionView to refresh the pin colors
+        }
     }
 
 }
