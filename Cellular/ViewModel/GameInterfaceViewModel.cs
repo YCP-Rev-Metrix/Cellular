@@ -131,6 +131,7 @@ namespace Cellular.ViewModel
         public int RollingScore { get; set; }
 
         private ObservableCollection<Color> _pinColors;
+        private ObservableCollection<Color> _centerPinColors;
         public ObservableCollection<Color> PinColors
         {
             get => _pinColors;
@@ -141,11 +142,22 @@ namespace Cellular.ViewModel
             }
         }
 
+        public ObservableCollection<Color> CenterPinColors
+        {
+            get => _centerPinColors;
+            set
+            {
+                _centerPinColors = value;
+                OnPropertyChanged();
+            }
+        }
+
         public ShotPageFrame(int frameNumber, int rollingScore)
         {
             FrameNumber = frameNumber;
             RollingScore = rollingScore;
             PinColors = [.. Enumerable.Repeat(Colors.Black, 10)];
+            CenterPinColors = [.. Enumerable.Repeat(Colors.Transparent, 10)];
         }
 
         public event PropertyChangedEventHandler PropertyChanged;

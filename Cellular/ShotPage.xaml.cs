@@ -105,7 +105,7 @@ namespace Cellular
             for (int i = 0; i < 10; i++)
             {
                 bool isPinDown = (pinStates & (1 << i)) != 0;
-                currentFrame.PinColors[i] = isPinDown ? Colors.Black : Colors.White;
+                currentFrame.CenterPinColors[i] = isPinDown ? Colors.White : Colors.Transparent; 
             }
 
             // Refresh the CollectionView to show updated data
