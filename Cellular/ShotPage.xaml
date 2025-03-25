@@ -6,7 +6,7 @@
 
     <ScrollView>
         <!-- Wrap the entire Grid in a StackLayout to center it -->
-        <StackLayout VerticalOptions="Start" HorizontalOptions="Fill">
+        <StackLayout VerticalOptions="Start" HorizontalOptions="Center">
             <StackLayout Background="Gray">
                 <Label Text="3/21/25"
                    FontSize="12"
@@ -31,7 +31,7 @@
                 </Grid.ColumnDefinitions>
 
                 <!-- Frames Scroll -->
-                <StackLayout Grid.Row="0" Grid.Column="1" HorizontalOptions="Fill" Padding="0, -10, 0, 30">
+                <StackLayout Grid.Row="0" Grid.Column="1" HorizontalOptions="Center" Padding="0, -10, 0, 30">
                     <CollectionView ItemsSource="{Binding Frames}" 
                            HorizontalScrollBarVisibility="Always" 
                            VerticalScrollBarVisibility="Never">
@@ -41,9 +41,9 @@
                         <CollectionView.ItemTemplate>
                             <!-- Set x:DataType to the type of the item (Frame in this case) -->
                             <DataTemplate x:DataType="local:Frame">
-                                <Border Stroke="DarkGray" StrokeThickness="1" Padding="1"
+                                <Border Stroke="DarkGray" StrokeThickness="1" Padding="0"
                                     BackgroundColor="White" HeightRequest="135" WidthRequest="80">
-                                    <StackLayout VerticalOptions="Center" HorizontalOptions="Center" Padding="5">
+                                    <StackLayout VerticalOptions="Center" HorizontalOptions="Center" Padding="0">
                                         <!-- Frame Numbers -->
                                         <StackLayout Background="Gray">
                                             <Label Text="{Binding FrameNumber, StringFormat='{0}'}"
@@ -122,7 +122,7 @@
                 </StackLayout>
 
                 <!-- Center: Pin Buttons and Board Selector -->
-                <StackLayout Grid.Row="1" Grid.Column="1" Orientation="Vertical" Spacing="10" WidthRequest="{OnIdiom Phone=200, Tablet=250, Desktop=250}" HorizontalOptions="Center" Padding="0, 10">
+                <StackLayout Grid.Row="1" Grid.Column="1" Orientation="Vertical" Spacing="10" WidthRequest="{OnIdiom Phone=200, Tablet=250, Desktop=250}" HorizontalOptions="Center">
                     <!-- Pin Buttons -->
                     <FlexLayout x:Name="PinButtonLayout" Direction="Row" JustifyContent="Center" Wrap="Wrap" HorizontalOptions="Center">
                         <Button x:Name = "seven" Text="7" CornerRadius="25" Clicked="OnPinClicked" BackgroundColor="LightSlateGrey"/>
@@ -144,7 +144,7 @@
                     </FlexLayout>
 
                     <!-- Board Selector -->
-                    <StackLayout Padding="10, 20, 10, 10" HorizontalOptions="Center">
+                    <StackLayout HorizontalOptions="Center">
                         <Slider x:Name="CustomSlider" 
                             Maximum="40" 
                             Minimum="0" 
