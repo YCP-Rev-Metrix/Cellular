@@ -1,19 +1,19 @@
-﻿using SQLite;
-namespace Cellular.ViewModel;
+using SQLite;
 
-
-[Table("event")]
-public class Event
+namespace Cellular.ViewModel
 {
-    [PrimaryKey]
-    public int EventId { get; set; }
-    public int UserId { get; set; } 
-    public string Name { get; set; }
-    public string Type { get; set; }
-    public string Establishment { get; set; }
-    public string Sessions { get; set; }
-    public string Standing { get; set; }
+    [Table("event")]
+    public class Event
+    {
+        [PrimaryKey, AutoIncrement]
+        public int EventId { get; set; }
 
-
+        public string? Name { get; set; }
+        public string? Type { get; set; }
+        public string? Location { get; set; }
+        public Array? Sessions { get; set; }
+        public int? Average { get; set; }
+        public int? Stats { get; set; }
+        public string? Standings { get; set; }
+    }
 }
-

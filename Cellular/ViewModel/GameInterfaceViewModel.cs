@@ -11,7 +11,7 @@ namespace Cellular.ViewModel
     {
         private ObservableCollection<string> players;
         private ObservableCollection<string> arsenal;
-        private ObservableCollection<Frame> frames;
+        private ObservableCollection<ShotPageFrame> frames;
         private readonly SQLiteAsyncConnection _database;
         private string _hand = "Left";
 
@@ -35,7 +35,7 @@ namespace Cellular.ViewModel
             }
         }
 
-        public ObservableCollection<Frame> Frames
+        public ObservableCollection<ShotPageFrame> Frames
         {
             get => frames;
             set
@@ -46,7 +46,7 @@ namespace Cellular.ViewModel
         }
 
         // Property to return the first 12 frames
-        public ObservableCollection<Frame> First12Frames
+        public ObservableCollection<ShotPageFrame> First12Frames
         {
             get
             {
@@ -121,7 +121,7 @@ namespace Cellular.ViewModel
         }
     }
 
-    public class Frame(int frameNumber, int rollingScore)
+    public class ShotPageFrame(int frameNumber, int rollingScore)
     {
         public int FrameNumber { get; set; } = frameNumber;
         public int RollingScore { get; set; } = rollingScore;
