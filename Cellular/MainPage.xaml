@@ -76,6 +76,13 @@
                     HorizontalOptions="Fill"
                     IsVisible="True" />
 
+            <Button x:Name="data"
+                    Text="Data" 
+                    SemanticProperties.Hint="takes you to the data page"
+                    Clicked="OnDataClicked"
+                    HorizontalOptions="Fill"
+                    IsVisible="True" />
+
         </VerticalStackLayout>
     </ScrollView>
 

@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="Cellular.EventPage">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <StackLayout Orientation="Horizontal" Padding="10" Grid.Row="0">
+            <Label Text="Events" FontSize="24" HorizontalOptions="StartAndExpand" />
+            <Button Text="➕" FontSize="18" Clicked="OnAddEventClicked" HorizontalOptions="End" />
+        </StackLayout>
+
+        <ListView x:Name="EventsList" Grid.Row="1" ItemSelected="OnEventSelected">
+            <ListView.ItemTemplate>
+                <DataTemplate>
+                    <TextCell Text="{Binding Name}" Detail="{Binding Type}" />
+                </DataTemplate>
+            </ListView.ItemTemplate>
+        </ListView>
+    </Grid>
+</ContentPage>
