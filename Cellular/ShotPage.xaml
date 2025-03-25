@@ -54,10 +54,16 @@
                                         <!-- Two Score Boxes at the Top -->
                                         <FlexLayout Direction="Row" JustifyContent="Center" AlignItems="Center" Padding="0, 10, 0, 5">
                                             <Border Stroke="Black" StrokeThickness="1" Margin="0,0">
-                                                <BoxView HeightRequest="20" WidthRequest="20" BackgroundColor="LightGray"/>
+                                                <Grid>
+                                                    <BoxView HeightRequest="20" WidthRequest="20" BackgroundColor="LightGray" x:Name="shot1Box"/>
+                                                    <Label Text="{Binding ShotOneBox}" HorizontalOptions="Center" VerticalOptions="Center" FontSize="12" TextColor="Black"/>
+                                                </Grid>
                                             </Border>
                                             <Border Stroke="Black" StrokeThickness="1" Margin="0,0">
-                                                <BoxView HeightRequest="20" WidthRequest="20" BackgroundColor="LightGray"/>
+                                                <Grid>
+                                                    <BoxView HeightRequest="20" WidthRequest="20" BackgroundColor="LightGray" x:Name="shot2Box"/>
+                                                    <Label Text="{Binding ShotTwoBox}" HorizontalOptions="Center" VerticalOptions="Center" FontSize="12" TextColor="Black"/>
+                                                </Grid>
                                             </Border>
                                         </FlexLayout>
 
@@ -135,7 +141,7 @@
                                             <FlexLayout Direction="Row" JustifyContent="Center">
                                                 <AbsoluteLayout>
                                                     <BoxView HeightRequest="10" WidthRequest="10" CornerRadius="5" BackgroundColor="{Binding PinColors[0]}" Margin="1" x:Name="pin1"/>
-                                                    <BoxView HeightRequest="5" WidthRequest="5" CornerRadius="2.5" BackgroundColor="{Binding PinColors[1]}" x:Name="center1"
+                                                    <BoxView HeightRequest="5" WidthRequest="5" CornerRadius="2.5" BackgroundColor="{Binding CenterPinColors[0]}" x:Name="center1"
                                                          AbsoluteLayout.LayoutFlags="PositionProportional"
                                                          AbsoluteLayout.LayoutBounds="0.5, 0.5, AutoSize, AutoSize"/>
                                                 </AbsoluteLayout>

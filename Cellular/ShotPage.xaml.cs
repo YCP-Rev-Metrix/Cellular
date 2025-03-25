@@ -99,20 +99,96 @@ namespace Cellular
                 return;
             }
 
-            short pinStates = viewModel.pinStates; // Use the pin states for the current frame
+            short pinStates = viewModel.pinStates; // Get pin states for the frame
 
-            // Update the pin colors based on the pin states
             for (int i = 0; i < 10; i++)
             {
                 bool isPinDown = (pinStates & (1 << i)) != 0;
-                currentFrame.CenterPinColors[i] = isPinDown ? Colors.White : Colors.Transparent; 
+                currentFrame.UpdatePinColor(i, isPinDown ? Colors.Transparent : Colors.White);
             }
 
-            // Refresh the CollectionView to show updated data
-            FramesCollectionView.ItemsSource = null;
-            FramesCollectionView.ItemsSource = viewModel.Frames;
+            // Notify the UI that pin colors have changed
+            currentFrame.OnPropertyChanged(nameof(currentFrame.CenterPinColors));
+        }
 
-            // Notify the frame has been updated
+
+        private void OnFoulClicked(object sender, EventArgs e)
+        {
+            var currentFrame = viewModel.Frames.FirstOrDefault(f => f.FrameNumber == viewModel.currentFrame);
+
+            if (currentFrame == null)
+            {
+                return;
+            }
+
+            if (viewModel.currentFrame == 1)
+            {
+                currentFrame.ShotOneBox = "F";
+            }
+            else
+            {
+                currentFrame.ShotTwoBox = "F";
+            }
+
+            // Notify UI about changes
+            viewModel.OnPropertyChanged(nameof(viewModel.Frames));
+        }
+
+
+        private void OnBlankClicked(object sender, EventArgs e)
+        {
+            var currentFrame = viewModel.Frames.FirstOrDefault(f => f.FrameNumber == viewModel.currentFrame);
+
+            if (currentFrame == null)
+            {
+                return;
+            }
+            if (viewModel.currentFrame == 1)
+            {
+                currentFrame.ShotOneBox = "_";
+            }
+            else
+            {
+                currentFrame.ShotTwoBox = "_";
+            }
+            viewModel.OnPropertyChanged(nameof(viewModel.Frames));
+        }
+
+        private void OnSpareClicked(object sender, EventArgs e)
+        {
+            var currentFrame = viewModel.Frames.FirstOrDefault(f => f.FrameNumber == viewModel.currentFrame);
+
+            if (currentFrame == null)
+            {
+                return;
+            }
+            if (viewModel.currentFrame == 1)
+            {
+                currentFrame.ShotOneBox = "/";
+            }
+            else
+            {
+                currentFrame.ShotTwoBox = "/";
+            }
+            viewModel.OnPropertyChanged(nameof(viewModel.Frames));
+        }
+
+        private void OnStrikeClicked(object sender, EventArgs e)
+        {
+            var currentFrame = viewModel.Frames.FirstOrDefault(f => f.FrameNumber == viewModel.currentFrame);
+
+            if (currentFrame == null)
+            {
+                return;
+            }
+            if (viewModel.currentFrame == 1)
+            {
+                currentFrame.ShotOneBox = "X";
+            }
+            else
+            {
+                currentFrame.ShotTwoBox = "X";
+            }
             viewModel.OnPropertyChanged(nameof(viewModel.Frames));
         }
 

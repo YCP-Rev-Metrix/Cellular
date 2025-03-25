@@ -18,6 +18,7 @@ namespace Cellular.ViewModel
         public int currentFrame = 1;
         public int currentShot = 1;
 
+
         public ObservableCollection<string> Players
         {
             get => players;
@@ -54,7 +55,7 @@ namespace Cellular.ViewModel
             get
             {
                 // Returns the first 12 frames, or fewer if there are not enough frames
-                return [.. frames.Take(12)];
+                return [.. frames.Take(10)];
             }
         }
 
@@ -74,9 +75,7 @@ namespace Cellular.ViewModel
                 new (7, 70),
                 new (8, 80),
                 new (9, 90),
-                new (10, 100),
-                new (11, 110),
-                new (12, 120)
+                new (10, 100)
             ];
 
             LoadUsers();
@@ -101,6 +100,28 @@ namespace Cellular.ViewModel
             var mainViewModel = new MainViewModel();
             await mainViewModel.LoadUserData();
             _hand = mainViewModel.Hand;
+        }
+
+        private string _shotOneBox;
+        public string ShotOneBox
+        {
+            get => _shotOneBox;
+            set
+            {
+                _shotOneBox = value;
+                OnPropertyChanged(nameof(ShotOneBox));
+            }
+        }
+
+        private string _shotTwoBox;
+        public string ShotTwoBox
+        {
+            get => _shotTwoBox;
+            set
+            {
+                _shotTwoBox = value;
+                OnPropertyChanged(nameof(ShotTwoBox));
+            }
         }
 
         // Notify property changed
@@ -129,6 +150,8 @@ namespace Cellular.ViewModel
     {
         public int FrameNumber { get; set; }
         public int RollingScore { get; set; }
+        public string ShotOneBox { get; set; }
+        public string ShotTwoBox { get; set; }
 
         private ObservableCollection<Color> _pinColors;
         private ObservableCollection<Color> _centerPinColors;
@@ -156,23 +179,28 @@ namespace Cellular.ViewModel
         {
             FrameNumber = frameNumber;
             RollingScore = rollingScore;
+            ShotOneBox = "";
+            ShotTwoBox = "";
             PinColors = [.. Enumerable.Repeat(Colors.Black, 10)];
             CenterPinColors = [.. Enumerable.Repeat(Colors.Transparent, 10)];
         }
 
         public event PropertyChangedEventHandler PropertyChanged;
 
-        protected void OnPropertyChanged([CallerMemberName] string propertyName = "")
+        public void OnPropertyChanged([CallerMemberName] string propertyName = "")
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
 
         public void UpdatePinColor(int pinIndex, Color newColor)
-        {
-            PinColors[pinIndex] = newColor;
-            // Notify that the entire object has changed
-            OnPropertyChanged(nameof(PinColors));  // This tells the CollectionView to refresh the pin colors
-        }
+{
+    if (_centerPinColors[pinIndex] != newColor)
+    {
+        _centerPinColors[pinIndex] = newColor;
+        OnPropertyChanged(nameof(CenterPinColors));
+    }
+}
+
     }
 
 }
