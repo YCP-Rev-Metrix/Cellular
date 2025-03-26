@@ -102,27 +102,6 @@ namespace Cellular.ViewModel
             _hand = mainViewModel.Hand;
         }
 
-        private string _shotOneBox;
-        public string ShotOneBox
-        {
-            get => _shotOneBox;
-            set
-            {
-                _shotOneBox = value;
-                OnPropertyChanged(nameof(ShotOneBox));
-            }
-        }
-
-        private string _shotTwoBox;
-        public string ShotTwoBox
-        {
-            get => _shotTwoBox;
-            set
-            {
-                _shotTwoBox = value;
-                OnPropertyChanged(nameof(ShotTwoBox));
-            }
-        }
 
         // Notify property changed
         public event PropertyChangedEventHandler? PropertyChanged;
@@ -150,8 +129,6 @@ namespace Cellular.ViewModel
     {
         public int FrameNumber { get; set; }
         public int RollingScore { get; set; }
-        public string ShotOneBox { get; set; }
-        public string ShotTwoBox { get; set; }
 
         private ObservableCollection<Color> _pinColors;
         private ObservableCollection<Color> _centerPinColors;
@@ -175,6 +152,34 @@ namespace Cellular.ViewModel
             }
         }
 
+        private string _shotOneBox;
+        public string ShotOneBox
+        {
+            get => _shotOneBox;
+            set
+            {
+                if (_shotOneBox != value)
+                {
+                    _shotOneBox = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
+        private string _shotTwoBox;
+        public string ShotTwoBox
+        {
+            get => _shotTwoBox;
+            set
+            {
+                if (_shotTwoBox != value)
+                {
+                    _shotTwoBox = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
         public ShotPageFrame(int frameNumber, int rollingScore)
         {
             FrameNumber = frameNumber;
@@ -193,13 +198,26 @@ namespace Cellular.ViewModel
         }
 
         public void UpdatePinColor(int pinIndex, Color newColor)
-{
-    if (_centerPinColors[pinIndex] != newColor)
-    {
-        _centerPinColors[pinIndex] = newColor;
-        OnPropertyChanged(nameof(CenterPinColors));
-    }
-}
+        {
+            if (_centerPinColors[pinIndex] != newColor)
+            {
+                _centerPinColors[pinIndex] = newColor;
+                OnPropertyChanged(nameof(CenterPinColors));
+            }
+        }
+
+        public void UpdateShotBox(int box, string value)
+        {
+            if(box == 1)
+            {
+                ShotOneBox = value;
+            }
+            else
+            {
+                ShotTwoBox = value;
+            }
+
+        }
 
     }
 

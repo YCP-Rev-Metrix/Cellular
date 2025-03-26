@@ -106,9 +106,19 @@ namespace Cellular
                 bool isPinDown = (pinStates & (1 << i)) != 0;
                 currentFrame.UpdatePinColor(i, isPinDown ? Colors.Transparent : Colors.White);
             }
+            
+            if (viewModel.currentShot == 1)
+            {
+                viewModel.currentShot = 2;
+            }
+            else
+            {
+                viewModel.currentFrame++;
+                viewModel.currentShot--;
+            }
 
-            // Notify the UI that pin colors have changed
-            currentFrame.OnPropertyChanged(nameof(currentFrame.CenterPinColors));
+                // Notify the UI that pin colors have changed
+                currentFrame.OnPropertyChanged(nameof(currentFrame.CenterPinColors));
         }
 
 
@@ -121,15 +131,7 @@ namespace Cellular
                 return;
             }
 
-            if (viewModel.currentFrame == 1)
-            {
-                currentFrame.ShotOneBox = "F";
-            }
-            else
-            {
-                currentFrame.ShotTwoBox = "F";
-            }
-
+            currentFrame.UpdateShotBox(viewModel.currentShot, "F");
             // Notify UI about changes
             viewModel.OnPropertyChanged(nameof(viewModel.Frames));
         }
@@ -143,14 +145,9 @@ namespace Cellular
             {
                 return;
             }
-            if (viewModel.currentFrame == 1)
-            {
-                currentFrame.ShotOneBox = "_";
-            }
-            else
-            {
-                currentFrame.ShotTwoBox = "_";
-            }
+
+            currentFrame.UpdateShotBox(viewModel.currentShot, "_");
+            // Notify UI about changes
             viewModel.OnPropertyChanged(nameof(viewModel.Frames));
         }
 
@@ -162,14 +159,9 @@ namespace Cellular
             {
                 return;
             }
-            if (viewModel.currentFrame == 1)
-            {
-                currentFrame.ShotOneBox = "/";
-            }
-            else
-            {
-                currentFrame.ShotTwoBox = "/";
-            }
+
+            currentFrame.UpdateShotBox(viewModel.currentShot, "/");
+            // Notify UI about changes
             viewModel.OnPropertyChanged(nameof(viewModel.Frames));
         }
 
@@ -181,14 +173,9 @@ namespace Cellular
             {
                 return;
             }
-            if (viewModel.currentFrame == 1)
-            {
-                currentFrame.ShotOneBox = "X";
-            }
-            else
-            {
-                currentFrame.ShotTwoBox = "X";
-            }
+
+            currentFrame.UpdateShotBox(viewModel.currentShot, "X");
+            // Notify UI about changes
             viewModel.OnPropertyChanged(nameof(viewModel.Frames));
         }
 
