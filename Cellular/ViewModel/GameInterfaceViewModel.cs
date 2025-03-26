@@ -15,7 +15,8 @@ namespace Cellular.ViewModel
         private readonly SQLiteAsyncConnection _database;
         private string _hand = "Left";
         public short pinStates = 0;
-        public int currentFrame = 1;
+        public short shot1PinStates = 0;
+        public int _currentFrame = 1;
         public int currentShot = 1;
 
 
@@ -100,6 +101,19 @@ namespace Cellular.ViewModel
             var mainViewModel = new MainViewModel();
             await mainViewModel.LoadUserData();
             _hand = mainViewModel.Hand;
+        }
+
+        public int currentFrame
+        {
+            get => _currentFrame;
+            set
+            {
+                if (_currentFrame != value)
+                {
+                    _currentFrame = value;
+                    OnPropertyChanged(nameof(currentFrame));
+                }
+            }
         }
 
 
@@ -197,7 +211,7 @@ namespace Cellular.ViewModel
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
 
-        public void UpdatePinColor(int pinIndex, Color newColor)
+        public void UpdateCenterPinColor(int pinIndex, Color newColor)
         {
             if (_centerPinColors[pinIndex] != newColor)
             {
@@ -206,15 +220,38 @@ namespace Cellular.ViewModel
             }
         }
 
+        public void UpdatePinColor(int pinIndex, Color newColor)
+        {
+            if (_pinColors[pinIndex] != newColor)
+            {
+                _pinColors[pinIndex] = newColor;
+                OnPropertyChanged(nameof(_pinColors));
+            }
+        }
+
         public void UpdateShotBox(int box, string value)
         {
             if(box == 1)
             {
-                ShotOneBox = value;
+                if(ShotOneBox == value)
+                {
+                    ShotOneBox = "";
+                }
+                else
+                {
+                    ShotOneBox = value;
+                }
             }
             else
             {
-                ShotTwoBox = value;
+                if (ShotTwoBox == value)
+                {
+                    ShotTwoBox = "";
+                }
+                else
+                {
+                    ShotTwoBox = value;
+                }
             }
 
         }

@@ -92,6 +92,8 @@ namespace Cellular
         private void OnNextClicked(object sender, EventArgs e)
         {
             var currentFrame = viewModel.Frames.FirstOrDefault(f => f.FrameNumber == viewModel.currentFrame);
+            int currentShot = viewModel.currentShot;
+            short pinStates = viewModel.pinStates; // Current frame's pin states
 
             if (currentFrame == null)
             {
@@ -99,28 +101,96 @@ namespace Cellular
                 return;
             }
 
-            short pinStates = viewModel.pinStates; // Get pin states for the frame
+            if (currentShot == 1)
+            {
+                // Update frame view pins
+                for (int i = 0; i < 10; i++)
+                {
+                    bool isPinDown = (pinStates & (1 << i)) != 0;
+                    currentFrame.UpdateCenterPinColor(i, isPinDown ? Colors.Transparent : Colors.White);
+                }
+
+                if (currentFrame.ShotOneBox == "X") // Check if strike
+                {
+                    viewModel.currentFrame++;
+                }
+                if (string.IsNullOrEmpty(currentFrame.ShotOneBox)) // If empty, update with downed pins count
+                {
+                    currentFrame.ShotOneBox = GetDownedPins().ToString();
+                }
+
+                viewModel.shot1PinStates = pinStates; // Save first shot's state
+                viewModel.currentShot++;
+            }
+            else // Second shot logic
+            {
+                short firstShotPinStates = viewModel.shot1PinStates; // Pins state from first shot
+
+                for (int i = 0; i < 10; i++)
+                {
+                    bool wasStanding = (firstShotPinStates & (1 << i)) != 0; // Pin was standing at the end of shot 1
+                    bool isNowDown = (pinStates & (1 << i)) == 0; // Pin is now down in shot 2
+
+                    if (wasStanding && isNowDown)
+                    {
+                        // Pin was standing but now down → Light Gray
+                        currentFrame.UpdatePinColor(i, Colors.LightGray);
+                    }
+                    else if (wasStanding)
+                    {
+                        // Pin is still standing → Red
+                        currentFrame.UpdatePinColor(i, Colors.Red);
+                    }
+                }
+
+                if (string.IsNullOrEmpty(currentFrame.ShotTwoBox))
+                {
+                    if (currentFrame.ShotOneBox.Equals("_"))
+                    {
+                        currentFrame.ShotTwoBox = GetDownedPins().ToString();
+                    }
+                    else
+                    {
+                        int downedPinsSecondShot = GetDownedPins() - int.Parse(currentFrame.ShotOneBox);
+                        currentFrame.ShotTwoBox = downedPinsSecondShot.ToString();
+                    }
+                }
+
+                viewModel.currentFrame++;
+                viewModel.currentShot = 1;
+            }
+
+            // Notify the UI that pin colors have changed
+            currentFrame.OnPropertyChanged(nameof(currentFrame.CenterPinColors));
+            currentFrame.OnPropertyChanged(nameof(currentFrame.PinColors));
+        }
+
+
+        private int GetDownedPins()
+        {
+            int pinsDowned = 0;
+            int shot1PinsDowned = 0;
+            short pinStates = viewModel.pinStates;
+            short shot1PinStates = viewModel.shot1PinStates;
 
             for (int i = 0; i < 10; i++)
             {
-                bool isPinDown = (pinStates & (1 << i)) != 0;
-                currentFrame.UpdatePinColor(i, isPinDown ? Colors.Transparent : Colors.White);
+                if ((pinStates & (1 << i)) == 0) // If bit is 0, pin is down
+                {
+                    pinsDowned++;
+                }
             }
-            
+
             if (viewModel.currentShot == 1)
             {
-                viewModel.currentShot = 2;
+                return pinsDowned;
             }
             else
             {
-                viewModel.currentFrame++;
-                viewModel.currentShot--;
+                return pinsDowned - shot1PinsDowned;
             }
 
-                // Notify the UI that pin colors have changed
-                currentFrame.OnPropertyChanged(nameof(currentFrame.CenterPinColors));
         }
-
 
         private void OnFoulClicked(object sender, EventArgs e)
         {
@@ -155,7 +225,7 @@ namespace Cellular
         {
             var currentFrame = viewModel.Frames.FirstOrDefault(f => f.FrameNumber == viewModel.currentFrame);
 
-            if (currentFrame == null)
+            if (currentFrame == null || viewModel.currentShot == 1)
             {
                 return;
             }
@@ -169,7 +239,7 @@ namespace Cellular
         {
             var currentFrame = viewModel.Frames.FirstOrDefault(f => f.FrameNumber == viewModel.currentFrame);
 
-            if (currentFrame == null)
+            if (currentFrame == null || viewModel.currentShot == 2)
             {
                 return;
             }
