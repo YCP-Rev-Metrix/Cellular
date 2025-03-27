@@ -23,15 +23,12 @@
                 </Picker.Items>
             </Picker>
 
-            <Label Text="Select an Establishment" />
-            <Picker x:Name="EstablishmentPicker">
-                <Picker.ItemsSource>
-                    <x:Array Type="{x:Type x:String}">
-                        <x:String>Bowling Alley A</x:String>
-                        <x:String>Bowling Alley B</x:String>
-                        <x:String>Bowling Alley C</x:String>
-                    </x:Array>
-                </Picker.ItemsSource>
+            <Picker x:Name="EstablishmentPicker" Title="Select Establishment">
+                <Picker.Items>
+                    <x:String>Place 1</x:String>
+                    <x:String>Place 2</x:String>
+                    <x:String>Place 3</x:String>
+                </Picker.Items>
             </Picker>
 
             <Button Text="Register Event" Clicked="OnRegisterEventClicked" />

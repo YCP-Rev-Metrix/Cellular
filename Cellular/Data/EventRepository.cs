@@ -24,5 +24,9 @@ namespace Cellular.Data
         }
         public async Task<List<Event>> GetEventsByUserIdAsync(int userID) => await _conn.Table<Event>().Where(u => u.UserId == userID).ToListAsync();
 
+        public async Task<Event?> GetEventByNameAsync(String name)
+        {
+            return await _conn.Table<Event>().FirstOrDefaultAsync(u => u.Name == name);
+        }
     }
 }

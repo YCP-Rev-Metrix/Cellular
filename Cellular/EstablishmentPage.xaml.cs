@@ -7,32 +7,32 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 namespace Cellular;
 
-public partial class EventPage : ContentPage
+public partial class EstablishmentPage : ContentPage
 {
-    private readonly EventRepository _eventRepository;
-    public ObservableCollection<Event> Events { get; set; }
+    private readonly EstablishmentRepository _EstablishmentRepository;
+    public ObservableCollection<Establishment> Establishments { get; set; }
     private int userId;
-    public EventPage()
+    public EstablishmentPage()
     {
         InitializeComponent();
-        _eventRepository = new EventRepository(new CellularDatabase().GetConnection());
-        Events = new ObservableCollection<Event>();
-        EventsList.BindingContext = this;
-        LoadEvents();
-        EventsList.ItemsSource = Events;
+        _EstablishmentRepository = new EstablishmentRepository(new CellularDatabase().GetConnection());
+        Establishments = new ObservableCollection<Establishment>();
+        EstablishmentsList.BindingContext = this;
+        LoadEstablishments();
+        EstablishmentsList.ItemsSource = Establishments;
     }
     protected override void OnAppearing()
     {
         base.OnAppearing();
 
         // Prevent duplicate entries by resetting the list
-        EventsList.ItemsSource = null;
+        EstablishmentsList.ItemsSource = null;
 
         // Load the event list again
-        LoadEvents();
-        EventsList.ItemsSource = Events; // Ensure GetEvents() is returning fresh data
+        LoadEstablishments();
+        EstablishmentsList.ItemsSource = Establishments;
     }
-    private async void LoadEvents()
+    private async void LoadEstablishments()
     {
         userId = Preferences.Get("UserId", 0);
         Debug.WriteLine("This is USer ID"+ userId);
@@ -41,19 +41,19 @@ public partial class EventPage : ContentPage
         {
             return;
         }
-        var eventsFromDb = await _eventRepository.GetEventsByUserIdAsync(userId);
-        Events.Clear();
+        var eventsFromDb = await _EstablishmentRepository.GetEstablishmentsByUserIdAsync(userId);
+        Establishments.Clear();
         foreach (var events in eventsFromDb)
         {
             Debug.WriteLine("This is Event name" + events.Name);
-            Events.Add(events);
+            Establishments.Add(events);
         }
     }
     // Event handler for the "+" button to navigate to the registration page
     private async void OnAddEventClicked(object sender, EventArgs e)
     {
         // Navigate to the event registration page
-        await Navigation.PushAsync(new EventRegistrationPage());
+        await Navigation.PushAsync(new EstablishmentRegistrationPage());
     }
 
     // Event handler when an event in the list is selected
@@ -62,11 +62,11 @@ public partial class EventPage : ContentPage
         if (e.SelectedItem != null)
         {
             // Get the selected event
-            var selectedEvent = e.SelectedItem as Event;
+            var selectedEvent = e.SelectedItem as Establishment;
             // Navigate to the event page (replace with your event details page)
-            await DisplayAlert("Event Selected", $"You selected {selectedEvent.Name}", "OK");
+            await DisplayAlert("Establishment Selected", $"You selected {selectedEvent.Name}", "OK");
             // Deselect the item
-            EventsList.SelectedItem = null;
+            EstablishmentsList.SelectedItem = null;
         }
     }
 }

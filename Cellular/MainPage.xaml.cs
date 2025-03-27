@@ -18,7 +18,9 @@ namespace Cellular
         private AccountPage? accountPage;
         private RegisterPage? registerPage;
         private LoginPage? loginPage;
-        private EventPage? dataPage;
+        private DataPage? dataPage;
+        private EventPage? EventPage;
+        private EstablishmentPage? EstablishmentPage;
 
         public MainPage()
         {
@@ -44,7 +46,9 @@ namespace Cellular
             accountPage = new AccountPage();
             registerPage = new RegisterPage();
             loginPage = new LoginPage();
-            dataPage = new EventPage();
+            dataPage = new DataPage();
+            EventPage = new EventPage();
+            EstablishmentPage = new EstablishmentPage();
         }
 
         protected override async void OnAppearing()

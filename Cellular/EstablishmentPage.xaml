@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-             x:Class="Cellular.EventPage">
+             x:Class="Cellular.EstablishmentPage">
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
@@ -9,17 +9,17 @@
         </Grid.RowDefinitions>
 
         <StackLayout Orientation="Horizontal" Padding="10" Grid.Row="0">
-            <Label Text="Events" FontSize="24" HorizontalOptions="StartAndExpand" />
+            <Label Text="Establishment" FontSize="24" HorizontalOptions="StartAndExpand" />
             <Button Text="➕" FontSize="18" Clicked="OnAddEventClicked" HorizontalOptions="End" />
         </StackLayout>
 
-        <ListView x:Name="EventsList" Grid.Row="1" ItemSelected="OnEventSelected">
+        <ListView x:Name="EstablishmentsList" Grid.Row="1" ItemSelected="OnEventSelected">
             <ListView.ItemTemplate>
                 <DataTemplate>
                     <ViewCell>
                         <StackLayout Padding="10">
                             <Label Text="{Binding Name}" TextColor="Red" FontSize="14" />
-                            <Label Text="{Binding Type}" TextColor="Gray" FontSize="12" />
+                            <Label Text="{Binding Location}" TextColor="Gray" FontSize="12" />
                         </StackLayout>
                     </ViewCell>
                 </DataTemplate>
