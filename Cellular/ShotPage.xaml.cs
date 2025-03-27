@@ -107,7 +107,7 @@ namespace Cellular
                 for (int i = 0; i < 10; i++)
                 {
                     bool isPinDown = (pinStates & (1 << i)) != 0;
-                    currentFrame.UpdateCenterPinColor(i, isPinDown ? Colors.Transparent : Colors.White);
+                    currentFrame.UpdatePinColor(i, isPinDown ? Colors.Black : Colors.LightGray);
                 }
 
                 if (currentFrame.ShotOneBox == "X") // Check if strike
@@ -133,8 +133,9 @@ namespace Cellular
 
                     if (wasStanding && isNowDown)
                     {
-                        // Pin was standing but now down → Light Gray
-                        currentFrame.UpdatePinColor(i, Colors.LightGray);
+                        // Pin was standing but now down
+                        bool isPinDown = (pinStates & (1 << i)) != 0;
+                        currentFrame.UpdateCenterPinColor(i, isPinDown ? Colors.Transparent : Colors.White);
                     }
                     else if (wasStanding)
                     {
