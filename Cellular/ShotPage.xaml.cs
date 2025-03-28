@@ -5,12 +5,13 @@ using System.Diagnostics;
 using Cellular.Data;
 using SQLitePCL;
 using Microsoft.Maui.Controls;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace Cellular
 {
     public partial class ShotPage : ContentPage
     {
-
         private readonly GameInterfaceViewModel viewModel;
 
         public ShotPage()
@@ -25,7 +26,6 @@ namespace Cellular
             base.OnAppearing();
             _ = viewModel.LoadUserHand();
             Debug.WriteLine("Hand: " + viewModel.Hand);
-
         }
 
         public void BoardChanged(object sender, EventArgs e)
@@ -33,223 +33,178 @@ namespace Cellular
             if (sender is Slider slider)
             {
                 double roundedValue = Math.Round(slider.Value);
-
-                if (TestingLabel != null) // Ensure TestingLabel is not null
+                if (TestingLabel != null)
                 {
-                    if(viewModel.Hand == "Left")
-                    {
-                        // Show "Gutter" for values 0 and 40, otherwise display the value
-                        TestingLabel.Text = (roundedValue == 0 || roundedValue == 40) ? "Gutter" : roundedValue.ToString();
-                    }
-                    else
-                    {
-                        int roundedValue2 = (int)Math.Round(slider.Value); // Ensure proper rounding
-                        int invertedValue = 40 - roundedValue2;
-                        TestingLabel.Text = (invertedValue == 0 || invertedValue == 40) ? "Gutter" : invertedValue.ToString();
+                    int displayedValue = viewModel.Hand == "Left"
+                        ? (roundedValue == 0 || roundedValue == 40 ? 0 : (int)roundedValue)
+                        : (roundedValue == 0 || roundedValue == 40 ? 0 : 40 - (int)roundedValue);
 
-                    }
+                    TestingLabel.Text = displayedValue == 0 ? "Gutter" : displayedValue.ToString();
                 }
-            }
-            else
-            {
-                Console.WriteLine("BoardChanged: Sender is not a Slider.");
             }
         }
 
-        //Responsible for tracking which pins are up or down and changing their colors on the screen
+        // Handles pin click events and toggles the pin state
         private void OnPinClicked(object sender, EventArgs e)
         {
-            if (sender is Button button)
+            if (sender is Button button && int.TryParse(button.Text, out int pinNumber) && pinNumber >= 1 && pinNumber <= 10)
             {
-                // Toggle button color
-                if (button.BackgroundColor == Colors.LightSlateGrey)
-                {
-                    button.BackgroundColor = Color.FromArgb("#9880e5"); // Selected color
-                }
-                else
-                {
-                    button.BackgroundColor = Colors.LightSlateGrey; // Default color
-                }
+                // Toggle the bit for the selected pin
+                viewModel.pinStates ^= (short)(1 << (pinNumber - 1));
 
-                // Get the pin number from the button text
-                if (int.TryParse(button.Text, out int pinNumber) && pinNumber >= 1 && pinNumber <= 10)
-                {
-                    // Toggle the bit in pinStates
-                    viewModel.pinStates ^= (short)(1 << (pinNumber - 1));
+                // Update button color based on pin state
+                bool isPinDown = (viewModel.pinStates & (1 << (pinNumber - 1))) == 0;
+                button.BackgroundColor = isPinDown ? Colors.LightSlateGrey : Color.FromArgb("#9880e5");
 
-                    // Get the new state of the pin (0 or 1)
-                    int pinState = (viewModel.pinStates & (1 << (pinNumber - 1))) != 0 ? 1 : 0;
+                Console.WriteLine($"Pin {pinNumber} is now {(isPinDown ? "Down" : "Up")}");
 
-                    // Print the pin number and its new state to the console
-                    Console.WriteLine($"Pin {pinNumber} is now {(pinState == 1 ? "Up" : "Down")}");
-
-                    // Notify the ViewModel that pinStates has changed (if needed)
-                    viewModel.OnPropertyChanged(nameof(viewModel.pinStates));
-                }
+                // Update shot boxes
+                UpdateShotBoxes();
             }
         }
 
+        // Moves to the next shot or frame
         private void OnNextClicked(object sender, EventArgs e)
         {
             var currentFrame = viewModel.Frames.FirstOrDefault(f => f.FrameNumber == viewModel.currentFrame);
-            int currentShot = viewModel.currentShot;
-            short pinStates = viewModel.pinStates; // Current frame's pin states
-
-            if (currentFrame == null)
-            {
-                Console.WriteLine($"No frame found for {viewModel.currentFrame}");
-                return;
-            }
-
-            if (currentShot == 1)
-            {
-                // Update frame view pins
-                for (int i = 0; i < 10; i++)
-                {
-                    bool isPinDown = (pinStates & (1 << i)) != 0;
-                    currentFrame.UpdatePinColor(i, isPinDown ? Colors.Black : Colors.LightGray);
-                }
-
-                if (currentFrame.ShotOneBox == "X") // Check if strike
-                {
-                    viewModel.currentFrame++;
-                }
-                if (string.IsNullOrEmpty(currentFrame.ShotOneBox)) // If empty, update with downed pins count
-                {
-                    currentFrame.ShotOneBox = GetDownedPins().ToString();
-                }
-
-                viewModel.shot1PinStates = pinStates; // Save first shot's state
-                viewModel.currentShot++;
-            }
-            else // Second shot logic
-            {
-                short firstShotPinStates = viewModel.shot1PinStates; // Pins state from first shot
-
-                for (int i = 0; i < 10; i++)
-                {
-                    bool wasStanding = (firstShotPinStates & (1 << i)) != 0; // Pin was standing at the end of shot 1
-                    bool isNowDown = (pinStates & (1 << i)) == 0; // Pin is now down in shot 2
-
-                    if (wasStanding && isNowDown)
-                    {
-                        // Pin was standing but now down
-                        bool isPinDown = (pinStates & (1 << i)) != 0;
-                        currentFrame.UpdateCenterPinColor(i, isPinDown ? Colors.Transparent : Colors.White);
-                    }
-                    else if (wasStanding)
-                    {
-                        // Pin is still standing → Red
-                        currentFrame.UpdatePinColor(i, Colors.Red);
-                    }
-                }
-
-                if (string.IsNullOrEmpty(currentFrame.ShotTwoBox))
-                {
-                    if (currentFrame.ShotOneBox.Equals("_"))
-                    {
-                        currentFrame.ShotTwoBox = GetDownedPins().ToString();
-                    }
-                    else
-                    {
-                        int downedPinsSecondShot = GetDownedPins() - int.Parse(currentFrame.ShotOneBox);
-                        currentFrame.ShotTwoBox = downedPinsSecondShot.ToString();
-                    }
-                }
-
-                viewModel.currentFrame++;
-                viewModel.currentShot = 1;
-            }
-
-            // Notify the UI that pin colors have changed
-            currentFrame.OnPropertyChanged(nameof(currentFrame.CenterPinColors));
-            currentFrame.OnPropertyChanged(nameof(currentFrame.PinColors));
-        }
-
-
-        private int GetDownedPins()
-        {
-            int pinsDowned = 0;
-            int shot1PinsDowned = 0;
-            short pinStates = viewModel.pinStates;
-            short shot1PinStates = viewModel.shot1PinStates;
-
-            for (int i = 0; i < 10; i++)
-            {
-                if ((pinStates & (1 << i)) == 0) // If bit is 0, pin is down
-                {
-                    pinsDowned++;
-                }
-            }
+            if (currentFrame == null) return;
 
             if (viewModel.currentShot == 1)
             {
-                return pinsDowned;
+                ApplyPinColors(currentFrame);
+                if (currentFrame.ShotOneBox == "X")
+                {
+                    viewModel.currentFrame++;
+                }
+                else if (string.IsNullOrEmpty(currentFrame.ShotOneBox))
+                {
+                    currentFrame.ShotOneBox = GetDownedPins().ToString();
+                }
+                viewModel.shot1PinStates = viewModel.pinStates;
+                viewModel.currentShot++;
             }
             else
             {
-                return pinsDowned - shot1PinsDowned;
+                ApplySecondShotColors(currentFrame);
+                if (string.IsNullOrEmpty(currentFrame.ShotTwoBox))
+                {
+                    int downedPinsSecondShot = GetDownedPins() - int.Parse(currentFrame.ShotOneBox);
+                    currentFrame.ShotTwoBox = downedPinsSecondShot.ToString();
+                }
+                viewModel.currentFrame++;
+                viewModel.currentShot = 1;
+            }
+            currentFrame.OnPropertyChanged(nameof(currentFrame.CenterPinColors));
+            currentFrame.OnPropertyChanged(nameof(currentFrame.PinColors));
+            viewModel.OnPropertyChanged(nameof(viewModel.Frames));
+        }
+
+        // Counts the number of downed pins based on pinStates
+        private int GetDownedPins()
+        {
+            int count = 0;
+            short pinStates = viewModel.pinStates;
+
+            for (int i = 0; i < 10; i++)
+            {
+                if ((pinStates & (1 << i)) == 0) count++;
             }
 
+            return count;
+        }
+
+        // Updates the shot boxes based on the number of downed pins
+        private void UpdateShotBoxes()
+        {
+            var currentFrame = viewModel.Frames.FirstOrDefault(f => f.FrameNumber == viewModel.currentFrame);
+            if (currentFrame == null) return;
+
+            int downedPins = GetDownedPins();
+
+            if (viewModel.currentShot == 1)
+            {
+                currentFrame.ShotOneBox = downedPins == 10 ? "X" : downedPins.ToString();
+            }
+            else if (viewModel.currentShot == 2)
+            {
+                int downedPinsSecondShot = downedPins - int.Parse(currentFrame.ShotOneBox);
+                currentFrame.ShotTwoBox = downedPinsSecondShot.ToString();
+            }
+
+            viewModel.OnPropertyChanged(nameof(viewModel.Frames));
+        }
+
+        private void ApplyPinColors(ShotPageFrame currentFrame)
+        {
+            for (int i = 0; i < 10; i++)
+            {
+                bool isPinDown = (viewModel.pinStates & (1 << i)) == 0;
+                currentFrame.UpdatePinColor(i, isPinDown ? Colors.LightGray : Colors.Black);
+            }
+        }
+
+        private void ApplySecondShotColors(ShotPageFrame currentFrame)
+        {
+            for (int i = 0; i < 10; i++)
+            {
+                bool wasStanding = (viewModel.shot1PinStates & (1 << i)) != 0;
+                bool isNowDown = (viewModel.pinStates & (1 << i)) == 0;
+
+                if (wasStanding && isNowDown)
+                {
+                    currentFrame.UpdateCenterPinColor(i, Colors.White);
+                }
+                else if (wasStanding)
+                {
+                    currentFrame.UpdatePinColor(i, Colors.Red);
+                }
+            }
         }
 
         private void OnFoulClicked(object sender, EventArgs e)
         {
             var currentFrame = viewModel.Frames.FirstOrDefault(f => f.FrameNumber == viewModel.currentFrame);
-
-            if (currentFrame == null)
-            {
-                return;
-            }
+            if (currentFrame == null) return;
 
             currentFrame.UpdateShotBox(viewModel.currentShot, "F");
-            // Notify UI about changes
             viewModel.OnPropertyChanged(nameof(viewModel.Frames));
         }
 
-
-        private void OnBlankClicked(object sender, EventArgs e)
+        private void OnGutterClicked(object sender, EventArgs e)
         {
             var currentFrame = viewModel.Frames.FirstOrDefault(f => f.FrameNumber == viewModel.currentFrame);
-
-            if (currentFrame == null)
-            {
-                return;
-            }
+            if (currentFrame == null) return;
 
             currentFrame.UpdateShotBox(viewModel.currentShot, "_");
-            // Notify UI about changes
             viewModel.OnPropertyChanged(nameof(viewModel.Frames));
         }
 
         private void OnSpareClicked(object sender, EventArgs e)
         {
             var currentFrame = viewModel.Frames.FirstOrDefault(f => f.FrameNumber == viewModel.currentFrame);
-
-            if (currentFrame == null || viewModel.currentShot == 1)
-            {
-                return;
-            }
+            if (currentFrame == null || viewModel.currentShot == 1) return;
 
             currentFrame.UpdateShotBox(viewModel.currentShot, "/");
-            // Notify UI about changes
-            viewModel.OnPropertyChanged(nameof(viewModel.Frames));
+            viewModel.pinStates = 0; // All pins knocked down
+
+            var pins = new List<Button> { pin1, pin2, pin3, pin4, pin5, pin6, pin7, pin8, pin9, pin10 };
+            foreach (var pin in pins) pin.BackgroundColor = Colors.LightSlateGrey;
+
+            viewModel.OnPropertyChanged(nameof(viewModel.pinStates));
         }
 
         private void OnStrikeClicked(object sender, EventArgs e)
         {
             var currentFrame = viewModel.Frames.FirstOrDefault(f => f.FrameNumber == viewModel.currentFrame);
+            if (currentFrame == null || viewModel.currentShot == 2) return;
 
-            if (currentFrame == null || viewModel.currentShot == 2)
-            {
-                return;
-            }
-
+            viewModel.pinStates = 0; // All pins knocked down
             currentFrame.UpdateShotBox(viewModel.currentShot, "X");
-            // Notify UI about changes
+
+            var pins = new List<Button> { pin1, pin2, pin3, pin4, pin5, pin6, pin7, pin8, pin9, pin10 };
+            foreach (var pin in pins) pin.BackgroundColor = Colors.LightSlateGrey;
+
             viewModel.OnPropertyChanged(nameof(viewModel.Frames));
         }
-
     }
-
 }

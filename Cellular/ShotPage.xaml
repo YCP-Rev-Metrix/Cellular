@@ -187,22 +187,22 @@
                 <StackLayout Grid.Row="1" Grid.Column="1" Orientation="Vertical" Spacing="10" WidthRequest="{OnIdiom Phone=200, Tablet=250, Desktop=250}" HorizontalOptions="Center">
                     <!-- Pin Buttons -->
                     <FlexLayout x:Name="PinButtonLayout" Direction="Row" JustifyContent="Center" Wrap="Wrap" HorizontalOptions="Center">
-                        <Button x:Name = "seven" Text="7" CornerRadius="25" Clicked="OnPinClicked" BackgroundColor="LightSlateGrey"/>
-                        <Button x:Name = "eight" Text="8" CornerRadius="25" Clicked="OnPinClicked" BackgroundColor="LightSlateGrey"/>
-                        <Button x:Name = "nine" Text="9" CornerRadius="25" Clicked="OnPinClicked" BackgroundColor="LightSlateGrey"/>
-                        <Button x:Name = "ten" Text="10" CornerRadius="25" Clicked="OnPinClicked" BackgroundColor="LightSlateGrey"/>
+                        <Button x:Name = "pin7" Text="7" CornerRadius="25" Clicked="OnPinClicked" BackgroundColor="LightSlateGrey"/>
+                        <Button x:Name = "pin8" Text="8" CornerRadius="25" Clicked="OnPinClicked" BackgroundColor="LightSlateGrey"/>
+                        <Button x:Name = "pin9" Text="9" CornerRadius="25" Clicked="OnPinClicked" BackgroundColor="LightSlateGrey"/>
+                        <Button x:Name = "pin10" Text="10" CornerRadius="25" Clicked="OnPinClicked" BackgroundColor="LightSlateGrey"/>
                     </FlexLayout>
                     <FlexLayout Direction="Row" JustifyContent="Center" Wrap="Wrap" HorizontalOptions="Center">
-                        <Button x:Name = "four" Text="4" CornerRadius="25" Clicked="OnPinClicked" BackgroundColor="LightSlateGrey"/>
-                        <Button x:Name = "five" Text="5" CornerRadius="25" Clicked="OnPinClicked" BackgroundColor="LightSlateGrey"/>
-                        <Button x:Name = "six" Text="6" CornerRadius="25" Clicked="OnPinClicked" BackgroundColor="LightSlateGrey"/>
+                        <Button x:Name = "pin4" Text="4" CornerRadius="25" Clicked="OnPinClicked" BackgroundColor="LightSlateGrey"/>
+                        <Button x:Name = "pin5" Text="5" CornerRadius="25" Clicked="OnPinClicked" BackgroundColor="LightSlateGrey"/>
+                        <Button x:Name = "pin6" Text="6" CornerRadius="25" Clicked="OnPinClicked" BackgroundColor="LightSlateGrey"/>
                     </FlexLayout>
                     <FlexLayout Direction="Row" JustifyContent="Center" Wrap="Wrap" HorizontalOptions="Center">
-                        <Button x:Name = "two" Text="2" CornerRadius="25" Clicked="OnPinClicked" BackgroundColor="LightSlateGrey"/>
-                        <Button x:Name = "three" Text="3" CornerRadius="25" Clicked="OnPinClicked" BackgroundColor="LightSlateGrey"/>
+                        <Button x:Name = "pin2" Text="2" CornerRadius="25" Clicked="OnPinClicked" BackgroundColor="LightSlateGrey"/>
+                        <Button x:Name = "pin3" Text="3" CornerRadius="25" Clicked="OnPinClicked" BackgroundColor="LightSlateGrey"/>
                     </FlexLayout>
                     <FlexLayout Direction="Row" JustifyContent="Center" Wrap="Wrap" HorizontalOptions="Center">
-                        <Button x:Name = "one" Text="1" CornerRadius="25" Clicked="OnPinClicked" BackgroundColor="LightSlateGrey"/>
+                        <Button x:Name = "pin1" Text="1" CornerRadius="25" Clicked="OnPinClicked" BackgroundColor="LightSlateGrey"/>
                     </FlexLayout>
 
                     <!-- Board Selector -->
@@ -225,7 +225,7 @@
                 <!-- Right Side: Quick Scoring Buttons -->
                 <StackLayout Grid.Row="1" Grid.Column="1" Orientation="Vertical" Padding="0, 10" Spacing="10" HorizontalOptions="End">
                     <Button Text="F" WidthRequest="40" HeightRequest="40" CornerRadius="3" Clicked="OnFoulClicked" BackgroundColor="LightGray"/>
-                    <Button Text="_" WidthRequest="40" HeightRequest="40" CornerRadius="3" Clicked="OnBlankClicked" BackgroundColor="LightGray"/>
+                    <Button Text="_" WidthRequest="40" HeightRequest="40" CornerRadius="3" Clicked="OnGutterClicked" BackgroundColor="LightGray"/>
                     <Button Text="/" WidthRequest="40" HeightRequest="40" CornerRadius="3" Clicked="OnSpareClicked" BackgroundColor="LightGray"/>
                     <Button Text="X" WidthRequest="40" HeightRequest="40" CornerRadius="3" Clicked="OnStrikeClicked" BackgroundColor="LightGray"/>
                 </StackLayout>
