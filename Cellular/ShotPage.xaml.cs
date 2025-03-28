@@ -75,13 +75,13 @@ namespace Cellular
                 if (currentFrame.ShotOneBox == "X")
                 {
                     viewModel.currentFrame++;
+                    viewModel.currentShot = 1;
                 }
-                else if (string.IsNullOrEmpty(currentFrame.ShotOneBox))
+                else
                 {
-                    currentFrame.ShotOneBox = GetDownedPins().ToString();
+                    viewModel.currentShot++;
                 }
                 viewModel.shot1PinStates = viewModel.pinStates;
-                viewModel.currentShot++;
             }
             else
             {
