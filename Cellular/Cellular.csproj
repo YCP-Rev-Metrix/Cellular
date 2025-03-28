@@ -71,6 +71,15 @@
 		<Compile Update="Account.xaml.cs">
 			<DependentUpon>Account.xaml</DependentUpon>
 		</Compile>
+		<Compile Update="EstablishmentPage.xaml.cs">
+		  <DependentUpon>EstablishmentPage.xaml</DependentUpon>
+		</Compile>
+		<Compile Update="EventPage.xaml.cs">
+		  <DependentUpon>EventPage.xaml</DependentUpon>
+		</Compile>
+		<Compile Update="EstablishmentRegistrationPage.xaml.cs">
+		  <DependentUpon>EstablishmentRegistrationPage.xaml</DependentUpon>
+		</Compile>
 		<Compile Update="ShotPage.xaml.cs">
 			<DependentUpon>ShotPage.xaml</DependentUpon>
 		</Compile>
@@ -95,6 +104,9 @@
 	</ItemGroup>
 
 	<ItemGroup>
+		<MauiXaml Update="DataPage.xaml">
+		  <Generator>MSBuild:Compile</Generator>
+		</MauiXaml>
 		<MauiXaml Update="EditAccount.xaml">
 			<Generator>MSBuild:Compile</Generator>
 		</MauiXaml>
@@ -117,6 +129,18 @@
 	</ItemGroup>
 
 	<ItemGroup>
+		<MauiXaml Update="EstablishmentPage.xaml">
+		  <Generator>MSBuild:Compile</Generator>
+		</MauiXaml>
+		<MauiXaml Update="EventPage.xaml">
+		  <Generator>MSBuild:Compile</Generator>
+		</MauiXaml>
+		<MauiXaml Update="EstablishmentRegistrationPage.xaml">
+		  <Generator>MSBuild:Compile</Generator>
+		</MauiXaml>
+		<MauiXaml Update="EventRegistrationPage.xaml">
+		  <Generator>MSBuild:Compile</Generator>
+		</MauiXaml>
 		<MauiXaml Update="ShotPage.xaml">
 			<Generator>MSBuild:Compile</Generator>
 		</MauiXaml>

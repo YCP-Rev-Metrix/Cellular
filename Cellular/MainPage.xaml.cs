@@ -18,6 +18,9 @@ namespace Cellular
         private AccountPage? accountPage;
         private RegisterPage? registerPage;
         private LoginPage? loginPage;
+        private DataPage? dataPage;
+        private EventPage? EventPage;
+        private EstablishmentPage? EstablishmentPage;
 
         public MainPage()
         {
@@ -43,6 +46,9 @@ namespace Cellular
             accountPage = new AccountPage();
             registerPage = new RegisterPage();
             loginPage = new LoginPage();
+            dataPage = new DataPage();
+            EventPage = new EventPage();
+            EstablishmentPage = new EstablishmentPage();
         }
 
         protected override async void OnAppearing()
@@ -70,6 +76,7 @@ namespace Cellular
             bluetooth.IsVisible = isLoggedIn;
             account.IsVisible = isLoggedIn;
             SessionList.IsVisible = isLoggedIn;
+            data.IsVisible = isLoggedIn;
         }
 
         private async void OnLoginClicked(object sender, EventArgs e)
@@ -118,5 +125,12 @@ namespace Cellular
         {
             await Navigation.PushAsync(accountPage);
         }
+
+        private async void OnDataClicked(object sender, EventArgs e)
+        {
+            await Navigation.PushAsync(dataPage);
+        }
+
+        
     }
 }
