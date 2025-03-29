@@ -175,9 +175,31 @@ namespace Cellular
             var currentFrame = viewModel.Frames.FirstOrDefault(f => f.FrameNumber == viewModel.currentFrame);
             if (currentFrame == null) return;
 
+            var pins = new List<Button> { pin1, pin2, pin3, pin4, pin5, pin6, pin7, pin8, pin9, pin10 };
+
+            if (viewModel.currentShot.Equals(1))
+            {
+                viewModel.pinStates = 0;
+                foreach (var pin in pins)
+                    pin.BackgroundColor = Colors.LightSlateGrey;
+            }
+            else
+            {
+                viewModel.pinStates = viewModel.shot1PinStates;
+
+                for (int i = 0; i < pins.Count; i++)
+                {
+                    if ((viewModel.shot1PinStates & (1 << i)) == 0) // If the pin was knocked down in shot 1
+                    {
+                        pins[i].BackgroundColor = Colors.LightSlateGrey;
+                    }
+                }
+            }
+
             currentFrame.UpdateShotBox(viewModel.currentShot, "_");
             viewModel.OnPropertyChanged(nameof(viewModel.Frames));
         }
+
 
         private void OnSpareClicked(object sender, EventArgs e)
         {
