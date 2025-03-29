@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="Cellular.DataPage"
+             Title="DataPage">
+    <VerticalStackLayout Padding="20" Spacing="20">
+        <Button Text="Go to Establishment Page"  Clicked="NavigateToEstablishmentCommand"/>
+        <Button Text="Go to Event Page" Clicked="NavigateToEventCommand"/>
+        </VerticalStackLayout>
+    </ContentPage>

@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="Cellular.EstablishmentRegistrationPage">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <StackLayout Orientation="Horizontal" Padding="10" Grid.Row="0">
+            <Label Text="Event Registration" FontSize="24" HorizontalOptions="StartAndExpand" />
+        </StackLayout>
+
+        <StackLayout Padding="20" Grid.Row="1">
+            <Label Text="Establishment Name"/>
+            <Entry x:Name="nameBox" Placeholder="Enter name"/>
+
+            <Label Text="Lanes"/>
+            <Entry x:Name="lanesBox" Placeholder="Enter number of lanes" Keyboard="Numeric"/>
+
+            <Label Text="Type"/>
+            <Entry x:Name="typeBox" Placeholder="Enter type"/>
+
+            <Label Text="Location"/>
+            <Entry x:Name="locationBox" Placeholder="Enter type"/>
+
+            <Button Text="Register Estabishment" Clicked="OnRegisterEstablishmentClicked" />
+        </StackLayout>
+    </Grid>
+</ContentPage>

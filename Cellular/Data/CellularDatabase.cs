@@ -24,6 +24,110 @@ namespace Cellular.Data
             await ImportUsersFromCsvAsync();
             await _database.CreateTableAsync<Ball>();
             await ImportBallsFromCsvAsync();
+            await _database.CreateTableAsync<Event>();
+            await ImportEventsFromCsvAsync();
+            await _database.CreateTableAsync<Establishment>();
+            await ImportEstabishmentsFromCsvAsync();
+        }
+
+        private async Task ImportEstabishmentsFromCsvAsync()
+        {
+            var csvFileName = "establishments.csv"; // File in Resources/Raw
+
+            try
+            {
+                using var stream = await FileSystem.OpenAppPackageFileAsync(csvFileName);
+                using var reader = new StreamReader(stream);
+
+                var establishments = new List<Establishment>();
+                while (!reader.EndOfStream)
+                {
+                    var line = await reader.ReadLineAsync();
+                    var data = line?.Split(',');
+
+                    if (data == null || data.Length < 4) continue; // Ensure valid data
+
+                    var esta = new Establishment
+                    {
+                        UserId = int.TryParse(data[0].Trim(), out int UserId) ? UserId : 0,
+                        Name = data[1].Trim(),
+                        Lanes = data[2].Trim(),
+                        Type = data[3].Trim(),
+                        Location = data[4].Trim(),
+                    };
+                    var existingUser = await _database.Table<Establishment>().FirstOrDefaultAsync(u => u.Name == esta.Name);
+                    if (existingUser == null)
+                    {
+                        establishments.Add(esta);
+                    }
+
+                }
+
+                if (establishments.Count > 0)
+                {
+                    await _database.InsertAllAsync(establishments);
+                    Console.WriteLine("Balls imported successfully.");
+                }
+                else
+                {
+                    Console.WriteLine("No new balls to import.");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error reading CSV: {ex.Message}");
+            }
+        }
+        private async Task ImportEventsFromCsvAsync()
+        {
+            var csvFileName = "events.csv"; // File in Resources/Raw
+
+            try
+            {
+                using var stream = await FileSystem.OpenAppPackageFileAsync(csvFileName);
+                using var reader = new StreamReader(stream);
+
+                var events = new List<Event>();
+                while (!reader.EndOfStream)
+                {
+                    var line = await reader.ReadLineAsync();
+                    var data = line?.Split(',');
+
+                    if (data == null || data.Length < 7) continue; // Ensure valid data
+
+                    var event_ = new Event
+                    {
+                        UserId = int.TryParse(data[0].Trim(), out int UserId) ? UserId : 0,
+                        Name = data[1].Trim(),
+                        Type = data[2].Trim(),
+                        Location = data[3].Trim(),
+                        Sessions = data[4].Trim(),
+                        Average = int.TryParse(data[5].Trim(), out int average) ? average : 0,
+                        Stats = int.TryParse(data[6].Trim(), out int stats) ? stats : 0,
+                        Standings = data[7].Trim(),
+                    };
+                    var existingUser = await _database.Table<Event>().FirstOrDefaultAsync(u => u.Name == event_.Name);
+                    if (existingUser == null)
+                    {
+                        events.Add(event_);
+                    }
+                    
+                }
+
+                if (events.Count > 0)
+                {
+                    await _database.InsertAllAsync(events);
+                    Console.WriteLine("Balls imported successfully.");
+                }
+                else
+                {
+                    Console.WriteLine("No new balls to import.");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error reading CSV: {ex.Message}");
+            }
         }
 
         private async Task ImportBallsFromCsvAsync()
