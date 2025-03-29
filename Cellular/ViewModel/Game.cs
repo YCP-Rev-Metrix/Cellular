@@ -7,7 +7,7 @@ namespace Cellular.ViewModel
     {
         [PrimaryKey, AutoIncrement]
         public int GameId { get; set; }
-
+        public int UserId { get; set; }
         public Array? Lanes { get; set; }
         public int? GameNumber { get; set; }
         public int? Score { get; set; }

@@ -181,7 +181,7 @@ namespace Cellular
             {
                 viewModel.pinStates = 0;
                 foreach (var pin in pins)
-                    pin.BackgroundColor = Colors.LightSlateGrey;
+                    pin.BackgroundColor = Color.FromArgb("#9880e5");
             }
             else
             {
@@ -192,6 +192,10 @@ namespace Cellular
                     if ((viewModel.shot1PinStates & (1 << i)) == 0) // If the pin was knocked down in shot 1
                     {
                         pins[i].BackgroundColor = Colors.LightSlateGrey;
+                    }
+                    else
+                    {
+                        pins[i].BackgroundColor = Color.FromArgb("#9880e5");
                     }
                 }
             }
