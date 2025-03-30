@@ -2,8 +2,8 @@ using SQLite;
 
 namespace Cellular.ViewModel
 {
-    [Table("frame")]
-    public class Frame
+    [Table("bowlingFrame")]
+    public class BowlingFrame
     {
         [PrimaryKey, AutoIncrement]
         public int FrameId { get; set; }

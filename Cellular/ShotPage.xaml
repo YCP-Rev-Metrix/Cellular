@@ -164,10 +164,11 @@
                 <!-- Left Side: Player Picker, Ball Selectors, Comment Button -->
                 <StackLayout Grid.Row="1" Grid.Column="1" VerticalOptions="Start" HorizontalOptions="Start" Padding="0, 10" Spacing="10">
                     <StackLayout Background="Gray" WidthRequest="50" HorizontalOptions="Start" TranslationY="-30">
-                        <Label Text="{Binding currentFrame, StringFormat='Gm 1-{0}'}"
-                           FontSize="12"
-                           TextColor="White"
-                           HorizontalOptions="Center"/>
+                        <Label
+                            Text="{Binding FrameDisplay}"
+                            FontSize="12"
+                            TextColor="White"
+                            HorizontalOptions="Center"/>
                     </StackLayout>
                     <StackLayout>
                         <Label Text="Player" />

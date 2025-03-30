@@ -66,20 +66,20 @@ namespace Cellular
         // Moves to the next shot or frame
         private void OnNextClicked(object sender, EventArgs e)
         {
-            var currentFrame = viewModel.Frames.FirstOrDefault(f => f.FrameNumber == viewModel.currentFrame);
+            var currentFrame = viewModel.Frames.FirstOrDefault(f => f.FrameNumber == viewModel.CurrentFrame);
             if (currentFrame == null) return;
 
-            if (viewModel.currentShot == 1)
+            if (viewModel.CurrentShot == 1)
             {
                 ApplyPinColors(currentFrame);
                 if (currentFrame.ShotOneBox == "X")
                 {
-                    viewModel.currentFrame++;
-                    viewModel.currentShot = 1;
+                    viewModel.CurrentFrame++;
+                    viewModel.CurrentShot = 1;
                 }
                 else
                 {
-                    viewModel.currentShot++;
+                    viewModel.CurrentShot++;
                 }
                 viewModel.shot1PinStates = viewModel.pinStates;
             }
@@ -91,8 +91,8 @@ namespace Cellular
                     int downedPinsSecondShot = GetDownedPins() - int.Parse(currentFrame.ShotOneBox);
                     currentFrame.ShotTwoBox = downedPinsSecondShot.ToString();
                 }
-                viewModel.currentFrame++;
-                viewModel.currentShot = 1;
+                viewModel.CurrentFrame++;
+                viewModel.CurrentShot = 1;
             }
             currentFrame.OnPropertyChanged(nameof(currentFrame.CenterPinColors));
             currentFrame.OnPropertyChanged(nameof(currentFrame.PinColors));
@@ -116,16 +116,16 @@ namespace Cellular
         // Updates the shot boxes based on the number of downed pins
         private void UpdateShotBoxes()
         {
-            var currentFrame = viewModel.Frames.FirstOrDefault(f => f.FrameNumber == viewModel.currentFrame);
+            var currentFrame = viewModel.Frames.FirstOrDefault(f => f.FrameNumber == viewModel.CurrentFrame);
             if (currentFrame == null) return;
 
             int downedPins = GetDownedPins();
 
-            if (viewModel.currentShot == 1)
+            if (viewModel.CurrentShot == 1)
             {
                 currentFrame.ShotOneBox = downedPins == 10 ? "X" : downedPins.ToString();
             }
-            else if (viewModel.currentShot == 2)
+            else if (viewModel.CurrentShot == 2)
             {
                 int downedPinsSecondShot = downedPins - int.Parse(currentFrame.ShotOneBox);
                 currentFrame.ShotTwoBox = downedPinsSecondShot.ToString();
@@ -163,21 +163,21 @@ namespace Cellular
 
         private void OnFoulClicked(object sender, EventArgs e)
         {
-            var currentFrame = viewModel.Frames.FirstOrDefault(f => f.FrameNumber == viewModel.currentFrame);
+            var currentFrame = viewModel.Frames.FirstOrDefault(f => f.FrameNumber == viewModel.CurrentFrame);
             if (currentFrame == null) return;
 
-            currentFrame.UpdateShotBox(viewModel.currentShot, "F");
+            currentFrame.UpdateShotBox(viewModel.CurrentShot, "F");
             viewModel.OnPropertyChanged(nameof(viewModel.Frames));
         }
 
         private void OnGutterClicked(object sender, EventArgs e)
         {
-            var currentFrame = viewModel.Frames.FirstOrDefault(f => f.FrameNumber == viewModel.currentFrame);
+            var currentFrame = viewModel.Frames.FirstOrDefault(f => f.FrameNumber == viewModel.CurrentFrame);
             if (currentFrame == null) return;
 
             var pins = new List<Button> { pin1, pin2, pin3, pin4, pin5, pin6, pin7, pin8, pin9, pin10 };
 
-            if (viewModel.currentShot.Equals(1))
+            if (viewModel.CurrentShot.Equals(1))
             {
                 viewModel.pinStates = 0;
                 foreach (var pin in pins)
@@ -200,17 +200,17 @@ namespace Cellular
                 }
             }
 
-            currentFrame.UpdateShotBox(viewModel.currentShot, "_");
+            currentFrame.UpdateShotBox(viewModel.CurrentShot, "_");
             viewModel.OnPropertyChanged(nameof(viewModel.Frames));
         }
 
 
         private void OnSpareClicked(object sender, EventArgs e)
         {
-            var currentFrame = viewModel.Frames.FirstOrDefault(f => f.FrameNumber == viewModel.currentFrame);
-            if (currentFrame == null || viewModel.currentShot == 1) return;
+            var currentFrame = viewModel.Frames.FirstOrDefault(f => f.FrameNumber == viewModel.CurrentFrame);
+            if (currentFrame == null || viewModel.CurrentShot == 1) return;
 
-            currentFrame.UpdateShotBox(viewModel.currentShot, "/");
+            currentFrame.UpdateShotBox(viewModel.CurrentShot, "/");
             viewModel.pinStates = 0; // All pins knocked down
 
             var pins = new List<Button> { pin1, pin2, pin3, pin4, pin5, pin6, pin7, pin8, pin9, pin10 };
@@ -221,11 +221,11 @@ namespace Cellular
 
         private void OnStrikeClicked(object sender, EventArgs e)
         {
-            var currentFrame = viewModel.Frames.FirstOrDefault(f => f.FrameNumber == viewModel.currentFrame);
-            if (currentFrame == null || viewModel.currentShot == 2) return;
+            var currentFrame = viewModel.Frames.FirstOrDefault(f => f.FrameNumber == viewModel.CurrentFrame);
+            if (currentFrame == null || viewModel.CurrentShot == 2) return;
 
             viewModel.pinStates = 0; // All pins knocked down
-            currentFrame.UpdateShotBox(viewModel.currentShot, "X");
+            currentFrame.UpdateShotBox(viewModel.CurrentShot, "X");
 
             var pins = new List<Button> { pin1, pin2, pin3, pin4, pin5, pin6, pin7, pin8, pin9, pin10 };
             foreach (var pin in pins) pin.BackgroundColor = Colors.LightSlateGrey;

@@ -13,12 +13,14 @@ namespace Cellular.ViewModel
         private ObservableCollection<string> arsenal;
         private ObservableCollection<ShotPageFrame> frames;
         private readonly SQLiteAsyncConnection _database;
+        public string FrameDisplay => $"Gm 1-{CurrentFrame} Shot {CurrentShot}";
         private string _hand = "Left";
         public short pinStates = 0;
         public short shot1PinStates = 0;
         public int _currentFrame = 1;
-        public int currentShot = 1;
-
+        public int _currentShot = 1;
+        public int currentGame = 1;
+        public int UserId = Preferences.Get("UserId", 0);
 
         public ObservableCollection<string> Players
         {
@@ -103,7 +105,7 @@ namespace Cellular.ViewModel
             _hand = mainViewModel.Hand;
         }
 
-        public int currentFrame
+        public int CurrentFrame
         {
             get => _currentFrame;
             set
@@ -111,11 +113,24 @@ namespace Cellular.ViewModel
                 if (_currentFrame != value)
                 {
                     _currentFrame = value;
-                    OnPropertyChanged(nameof(currentFrame));
+                    OnPropertyChanged(nameof(CurrentFrame));
                 }
             }
         }
 
+        public int CurrentShot
+        {
+            get => _currentShot;
+            set
+            {
+                if (_currentShot != value)
+                {
+                    _currentShot = value;
+                    OnPropertyChanged(nameof(CurrentShot));
+                    OnPropertyChanged(nameof(FrameDisplay));
+                }
+            }
+        }
 
         // Notify property changed
         public event PropertyChangedEventHandler? PropertyChanged;
