@@ -14,6 +14,7 @@ namespace Cellular.ViewModel
         public bool? Win { get; set; }
         public int? StartingLane { get; set; }
         public string? Frames { get; set; }
+        public int Session { get; set; }
         public int? TeamResult { get; set; }
         public int? IndividualResult { get; set; }
 
