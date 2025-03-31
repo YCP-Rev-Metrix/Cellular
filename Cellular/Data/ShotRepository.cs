@@ -23,16 +23,18 @@ namespace Cellular.Data
         }
 
         // Adds a shot to the database
-        public async Task AddAsync(Shot shot)
+        public async Task<int> AddAsync(Shot shot)
         {
             try
             {
                 await _conn.InsertAsync(shot);
                 Console.WriteLine($"Shot added: Frame {shot.Frame}, Shot {shot.ShotNumber}, Pins Down {shot.Count}");
+                return shot.ShotId;
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"Error adding shot: {ex.Message}");
+                return -1;
             }
         }
 

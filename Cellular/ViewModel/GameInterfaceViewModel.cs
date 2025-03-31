@@ -20,6 +20,8 @@ namespace Cellular.ViewModel
         public int _currentFrame = 1;
         public int _currentShot = 1;
         public int currentGame = 1;
+        public int firstShotId = -1;
+        public int secondShotId = -1;
         public int UserId = Preferences.Get("UserId", 0);
 
         public ObservableCollection<string> Players
