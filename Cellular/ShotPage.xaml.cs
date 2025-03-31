@@ -26,6 +26,7 @@ namespace Cellular
         protected override void OnAppearing()
         {
             base.OnAppearing();
+            //await viewModel.LoadGame();
             _ = viewModel.LoadUserHand();
             Debug.WriteLine("Hand: " + viewModel.Hand);
         }
@@ -70,11 +71,6 @@ namespace Cellular
         {
             var currentFrame = viewModel.Frames.FirstOrDefault(f => f.FrameNumber == viewModel.CurrentFrame);
             var pins = new List<Button> { pin1, pin2, pin3, pin4, pin5, pin6, pin7, pin8, pin9, pin10 };
-            var shotRepository = new ShotRepository(new CellularDatabase().GetConnection());
-            var frameRepository = new FrameRepository(new CellularDatabase().GetConnection());
-
-            await shotRepository.InitAsync();
-            await frameRepository.InitAsync();
 
             if (currentFrame == null) return;
 
@@ -95,6 +91,7 @@ namespace Cellular
                 {
                     //Save the frame to the database
                     await SaveFrameAsync(true);
+
 
                     viewModel.CurrentFrame++;
                     viewModel.CurrentShot = 1;
@@ -299,9 +296,15 @@ namespace Cellular
 
         private async Task SaveFrameAsync(bool strike)
         {
-            var frameRepository = new FrameRepository(new CellularDatabase().GetConnection());
-            await frameRepository.InitAsync();
+            // Initialize repositories
+            var database = new CellularDatabase();
+            var frameRepository = new FrameRepository(database.GetConnection());
+            var gameRepository = new GameRepository(database.GetConnection());
 
+            await frameRepository.InitAsync();
+            await gameRepository.InitAsync();
+
+            // Create new frame object
             var newFrame = new BowlingFrame
             {
                 UserId = Preferences.Get("UserId", 0),
@@ -311,14 +314,45 @@ namespace Cellular
                 Shots = viewModel.firstShotId.ToString()
             };
 
-            if (strike.Equals(false))
+            if (!strike)
             {
                 newFrame.Shots += "_" + viewModel.secondShotId;
-                await frameRepository.UpdateFrameAsync(newFrame);
             }
 
             Debug.WriteLine($"Saving Frame: Frame Number {newFrame.FrameNumber}, ShotId's {newFrame.Shots}");
+
+            // Save the frame
+            await frameRepository.AddFrame(newFrame);
+
+            // Retrieve the inserted frame ID
+            newFrame.FrameId = (await database.GetConnection().Table<BowlingFrame>()
+                                         .OrderByDescending(f => f.FrameId)
+                                         .FirstOrDefaultAsync())?.FrameId ?? 0;
+
+            viewModel.currentFrameId = newFrame.FrameId;
+
+            // Retrieve the current game
+            var userId = Preferences.Get("UserId", 0);
+            var gameUpdate = await gameRepository.GetGameBySessionAndGameNumberAsync(viewModel.currentSession, viewModel.currentGame, userId);
+
+            if (gameUpdate != null)
+            {
+                // Ensure Frames string is formatted properly with underscore separation
+                gameUpdate.Frames = string.IsNullOrEmpty(gameUpdate.Frames)
+                    ? $"{viewModel.currentFrameId}_"
+                    : $"{gameUpdate.Frames}{viewModel.currentFrameId}_";
+
+                Debug.WriteLine($"Saving frame to game: frames by id: {gameUpdate.Frames}");
+
+                // Update game in the database
+                await gameRepository.UpdateGameAsync(gameUpdate);
+            }
+            else
+            {
+                Debug.WriteLine("Error: Could not find game to update.");
+            }
         }
+
 
     }
 }

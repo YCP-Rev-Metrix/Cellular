@@ -19,9 +19,11 @@ namespace Cellular.ViewModel
         public short shot1PinStates = 0;
         public int _currentFrame = 1;
         public int _currentShot = 1;
+        public int currentSession = 1;
         public int currentGame = 1;
         public int firstShotId = -1;
         public int secondShotId = -1;
+        public int currentFrameId = -1;
         public int UserId = Preferences.Get("UserId", 0);
 
         public ObservableCollection<string> Players
@@ -86,6 +88,37 @@ namespace Cellular.ViewModel
             LoadUsers();
             LoadArsenal();
         }
+
+        /*public async Task LoadGame()
+        {
+            var shotRepository = new ShotRepository(new CellularDatabase().GetConnection());
+            var frameRepository = new FrameRepository(new CellularDatabase().GetConnection());
+
+            await shotRepository.InitAsync();
+            await frameRepository.InitAsync();
+
+            // Fetch frames and shots for the current game
+            var existingFrames = await frameRepository.GetFramesByGameAsync(currentGame);
+            var existingShots = await shotRepository.GetShotsByGameAsync(currentGame);
+
+            if (existingFrames.Any())
+            {
+                Frames = new ObservableCollection<ShotPageFrame>(existingFrames);
+
+                // Determine the last completed shot
+                var lastShot = existingShots.OrderByDescending(s => s.Frame).ThenByDescending(s => s.ShotNumber).FirstOrDefault();
+                if (lastShot != null)
+                {
+                    CurrentFrame = lastShot.Frame;
+                    CurrentShot = lastShot.ShotNumber == 1 ? 2 : 1; // Move to the next shot
+                    pinStates = lastShot.LeaveType;
+                }
+
+                OnPropertyChanged(nameof(Frames));
+                OnPropertyChanged(nameof(CurrentFrame));
+                OnPropertyChanged(nameof(CurrentShot));
+            }
+        }*/
 
         public string Hand
         {
