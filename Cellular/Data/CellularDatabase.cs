@@ -113,6 +113,7 @@ namespace Cellular.Data
                         Average = int.TryParse(data[5].Trim(), out int average) ? average : 0,
                         Stats = int.TryParse(data[6].Trim(), out int stats) ? stats : 0,
                         Standings = data[7].Trim(),
+
                     };
                     var existingUser = await _database.Table<Event>().FirstOrDefaultAsync(u => u.Name == event_.Name);
                     if (existingUser == null)
@@ -259,6 +260,8 @@ namespace Cellular.Data
 
                     var session = new Session
                     {
+                        SessionId = int.TryParse(data[0].Trim(), out int sessionId) ? sessionId : 0,
+                        UserId = int.TryParse(data[0].Trim(), out int userId) ? userId : 0,
                         Establishment = int.TryParse(data[0].Trim(), out int establishment) ? establishment : (int?)null,
                         DateTime = DateTime.TryParse(data[1].Trim(), out DateTime dateTime) ? dateTime : DateTime.MinValue,
                         TeamOpponent = data[2].Trim(),
@@ -319,6 +322,7 @@ namespace Cellular.Data
                         Win = bool.TryParse(data[4].Trim(), out bool win) ? win : (bool?)null,
                         StartingLane = int.TryParse(data[5].Trim(), out int startingLane) ? startingLane : (int?)null,
                         Frames = data[6].Trim(),
+                        Session = int.TryParse(data[7].Trim(), out int session) ? session : 0,
                         TeamResult = int.TryParse(data[7].Trim(), out int teamResult) ? teamResult : (int?)null,
                         IndividualResult = int.TryParse(data[8].Trim(), out int individualResult) ? individualResult : (int?)null,
                     };
