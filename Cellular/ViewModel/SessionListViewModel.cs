@@ -5,6 +5,7 @@ using System.ComponentModel;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using SQLite;
 
 namespace Cellular.ViewModel
 {
@@ -12,6 +13,8 @@ namespace Cellular.ViewModel
     {
         private ObservableCollection<object> sessions;
         private ObservableCollection<object> games;
+        private readonly SQLiteAsyncConnection _database;
+        public int currentSessionId = 0;
 
         public ObservableCollection<object> Sessions
         {
@@ -42,8 +45,9 @@ namespace Cellular.ViewModel
             sessions = new ObservableCollection<object>();
             sessions.Add("First Session");
             sessions.Add("Second Session");
-            sessions.Add("Third Session");
-            sessions.Add("Fourth Session");
+
+            string dbPath = Path.Combine(FileSystem.AppDataDirectory, "appdata.db");
+            _database = new SQLiteAsyncConnection(dbPath);
 
             games = new ObservableCollection<object>();
             (string session, string gamename) game1 = ("First Session", "Game 1");
@@ -52,8 +56,6 @@ namespace Cellular.ViewModel
             games.Add(game2);
             (string session, string gamename) game3 = ("Second Session", "Game 1");
             games.Add(game3);
-            (string session, string gamename) game4 = ("Third Session", "Game 1");
-            games.Add(game4);
         }
 
         public event PropertyChangedEventHandler? PropertyChanged;

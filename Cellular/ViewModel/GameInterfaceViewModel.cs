@@ -13,7 +13,14 @@ namespace Cellular.ViewModel
         private ObservableCollection<string> arsenal;
         private ObservableCollection<ShotPageFrame> frames;
         private readonly SQLiteAsyncConnection _database;
+        public string FrameDisplay => $"Gm 1-{CurrentFrame} Shot {CurrentShot}";
         private string _hand = "Left";
+        public short pinStates = 0;
+        public short shot1PinStates = 0;
+        public int _currentFrame = 1;
+        public int _currentShot = 1;
+        public int currentGame = 1;
+        public int UserId = Preferences.Get("UserId", 0);
 
         public ObservableCollection<string> Players
         {
@@ -51,7 +58,7 @@ namespace Cellular.ViewModel
             get
             {
                 // Returns the first 12 frames, or fewer if there are not enough frames
-                return [.. frames.Take(12)];
+                return [.. frames.Take(10)];
             }
         }
 
@@ -71,9 +78,7 @@ namespace Cellular.ViewModel
                 new (7, 70),
                 new (8, 80),
                 new (9, 90),
-                new (10, 100),
-                new (11, 110),
-                new (12, 120)
+                new (10, 100)
             ];
 
             LoadUsers();
@@ -100,10 +105,42 @@ namespace Cellular.ViewModel
             _hand = mainViewModel.Hand;
         }
 
+        public async Task LoadGame()
+        {
+
+        }
+
+        public int CurrentFrame
+        {
+            get => _currentFrame;
+            set
+            {
+                if (_currentFrame != value)
+                {
+                    _currentFrame = value;
+                    OnPropertyChanged(nameof(CurrentFrame));
+                }
+            }
+        }
+
+        public int CurrentShot
+        {
+            get => _currentShot;
+            set
+            {
+                if (_currentShot != value)
+                {
+                    _currentShot = value;
+                    OnPropertyChanged(nameof(CurrentShot));
+                    OnPropertyChanged(nameof(FrameDisplay));
+                }
+            }
+        }
+
         // Notify property changed
         public event PropertyChangedEventHandler? PropertyChanged;
 
-        protected void OnPropertyChanged([CallerMemberName] string propertyName = "")
+        public void OnPropertyChanged([CallerMemberName] string propertyName = "")
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
@@ -119,12 +156,126 @@ namespace Cellular.ViewModel
             var arsenalList = await _database.Table<Ball>().ToListAsync();
             Arsenal = [.. arsenalList.Select(a => a.Name)];
         }
+
     }
 
-    public class ShotPageFrame(int frameNumber, int rollingScore)
+    public class ShotPageFrame : INotifyPropertyChanged
     {
-        public int FrameNumber { get; set; } = frameNumber;
-        public int RollingScore { get; set; } = rollingScore;
+        public int FrameNumber { get; set; }
+        public int RollingScore { get; set; }
+
+        private ObservableCollection<Color> _pinColors;
+        private ObservableCollection<Color> _centerPinColors;
+        public ObservableCollection<Color> PinColors
+        {
+            get => _pinColors;
+            set
+            {
+                _pinColors = value;
+                OnPropertyChanged();
+            }
+        }
+
+        public ObservableCollection<Color> CenterPinColors
+        {
+            get => _centerPinColors;
+            set
+            {
+                _centerPinColors = value;
+                OnPropertyChanged();
+            }
+        }
+
+        private string _shotOneBox;
+        public string ShotOneBox
+        {
+            get => _shotOneBox;
+            set
+            {
+                if (_shotOneBox != value)
+                {
+                    _shotOneBox = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
+        private string _shotTwoBox;
+        public string ShotTwoBox
+        {
+            get => _shotTwoBox;
+            set
+            {
+                if (_shotTwoBox != value)
+                {
+                    _shotTwoBox = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
+        public ShotPageFrame(int frameNumber, int rollingScore)
+        {
+            FrameNumber = frameNumber;
+            RollingScore = rollingScore;
+            ShotOneBox = "";
+            ShotTwoBox = "";
+            PinColors = [.. Enumerable.Repeat(Colors.Black, 10)];
+            CenterPinColors = [.. Enumerable.Repeat(Colors.Transparent, 10)];
+        }
+
+        public event PropertyChangedEventHandler PropertyChanged;
+
+        public void OnPropertyChanged([CallerMemberName] string propertyName = "")
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
+
+        public void UpdateCenterPinColor(int pinIndex, Color newColor)
+        {
+            if (_centerPinColors[pinIndex] != newColor)
+            {
+                _centerPinColors[pinIndex] = newColor;
+                OnPropertyChanged(nameof(CenterPinColors));
+            }
+        }
+
+        public void UpdatePinColor(int pinIndex, Color newColor)
+        {
+            if (_pinColors[pinIndex] != newColor)
+            {
+                _pinColors[pinIndex] = newColor;
+                OnPropertyChanged(nameof(_pinColors));
+            }
+        }
+
+        public void UpdateShotBox(int box, string value)
+        {
+            if(box == 1)
+            {
+                if(ShotOneBox == value)
+                {
+                    ShotOneBox = "";
+                }
+                else
+                {
+                    ShotOneBox = value;
+                }
+            }
+            else
+            {
+                if (ShotTwoBox == value)
+                {
+                    ShotTwoBox = "";
+                }
+                else
+                {
+                    ShotTwoBox = value;
+                }
+            }
+
+        }
+
     }
 
 }

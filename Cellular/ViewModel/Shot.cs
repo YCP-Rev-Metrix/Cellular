@@ -12,11 +12,11 @@ namespace Cellular.ViewModel
     {
         [PrimaryKey, AutoIncrement]
         public int ShotId { get; set; }
-
+        public int? UserId { get; set; }
         public int? ShotNumber { get; set; }
         public int? Ball { get; set; }
         public int? Count { get; set; }
-        public byte? LeaveType { get; set; }
+        public short? LeaveType { get; set; }
         public string? Side { get; set; }
         public string? Position { get; set; }
 

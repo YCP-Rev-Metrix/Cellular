@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using System.Collections.Generic;
 using Microsoft.Maui.Storage;
 using Cellular.ViewModel;
+using Frame = Microsoft.Maui.Controls.Frame;
 
 namespace Cellular.Data
 {
@@ -28,6 +29,13 @@ namespace Cellular.Data
             await ImportEventsFromCsvAsync();
             await _database.CreateTableAsync<Establishment>();
             await ImportEstabishmentsFromCsvAsync();
+            await _database.CreateTableAsync<Session>();
+            await ImportSessionsFromCsvAsync();
+            await _database.CreateTableAsync<Game>();
+            await ImportGamesFromCsvAsync();
+
+            await _database.CreateTableAsync<BowlingFrame>();
+            await _database.CreateTableAsync<Shot>();
         }
 
         private async Task ImportEstabishmentsFromCsvAsync()
@@ -224,6 +232,112 @@ namespace Cellular.Data
                 else
                 {
                     Console.WriteLine("No new users to import.");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error reading CSV: {ex.Message}");
+            }
+        }
+
+        private async Task ImportSessionsFromCsvAsync()
+        {
+            var csvFileName = "sessions.csv"; // File in Resources/Raw
+
+            try
+            {
+                using var stream = await FileSystem.OpenAppPackageFileAsync(csvFileName);
+                using var reader = new StreamReader(stream);
+
+                var sessions = new List<Session>();
+                while (!reader.EndOfStream)
+                {
+                    var line = await reader.ReadLineAsync();
+                    var data = line?.Split(',');
+
+                    if (data == null || data.Length < 9) continue; // Ensure valid data
+
+                    var session = new Session
+                    {
+                        Establishment = int.TryParse(data[0].Trim(), out int establishment) ? establishment : (int?)null,
+                        DateTime = DateTime.TryParse(data[1].Trim(), out DateTime dateTime) ? dateTime : DateTime.MinValue,
+                        TeamOpponent = data[2].Trim(),
+                        IndividualOpponent = data[3].Trim(),
+                        Score = int.TryParse(data[4].Trim(), out int score) ? score : (int?)null,
+                        Stats = int.TryParse(data[5].Trim(), out int stats) ? stats : (int?)null,
+                        Games = data[6].Trim(),
+                        TeamRecord = int.TryParse(data[7].Trim(), out int teamRecord) ? teamRecord : (int?)null,
+                        IndividualRecord = int.TryParse(data[8].Trim(), out int individualRecord) ? individualRecord : (int?)null,
+                    };
+
+                    var existingSession = await _database.Table<Session>().FirstOrDefaultAsync(s => s.DateTime == session.DateTime && s.TeamOpponent == session.TeamOpponent);
+                    if (existingSession == null)
+                    {
+                        sessions.Add(session);
+                    }
+                }
+
+                if (sessions.Count > 0)
+                {
+                    await _database.InsertAllAsync(sessions);
+                    Console.WriteLine("Sessions imported successfully.");
+                }
+                else
+                {
+                    Console.WriteLine("No new sessions to import.");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error reading CSV: {ex.Message}");
+            }
+        }
+
+        private async Task ImportGamesFromCsvAsync()
+        {
+            var csvFileName = "games.csv"; // File in Resources/Raw
+
+            try
+            {
+                using var stream = await FileSystem.OpenAppPackageFileAsync(csvFileName);
+                using var reader = new StreamReader(stream);
+
+                var games = new List<Game>();
+                while (!reader.EndOfStream)
+                {
+                    var line = await reader.ReadLineAsync();
+                    var data = line?.Split(',');
+
+                    if (data == null || data.Length < 8) continue; // Ensure valid data
+
+                    var game = new Game
+                    {
+                        UserId = int.TryParse(data[0].Trim(), out int userId) ? userId : 0,
+                        Lanes = data[1].Trim(),
+                        GameNumber = int.TryParse(data[2].Trim(), out int gameNumber) ? gameNumber : (int?)null,
+                        Score = int.TryParse(data[3].Trim(), out int score) ? score : (int?)null,
+                        Win = bool.TryParse(data[4].Trim(), out bool win) ? win : (bool?)null,
+                        StartingLane = int.TryParse(data[5].Trim(), out int startingLane) ? startingLane : (int?)null,
+                        Frames = data[6].Trim(),
+                        TeamResult = int.TryParse(data[7].Trim(), out int teamResult) ? teamResult : (int?)null,
+                        IndividualResult = int.TryParse(data[8].Trim(), out int individualResult) ? individualResult : (int?)null,
+                    };
+
+                    var existingGame = await _database.Table<Game>().FirstOrDefaultAsync(g => g.UserId == game.UserId && g.GameNumber == game.GameNumber);
+                    if (existingGame == null)
+                    {
+                        games.Add(game);
+                    }
+                }
+
+                if (games.Count > 0)
+                {
+                    await _database.InsertAllAsync(games);
+                    Console.WriteLine("Games imported successfully.");
+                }
+                else
+                {
+                    Console.WriteLine("No new games to import.");
                 }
             }
             catch (Exception ex)
