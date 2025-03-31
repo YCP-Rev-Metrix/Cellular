@@ -94,7 +94,7 @@ namespace Cellular
                 if (currentFrame.ShotOneBox == "X")
                 {
                     //Save the frame to the database
-                    await SaveFrameAsync();
+                    await SaveFrameAsync(true);
 
                     viewModel.CurrentFrame++;
                     viewModel.CurrentShot = 1;
@@ -115,7 +115,7 @@ namespace Cellular
                 }
 
                 //Save the frame to the database
-                await SaveFrameAsync();
+                await SaveFrameAsync(false);
 
                 //Call these after saving the frame
                 viewModel.CurrentFrame++;
@@ -297,7 +297,7 @@ namespace Cellular
             return shotId;
         }
 
-        private async Task SaveFrameAsync()
+        private async Task SaveFrameAsync(bool strike)
         {
             var frameRepository = new FrameRepository(new CellularDatabase().GetConnection());
             await frameRepository.InitAsync();
@@ -308,8 +308,14 @@ namespace Cellular
                 FrameNumber = viewModel.CurrentFrame,
                 Lane = null,
                 Result = null,
-                Shots = viewModel.firstShotId + "_" + viewModel.secondShotId
+                Shots = viewModel.firstShotId.ToString()
             };
+
+            if (strike.Equals(false))
+            {
+                newFrame.Shots += "_" + viewModel.secondShotId;
+                await frameRepository.UpdateFrameAsync(newFrame);
+            }
 
             Debug.WriteLine($"Saving Frame: Frame Number {newFrame.FrameNumber}, ShotId's {newFrame.Shots}");
         }
