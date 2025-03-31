@@ -7,6 +7,8 @@ using SQLitePCL;
 using Microsoft.Maui.Controls;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
+using Microsoft.Maui.ApplicationModel.Communication;
 
 namespace Cellular
 {
@@ -64,10 +66,39 @@ namespace Cellular
         }
 
         // Moves to the next shot or frame
-        private void OnNextClicked(object sender, EventArgs e)
+        private async void OnNextClicked(object sender, EventArgs e)
         {
             var currentFrame = viewModel.Frames.FirstOrDefault(f => f.FrameNumber == viewModel.CurrentFrame);
+            var pins = new List<Button> { pin1, pin2, pin3, pin4, pin5, pin6, pin7, pin8, pin9, pin10 };
+            var shotRepository = new ShotRepository(new CellularDatabase().GetConnection());
+            await shotRepository.InitAsync();
+
             if (currentFrame == null) return;
+
+            //Add the shot to the database
+            var newShot = new Shot
+            {
+                UserId = Preferences.Get("UserId", 0),
+                ShotNumber = viewModel.CurrentShot,
+                Ball = null,
+                Count = GetDownedPins(),
+                LeaveType = viewModel.pinStates,
+                Side = null,
+                Position = null,
+                Frame = viewModel.CurrentFrame,
+                Game = viewModel.currentGame
+            };
+
+            Debug.WriteLine($"Saving Shot: Frame {newShot.Frame}, Shot {newShot.ShotNumber}, Pins Down {newShot.Count}");
+
+            await shotRepository.AddAsync(newShot);
+
+            // Retrieve saved shot from the database to verify
+            var savedShots = await shotRepository.GetShotsByGame(viewModel.currentGame);
+            foreach (var shot in savedShots)
+            {
+                Console.WriteLine($"Saved Shot: Frame {shot.Frame}, Shot {shot.ShotNumber}, Pins Down {shot.Count}");
+            }
 
             if (viewModel.CurrentShot == 1)
             {
@@ -93,7 +124,12 @@ namespace Cellular
                 }
                 viewModel.CurrentFrame++;
                 viewModel.CurrentShot = 1;
+                viewModel.pinStates = 0;
+
+                foreach (var pin in pins)
+                    pin.BackgroundColor = Colors.LightSlateGray;
             }
+
             currentFrame.OnPropertyChanged(nameof(currentFrame.CenterPinColors));
             currentFrame.OnPropertyChanged(nameof(currentFrame.PinColors));
             viewModel.OnPropertyChanged(nameof(viewModel.Frames));

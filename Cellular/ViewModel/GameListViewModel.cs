@@ -14,6 +14,7 @@ namespace Cellular.ViewModel
         private ObservableCollection<object> sessions;
         private ObservableCollection<object> games;
         private readonly SQLiteAsyncConnection _database;
+        public int currentSessionId = 0;
 
         public ObservableCollection<object> Sessions
         {

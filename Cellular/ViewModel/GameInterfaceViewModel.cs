@@ -105,6 +105,11 @@ namespace Cellular.ViewModel
             _hand = mainViewModel.Hand;
         }
 
+        public async Task LoadGame()
+        {
+
+        }
+
         public int CurrentFrame
         {
             get => _currentFrame;
