@@ -101,6 +101,7 @@ namespace Cellular
             }
 
             if (viewModel.CurrentShot == 1)
+
             {
                 ApplyPinColors(currentFrame);
                 if (currentFrame.ShotOneBox == "X")
@@ -156,7 +157,10 @@ namespace Cellular
             if (currentFrame == null) return;
 
             int downedPins = GetDownedPins();
-
+            if(currentFrame.ShotOneBox == "_" || currentFrame.ShotTwoBox == "_")
+            {
+                return;
+            }
             if (viewModel.CurrentShot == 1)
             {
                 currentFrame.ShotOneBox = downedPins == 10 ? "X" : downedPins.ToString();
@@ -215,13 +219,16 @@ namespace Cellular
 
             if (viewModel.CurrentShot.Equals(1))
             {
-                viewModel.pinStates = 0;
+                viewModel.pinStates = 1;
+                for (int i = 0; i < 10; i++)
+                {
+                    viewModel.pinStates |= (short)(1 << i); // Set each bit from 0 to 9 to 1
+                }
                 foreach (var pin in pins)
                     pin.BackgroundColor = Color.FromArgb("#9880e5");
             }
             else
             {
-                viewModel.pinStates = viewModel.shot1PinStates;
 
                 for (int i = 0; i < pins.Count; i++)
                 {
