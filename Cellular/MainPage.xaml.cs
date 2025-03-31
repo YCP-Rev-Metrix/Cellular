@@ -35,8 +35,8 @@ namespace Cellular
             BindingContext = viewModel;
 
             // Check login status
-            var isLoggedInValue = await SecureStorage.GetAsync("IsLoggedIn");
-            isLoggedIn = isLoggedInValue == "true";
+            var isLoggedInValue = Preferences.Get("IsLoggedIn", false);
+            isLoggedIn = isLoggedInValue == true;
             UpdateUI();
 
             // Initialize other pages
@@ -97,7 +97,7 @@ namespace Cellular
             if (user != null)
             {
                 // Set preferences for guest login
-                Preferences.Set("IsLoggedIn", true);
+                Preferences.Set("IsLoggedIn", false);
                 Preferences.Set("UserId", user.UserId);
                 ((AppShell)Shell.Current).UpdateMenuForLoginStatus(true);
 
