@@ -89,11 +89,11 @@ namespace Cellular
                 await userRepository.AddAsync(newUser);
 
                 // Set the user as logged in
-                Preferences.Set("IsLoggedIn", true);
-                Preferences.Set("UserName", username);
+                Preferences.Set("IsLoggedIn", false);
+                Preferences.Set("UserName", newUser.FirstName);
 
                 // Update the menu and navigate to Home
-                ((AppShell)Shell.Current).UpdateMenuForLoginStatus(true);
+                ((AppShell)Shell.Current).UpdateMenuForLoginStatus(false);
                 await Shell.Current.GoToAsync("//MainPage");
             }
 

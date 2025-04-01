@@ -1,4 +1,5 @@
 ﻿using Cellular.ViewModel;
+using Microsoft.Maui.Controls;
 using SQLite;
 using System;
 using System.Collections.Generic;
@@ -21,6 +22,7 @@ namespace Cellular.Data
         public async Task AddAsync(Game e)
         {
             await _conn.InsertAsync(e);
+            Console.WriteLine($"Game ID: {e.GameId} Game Number: {e.GameNumber}");
         }
         public async Task<List<Game>> GetGamesByUserIdAsync(int userID) => await _conn.Table<Game>().Where(u => u.UserId == userID).ToListAsync();
 

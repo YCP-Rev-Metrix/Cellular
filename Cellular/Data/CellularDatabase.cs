@@ -30,9 +30,9 @@ namespace Cellular.Data
             await _database.CreateTableAsync<Establishment>();
             await ImportEstabishmentsFromCsvAsync();
             await _database.CreateTableAsync<Session>();
-            await ImportSessionsFromCsvAsync();
+            //await ImportSessionsFromCsvAsync();
             await _database.CreateTableAsync<Game>();
-            await ImportGamesFromCsvAsync();
+            //await ImportGamesFromCsvAsync();
 
             await _database.CreateTableAsync<BowlingFrame>();
             await _database.CreateTableAsync<Shot>();

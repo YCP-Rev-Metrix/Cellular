@@ -97,12 +97,12 @@ namespace Cellular.ViewModel
 
         public async Task AddGame(int sessionNumber)
         {
-            int gameNumber = await getGameNumberMaxAsync(sessionNumber+1);
+            int gameNumber = await getGameNumberMaxAsync(sessionNumber);
             Game game = new Game
             {
                 UserId = Preferences.Get("UserId", 0),
                 GameNumber = gameNumber,
-                Session = sessionNumber+1
+                Session = sessionNumber
             };
             await _GameRepository.AddAsync(game);
         }
