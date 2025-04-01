@@ -457,13 +457,11 @@ namespace Cellular
                             if (existingFrame.ShotOneBox == "X")
                             {
                                 // Update frame for strike
-                                await SaveFrameAsync(true);
                                 viewModel.CurrentFrame++;
                                 viewModel.CurrentShot = 1;
                             }
                             else
                             {
-                                await SaveFrameAsync(false);
                                 viewModel.CurrentShot++;
                             }
 
@@ -481,9 +479,6 @@ namespace Cellular
                                 int downedPinsSecondShot = GetDownedPins() - int.Parse(existingFrame.ShotOneBox);
                                 existingFrame.ShotTwoBox = downedPinsSecondShot.ToString();
                             }
-
-                            // Save frame after second shot
-                            await SaveFrameAsync(false);
 
                             // Move to next frame and reset states
                             viewModel.CurrentFrame++;
