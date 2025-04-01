@@ -14,8 +14,8 @@ namespace Cellular
 
         private async void LoadLoginState()
         {
-            var storedValue = await SecureStorage.GetAsync("IsLoggedIn");
-            bool isLoggedIn = storedValue == "true";
+            var storedValue = Preferences.Get("IsLoggedIn", false);
+            bool isLoggedIn = storedValue == true;
             UpdateMenuForLoginStatus(isLoggedIn);
         }
 
@@ -43,14 +43,14 @@ namespace Cellular
 
         public async void OnSignoutClicked(object sender, EventArgs e)
         {
-            await SecureStorage.SetAsync("IsLoggedIn", "false"); // Ensure login state is updated correctly
+            Preferences.Set("IsLoggedIn", false); // Ensure login state is updated correctly
             UpdateMenuForLoginStatus(false);
             await Shell.Current.GoToAsync("//MainPage");
         }
 
         public async Task OnLoginSuccess()
         {
-            await SecureStorage.SetAsync("IsLoggedIn", "true");
+            Preferences.Set("IsLoggedIn", true);
             UpdateMenuForLoginStatus(true);
             await Shell.Current.GoToAsync("//MainPage");
         }

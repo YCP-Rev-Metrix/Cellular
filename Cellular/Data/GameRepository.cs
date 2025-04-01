@@ -29,6 +29,17 @@ namespace Cellular.Data
             return await _conn.Table<Game>().Where(g => g.Session == session && g.UserId == userId).ToListAsync();
         }
 
+        public async Task UpdateGameAsync(Game game)
+        {
+            await _conn.UpdateAsync(game);
+        }
+
+        public async Task<Game?> GetGameBySessionAndGameNumberAsync(int session, int gameNumber, int userId)
+        {
+            return await _conn.Table<Game>()
+                              .FirstOrDefaultAsync(g => g.Session == session && g.GameNumber == gameNumber && g.UserId == userId);
+        }
+
     }
 }
 

@@ -29,7 +29,7 @@ namespace Cellular
 
         private async void OnSignoutClicked(object sender, EventArgs e)
         {
-            await SecureStorage.SetAsync("IsLoggedIn", "false");
+            Preferences.Set("IsLoggedIn", false);
 
             // Update menu and navigate to Home after logging out
             ((AppShell)Shell.Current).UpdateMenuForLoginStatus(false);

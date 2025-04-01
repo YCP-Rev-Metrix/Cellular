@@ -21,7 +21,7 @@ namespace Cellular
 
         public static async void SetLogin()
         {
-            await SecureStorage.SetAsync("IsLoggedIn", "false");
+            Preferences.Set("IsLoggedIn", false);
         }
 
     }
