@@ -149,31 +149,59 @@ namespace Cellular
             var currentFrame = viewModel.Frames.FirstOrDefault(f => f.FrameNumber == viewModel.CurrentFrame);
             if (currentFrame == null) return;
 
-            int downedPins = GetDownedPins();
+            int downedPins = GetDownedPins(); // Assume this method gets the current number of pins knocked down
+
             if (viewModel.CurrentShot == 1)
             {
                 if (currentFrame.ShotOneBox.Equals("_"))
                 {
-                    return;
+                    return; // Skip if ShotOneBox is already set to "_"
+                }
+                else if (downedPins == 0)
+                {
+                    // If no pins were knocked down, set ShotOneBox to "_"
+                    currentFrame.ShotOneBox = "_";
                 }
                 else
                 {
+                    // If 10 pins are knocked down on the first shot, it's a strike (represented by "X")
                     currentFrame.ShotOneBox = downedPins == 10 ? "X" : downedPins.ToString();
                 }
             }
             else if (viewModel.CurrentShot == 2)
             {
-                if (currentFrame.ShotOneBox.Equals("_"))
+
+                // If ShotOneBox is "_", it's a gutter frame (no pins knocked down)
+                if (currentFrame.ShotOneBox.Equals("_") || currentFrame.ShotOneBox.Equals("_"))
                 {
-                    currentFrame.ShotTwoBox = downedPins.ToString();
+                    if(downedPins == 10)
+                    {
+                        currentFrame.ShotTwoBox = "/";
+                    }
+                    else if (downedPins == 0 || viewModel.pinStates.Equals(viewModel.shot1PinStates))
+                    {
+                        currentFrame.ShotTwoBox = "_";
+                    }
+                    else
+                    {
+                        currentFrame.ShotTwoBox = downedPins.ToString();
+                    }
                 }
                 else
                 {
-                    int downedPinsSecondShot = downedPins - int.Parse(currentFrame.ShotOneBox);
-                    currentFrame.ShotTwoBox = downedPinsSecondShot.ToString();
+                    // If ShotOneBox is a strike ("X"), we do not need a second shot, so skip this logic
+                    if (currentFrame.ShotOneBox.Equals("X"))
+                    {
+                        return; // Skip setting ShotTwoBox if it's a strike
+                    }
+
+                    // If the second shot knocks down all remaining pins, it should be a spare ("/")
+                    int remainingPins = 10 - int.Parse(currentFrame.ShotOneBox);
+                    currentFrame.ShotTwoBox = downedPins == remainingPins ? "/" : downedPins.ToString();
                 }
             }
 
+            // Notify property change
             viewModel.OnPropertyChanged(nameof(viewModel.Frames));
         }
 
@@ -454,7 +482,7 @@ namespace Cellular
                             UpdateShotBoxes();
                             ApplyPinColors(existingFrame);
 
-                            if (existingFrame.ShotOneBox == "X")
+                            if (existingFrame.ShotOneBox.Equals("X"))
                             {
                                 // Update frame for strike
                                 viewModel.CurrentFrame++;

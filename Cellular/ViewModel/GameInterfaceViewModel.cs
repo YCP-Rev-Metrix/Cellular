@@ -19,8 +19,8 @@ namespace Cellular.ViewModel
         public short shot1PinStates = 0;
         public int _currentFrame = 1;
         public int _currentShot = 1;
-        public int currentSession = 1; //Preferences.Get("SessionNumber", 0);
-        public int currentGame = 1; // Preferences.Get("GameNumber", 0);
+        public int currentSession = Preferences.Get("SessionNumber", 0);
+        public int currentGame = Preferences.Get("GameNumber", 0);
         public int firstShotId = -1;
         public int secondShotId = -1;
         public int currentFrameId = -1;
