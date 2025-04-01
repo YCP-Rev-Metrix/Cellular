@@ -12,10 +12,10 @@ public partial class DataPage : ContentPage
     }
     private async void NavigateToEstablishmentCommand(object sender, EventArgs e)
 	{
-        await Navigation.PushAsync(EventPage);
+        await Navigation.PushAsync(EstablishmentPage);
     }
     private async void NavigateToEventCommand(object sender, EventArgs e)
     {
-        await Navigation.PushAsync(EstablishmentPage);
+        await Navigation.PushAsync(EventPage);
     }
 }

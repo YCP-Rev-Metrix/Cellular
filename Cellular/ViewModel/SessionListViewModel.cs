@@ -17,21 +17,16 @@ namespace Cellular.ViewModel
         private readonly GameRepository _GameRepository;
         public ObservableCollection<Session> Sessions { get; set; }
         public ObservableCollection<Game> Games { get; set; }
-
-        public int currentSessionId = 0;
-
+        private int? _sessionNumber;
+        private int? _gameNumber;
         public SessionListViewModel()
         {
-            _SessionRepository = new SessionRepository(new CellularDatabase().GetConnection());
+            var database = new CellularDatabase().GetConnection();
+            _SessionRepository = new SessionRepository(database);
+            _GameRepository = new GameRepository(database);
             Sessions = new ObservableCollection<Session>();
-
-            _GameRepository = new GameRepository(new CellularDatabase().GetConnection());
             Games = new ObservableCollection<Game>();
-
-            loadSessions();
-            loadGames();
-        }
-        
+        } 
         public async Task loadSessions()
         {
             var sessionsFromDb = await _SessionRepository.GetSessionsByUserIdAsync(Preferences.Get("UserId", 0));
@@ -53,6 +48,73 @@ namespace Cellular.ViewModel
                 Debug.WriteLine("This is the Game ID " + game.GameId + " and this is the Session ID" + game.Session);
 
             }
+        }
+        
+        public async Task<int> getSessionNumberMaxAsync()
+        {
+            try
+            {
+                Debug.WriteLine("Attempting to retrieve games from the database.");
+                var sessionsFromDb = await _SessionRepository.GetSessionsByUserIdAsync(Preferences.Get("UserId", 0));
+                Debug.WriteLine("Games retrieved successfully.");
+
+                int sessionNumber = 0;
+                if (sessionsFromDb.Any())
+                {
+                    if (sessionsFromDb.Any())
+                    {
+                        sessionNumber = sessionsFromDb.Max(g => (int?)g.SessionNumber) ?? 0;
+                    }
+                }
+                sessionNumber++;
+                return sessionNumber;
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"An unexpected error occurred: {ex.Message}");
+                return 0;
+            }
+        }
+        public async Task<int> getGameNumberMaxAsync(int session)
+        {
+            try
+            {
+                Debug.WriteLine("Attempting to retrieve games from the database.");
+                var gamesFromDb = await _GameRepository.GetGamesBySessionAsync(session, Preferences.Get("UserId", 0));
+                Debug.WriteLine("Games retrieved successfully.");
+
+                int gameNumber = gamesFromDb.Max(g => g.GameNumber) ?? 0; ;         
+                gameNumber++;
+                return gameNumber;
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"An unexpected error occurred: {ex.Message}");
+                return 0;
+            }
+        }
+
+
+        public async Task AddGame(int sessionNumber)
+        {
+            int gameNumber = await getGameNumberMaxAsync(sessionNumber+1);
+            Game game = new Game
+            {
+                UserId = Preferences.Get("UserId", 0),
+                GameNumber = gameNumber,
+                Session = sessionNumber+1
+            };
+            await _GameRepository.AddAsync(game);
+        }
+        public async Task AddSession()
+        {
+            int sessionNumber = await getSessionNumberMaxAsync();
+            Session session = new Session
+            {
+                UserId = Preferences.Get("UserId", 0),
+                SessionNumber = sessionNumber
+            };
+            await _SessionRepository.AddAsync(session);
         }
 
         public event PropertyChangedEventHandler? PropertyChanged;

@@ -5,6 +5,10 @@
              xmlns:local="clr-namespace:Cellular.ViewModel"
              x:DataType="local:SessionListViewModel">
 
+    <ContentPage.ToolbarItems>
+        <ToolbarItem Text="Add Session" Clicked="AddSession" Order="Primary" />
+    </ContentPage.ToolbarItems>
+
     <ScrollView>
         <VerticalStackLayout
             Padding="30,0"
@@ -23,15 +27,12 @@
 
             <Button
                 Text="Test Interface"
-                Clicked="OnGameClicked"
+                Clicked="GoToShot"
                 HorizontalOptions="Fill" />
 
             <StackLayout Orientation="Vertical" x:Name="_sessionlist">
-                
+
             </StackLayout>
-
-
         </VerticalStackLayout>
     </ScrollView>
-
 </ContentPage>

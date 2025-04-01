@@ -9,7 +9,7 @@
         </Grid.RowDefinitions>
 
         <StackLayout Orientation="Horizontal" Padding="10" Grid.Row="0">
-            <Label Text="Event Registration" FontSize="24" HorizontalOptions="StartAndExpand" />
+            <Label Text="Establishment Registration" FontSize="24" HorizontalOptions="StartAndExpand" />
         </StackLayout>
 
         <StackLayout Padding="20" Grid.Row="1">
