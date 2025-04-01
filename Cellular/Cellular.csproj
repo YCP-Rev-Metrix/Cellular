@@ -80,6 +80,9 @@
 		<Compile Update="EstablishmentRegistrationPage.xaml.cs">
 		  <DependentUpon>EstablishmentRegistrationPage.xaml</DependentUpon>
 		</Compile>
+		<Compile Update="SessionRegistration.xaml.cs">
+		  <DependentUpon>SessionRegistration.xaml</DependentUpon>
+		</Compile>
 		<Compile Update="ShotPage.xaml.cs">
 			<DependentUpon>ShotPage.xaml</DependentUpon>
 		</Compile>
@@ -139,6 +142,9 @@
 		  <Generator>MSBuild:Compile</Generator>
 		</MauiXaml>
 		<MauiXaml Update="EventRegistrationPage.xaml">
+		  <Generator>MSBuild:Compile</Generator>
+		</MauiXaml>
+		<MauiXaml Update="SessionRegistration.xaml">
 		  <Generator>MSBuild:Compile</Generator>
 		</MauiXaml>
 		<MauiXaml Update="ShotPage.xaml">

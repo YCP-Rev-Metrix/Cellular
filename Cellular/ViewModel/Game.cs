@@ -17,6 +17,5 @@ namespace Cellular.ViewModel
         public int Session { get; set; }
         public int? TeamResult { get; set; }
         public int? IndividualResult { get; set; }
-
     }
 }

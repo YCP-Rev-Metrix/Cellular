@@ -10,7 +10,7 @@ namespace Cellular.ViewModel
         public int SessionNumber { get; set; }
         public int UserId { get; set; }
         public int? Establishment { get; set; }
-        public DateTime DateTime { get; set; }
+        public DateTime? DateTime { get; set; }
         public string? TeamOpponent { get; set; }
         public string? IndividualOpponent { get; set; }
         public int? Score { get; set; }

@@ -26,20 +26,28 @@ namespace Cellular
             PopulateList();
         }
 
-        private async void OnGameClicked(object sender, EventArgs e)
+        private async void OnGameClicked(object sender, EventArgs e,int gameID)
+        {
+            Preferences.Set("CurrentGame", gameID);
+            await Navigation.PushAsync(new ShotPage());
+        }
+
+        private async void GoToShot(object sender, EventArgs e)
         {
             await Navigation.PushAsync(new ShotPage());
         }
 
         void PopulateList()
         {
+            sessionGames.Clear();
+            _sessionlist.Children.Clear(); // Clear all buttons
             Debug.WriteLine("Populating list");
             Debug.WriteLine($"Number of sessions: {viewModel.Sessions.Count}");
             foreach (Session session in viewModel.Sessions)
             {
                 Debug.WriteLine($"Session ID: {session.SessionId}, Session Number: {session.SessionNumber}");
-                Button sessionButton = new Button { Text = session.SessionId.ToString() };
-                sessionButton.Clicked += OnSessionClicked;
+                Button sessionButton = new Button { Text = "Session " + session.SessionNumber.ToString() };
+                sessionButton.Clicked += (sender, e) => OnSessionClicked(sender, e, session.SessionId);
                 _sessionlist.Children.Add(sessionButton);
                 StackLayout sessiongames = new StackLayout { IsVisible = false, Padding = 20 };
                 sessionGames.Add(session.SessionId.ToString(), sessiongames);
@@ -51,22 +59,40 @@ namespace Cellular
                     if (game.Session == session.SessionId)
                     {
                         Debug.WriteLine("Added game to session list");
-                        Button gamebutton = new Button { Text = game.GameId.ToString() };
-                        gamebutton.Clicked += new EventHandler(OnGameClicked);
+                        Button gamebutton = new Button { Text = "Game " + game.GameNumber.ToString() };
+                        gamebutton.Clicked += (sender, e) => OnGameClicked(sender, e, game.GameId);
                         sessiongames.Children.Add(gamebutton);
                     }
+
+                    
                 }
+                Button AddGameButton = new Button { Text = "Add Game" };
+                AddGameButton.Clicked += (sender,e) => AddGame(sender,e,session.SessionNumber);
+                sessiongames.Children.Add(AddGameButton);
+
                 _sessionlist.Children.Add(sessiongames);
             }
         }
 
-        private async void OnSessionClicked(object sender, EventArgs e)
+        private async void AddGame(object sender, EventArgs e, int session)
         {
-            Button buttonSender = (Button)sender;
-            string sessionName = buttonSender.Text;
+            await viewModel.AddGame(session);
+            LoadDataAsync();
+        }
+        private async void AddSession(object sender, EventArgs e)
+        {
+            await viewModel.AddSession();
+            LoadDataAsync();
+        }
+        private async void OnSessionClicked(object sender, EventArgs e, int sessionId)
+        {
+            Preferences.Set("CurrentSession", sessionId);
             StackLayout targetLayout;
-            sessionGames.TryGetValue(sessionName, out targetLayout);
-            targetLayout.IsVisible = !targetLayout.IsVisible;
+            sessionGames.TryGetValue(sessionId.ToString(), out targetLayout);
+            if (targetLayout != null)
+            {
+                targetLayout.IsVisible = !targetLayout.IsVisible;
+            }
         }
     }
 
