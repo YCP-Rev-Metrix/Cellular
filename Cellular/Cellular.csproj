@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
-		<TargetFrameworks>net9.0-android;net9.0-ios;net9.0-maccatalyst</TargetFrameworks>
+		<TargetFrameworks>net9.0-ios;net9.0-maccatalyst;net9.0-android</TargetFrameworks>
 		<TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('windows'))">$(TargetFrameworks);net9.0-windows10.0.19041.0</TargetFrameworks>
 		<OutputType>Exe</OutputType>
 		<RootNamespace>Cellular</RootNamespace>
@@ -26,7 +26,7 @@
 
 		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios'">15.0</SupportedOSPlatformVersion>
 		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'maccatalyst'">15.0</SupportedOSPlatformVersion>
-		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">21.0</SupportedOSPlatformVersion>
+		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">34</SupportedOSPlatformVersion>
 		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.17763.0</SupportedOSPlatformVersion>
 		<TargetPlatformMinVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.17763.0</TargetPlatformMinVersion>
 		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'tizen'">6.5</SupportedOSPlatformVersion>
@@ -56,9 +56,69 @@
 
 	<ItemGroup>
 		<PackageReference Include="BCrypt.Net-Next" Version="4.0.3" />
-		<PackageReference Include="Microsoft.Maui.Controls" Version="$(MauiVersion)" />
+		<PackageReference Include="Microsoft.Maui.Controls" Version="9.0.40" />
 		<PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="9.0.0" />
 		<PackageReference Include="sqlite-net-pcl" Version="1.9.172" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<Compile Update="EditAccount.xaml.cs">
+			<DependentUpon>EditAccount.xaml</DependentUpon>
+		</Compile>
+		<Compile Update="BallArsenal.xaml.cs">
+			<DependentUpon>BallArsenal.xaml</DependentUpon>
+		</Compile>
+		<Compile Update="Account.xaml.cs">
+			<DependentUpon>Account.xaml</DependentUpon>
+		</Compile>
+		<Compile Update="EstablishmentPage.xaml.cs">
+		  <DependentUpon>EstablishmentPage.xaml</DependentUpon>
+		</Compile>
+		<Compile Update="EventPage.xaml.cs">
+		  <DependentUpon>EventPage.xaml</DependentUpon>
+		</Compile>
+		<Compile Update="EstablishmentRegistrationPage.xaml.cs">
+		  <DependentUpon>EstablishmentRegistrationPage.xaml</DependentUpon>
+		</Compile>
+		<Compile Update="SessionRegistration.xaml.cs">
+		  <DependentUpon>SessionRegistration.xaml</DependentUpon>
+		</Compile>
+		<Compile Update="ShotPage.xaml.cs">
+			<DependentUpon>ShotPage.xaml</DependentUpon>
+		</Compile>
+		<Compile Update="SessionSetup.xaml.cs">
+			<DependentUpon>SessionSetup.xaml</DependentUpon>
+		</Compile>
+		<Compile Update="GameSetup.xaml.cs">
+			<DependentUpon>GameSetup.xaml</DependentUpon>
+		</Compile>
+		<Compile Update="SessionList.xaml.cs">
+			<DependentUpon>SessionList.xaml</DependentUpon>
+		</Compile>
+		<Compile Update="Bluetooth.xaml.cs">
+			<DependentUpon>Bluetooth.xaml</DependentUpon>
+		</Compile>
+		<Compile Update="RegisterPage.xaml.cs">
+			<DependentUpon>RegisterPage.xaml</DependentUpon>
+		</Compile>
+		<Compile Update="Login.xaml.cs">
+			<DependentUpon>Login.xaml</DependentUpon>
+		</Compile>
+	</ItemGroup>
+
+	<ItemGroup>
+		<MauiXaml Update="DataPage.xaml">
+		  <Generator>MSBuild:Compile</Generator>
+		</MauiXaml>
+		<MauiXaml Update="EditAccount.xaml">
+			<Generator>MSBuild:Compile</Generator>
+		</MauiXaml>
+		<MauiXaml Update="AppShell.xaml">
+			<Generator>MSBuild:Compile</Generator>
+		</MauiXaml>
+		<MauiXaml Update="BallArsenal.xaml">
+			<Generator>MSBuild:Compile</Generator>
+		</MauiXaml>
 	</ItemGroup>
 
 	<ItemGroup>
