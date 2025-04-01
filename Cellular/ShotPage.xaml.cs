@@ -101,6 +101,7 @@ namespace Cellular
             {
                 //Save shot to DB
                 viewModel.secondShotId = await SaveShotAsync();
+                Debug.WriteLine($"Second Shot Id: {viewModel.secondShotId}");
 
                 ApplySecondShotColors(currentFrame);
                 if (string.IsNullOrEmpty(currentFrame.ShotTwoBox))
@@ -157,7 +158,11 @@ namespace Cellular
             {
                 currentFrame.ShotOneBox = downedPins == 10 ? "X" : downedPins.ToString();
             }
-            else if (viewModel.CurrentShot == 2)
+            else if (viewModel.CurrentShot == 2 && currentFrame.ShotOneBox.Equals("_"))
+            {
+                currentFrame.ShotTwoBox = downedPins.ToString();
+            }
+            else
             {
                 int downedPinsSecondShot = downedPins - int.Parse(currentFrame.ShotOneBox);
                 currentFrame.ShotTwoBox = downedPinsSecondShot.ToString();
@@ -302,22 +307,28 @@ namespace Cellular
             await frameRepository.InitAsync();
             await gameRepository.InitAsync();
 
-            // Create new frame object
-            var newFrame = new BowlingFrame
-            {
-                UserId = Preferences.Get("UserId", 0),
-                FrameNumber = viewModel.CurrentFrame,
-                Lane = null,
-                Result = null,
-                Shots = viewModel.firstShotId.ToString()
-            };
+            BowlingFrame newFrame;
 
-            if (!strike)
+            if (viewModel.CurrentShot.Equals(1))
+            {
+                newFrame = new BowlingFrame
+                {
+                    UserId = Preferences.Get("UserId", 0),
+                    FrameNumber = viewModel.CurrentFrame,
+                    Lane = null,
+                    Result = null,
+                    Shots = viewModel.firstShotId.ToString()
+                };
+            }
+            else
+            {
+                newFrame = await frameRepository.GetFrameById(viewModel.currentFrameId);
+            }
+
+            if (!strike && viewModel.CurrentShot == 2)
             {
                 newFrame.Shots += "_" + viewModel.secondShotId;
             }
-
-            Debug.WriteLine($"Saving Frame: Frame Number {newFrame.FrameNumber}, ShotId's {newFrame.Shots}");
 
             if (viewModel.CurrentShot.Equals(1))
             {
@@ -385,16 +396,9 @@ namespace Cellular
 
             // Retrieve the current game
             var game = await gameRepository.GetGame(viewModel.currentSession, viewModel.currentGame, viewModel.UserId);
-            List<int> frameIds = new();
+            List<int> frameIds = await gameRepository.GetFrameIdsByGameAsync(viewModel.currentSession, viewModel.currentGame, viewModel.UserId);
 
-            if (game != null && !string.IsNullOrEmpty(game.Frames))
-            {
-                frameIds = game.Frames.Split('_')
-                                      .Select(id => int.TryParse(id, out int frameId) ? frameId : (int?)null)
-                                      .Where(id => id.HasValue)
-                                      .Select(id => id.Value)
-                                      .ToList();
-            }
+            Debug.WriteLine($"Frame Ids to load: {string.Join(", ", frameIds)}");
 
             // Ensure there are exactly 10 frames in viewModel.Frames
             while (viewModel.Frames.Count < 10)
@@ -415,28 +419,58 @@ namespace Cellular
 
                     if (!string.IsNullOrEmpty(frame.Shots))
                     {
-                        var shotIds = frame.Shots.Split('_')
-                                                 .Select(id => int.TryParse(id, out int shotId) ? shotId : (int?)null)
-                                                 .Where(id => id.HasValue)
-                                                 .Select(id => id.Value)
-                                                 .ToList();
+                        Debug.WriteLine($"Frame {frame.FrameNumber}, Shots: {frame.Shots}");
+                        List<int> shotIds = await frameRepository.GetShotIdsByFrameIdAsync(frameIds[i]);
 
-                        var shots = new List<Shot>();
-                        foreach (var shotId in shotIds)
+                        Debug.WriteLine($"Shot Ids to load: {string.Join(", ", shotIds)}");
+
+                        Shot shot1 = null, shot2 = null;
+
+                        if (shotIds.Count > 0)
                         {
-                            var shot = await shotRepository.GetShotById(shotId);
-                            if (shot != null) shots.Add(shot);
+                            shot1 = await shotRepository.GetShotById(shotIds[0]);
+                            Debug.WriteLine($"Shot1 count: {shot1?.Count}");
                         }
 
-                        // Populate the shot boxes
-                        if (shots.Count > 0)
+                        if (shotIds.Count > 1)
                         {
-                            existingFrame.ShotOneBox = shots[0].Count == 10 ? "X" : shots[0].Count.ToString();
-                            viewModel.shot1PinStates = shots[0].LeaveType ?? 0;
+                            shot2 = await shotRepository.GetShotById(shotIds[1]);
+                            Debug.WriteLine($"Shot2 count: {shot2?.Count}");
                         }
-                        if (shots.Count > 1)
+
+                        // Assign values to the frame
+                        if (shot1 != null)
                         {
-                            existingFrame.ShotTwoBox = (shots[0].Count + shots[1].Count == 10) ? "/" : shots[1].Count.ToString();
+                            if ((shot1?.Count ?? 0) == 10)
+                            {
+                                existingFrame.ShotOneBox = "X";
+                            }
+                            else if ((shot1?.Count ?? 0) == 0)
+                            {
+                                existingFrame.ShotOneBox = "_";
+                            }
+                            else
+                            {
+                                existingFrame.ShotOneBox = (shot1?.Count ?? 0).ToString();
+                            }
+                            viewModel.shot1PinStates = shot1?.LeaveType ?? 0;
+                        }
+
+                        if (shot2 != null)
+                        {
+                            if ((shot1?.Count ?? 0) + (shot2?.Count ?? 0) == 10)
+                            {
+                                existingFrame.ShotTwoBox = "/";
+                            }
+                            else if ((shot2?.Count ?? 0) == 0)
+                            {
+                                existingFrame.ShotTwoBox = "_";
+                            }
+                            else
+                            {
+                                existingFrame.ShotTwoBox = (shot2?.Count ?? 0).ToString();
+                            }
+                            viewModel.pinStates = shot2?.LeaveType ?? 0;
                         }
                     }
                 }
@@ -451,5 +485,6 @@ namespace Cellular
 
             viewModel.OnPropertyChanged(nameof(viewModel.Frames));
         }
+
     }
 }

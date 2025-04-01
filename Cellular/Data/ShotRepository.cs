@@ -29,7 +29,7 @@ namespace Cellular.Data
             try
             {
                 await _conn.InsertAsync(shot);
-                Console.WriteLine($"Shot added: Frame {shot.Frame}, Shot {shot.ShotNumber}, Pins Down {shot.Count}");
+                Console.WriteLine($"Shot added: Id: {shot.ShotId} Frame {shot.Frame}, Shot {shot.ShotNumber}, Pins Down {shot.Count}");
                 return shot.ShotId;
             }
             catch (Exception ex)
