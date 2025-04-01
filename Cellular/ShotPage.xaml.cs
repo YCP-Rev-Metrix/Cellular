@@ -150,22 +150,28 @@ namespace Cellular
             if (currentFrame == null) return;
 
             int downedPins = GetDownedPins();
-            if(currentFrame.ShotOneBox == "_" || currentFrame.ShotTwoBox == "_")
-            {
-                return;
-            }
             if (viewModel.CurrentShot == 1)
             {
-                currentFrame.ShotOneBox = downedPins == 10 ? "X" : downedPins.ToString();
+                if (currentFrame.ShotOneBox.Equals("_"))
+                {
+                    return;
+                }
+                else
+                {
+                    currentFrame.ShotOneBox = downedPins == 10 ? "X" : downedPins.ToString();
+                }
             }
-            else if (viewModel.CurrentShot == 2 && currentFrame.ShotOneBox.Equals("_"))
+            else if (viewModel.CurrentShot == 2)
             {
-                currentFrame.ShotTwoBox = downedPins.ToString();
-            }
-            else
-            {
-                int downedPinsSecondShot = downedPins - int.Parse(currentFrame.ShotOneBox);
-                currentFrame.ShotTwoBox = downedPinsSecondShot.ToString();
+                if (currentFrame.ShotOneBox.Equals("_"))
+                {
+                    currentFrame.ShotTwoBox = downedPins.ToString();
+                }
+                else
+                {
+                    int downedPinsSecondShot = downedPins - int.Parse(currentFrame.ShotOneBox);
+                    currentFrame.ShotTwoBox = downedPinsSecondShot.ToString();
+                }
             }
 
             viewModel.OnPropertyChanged(nameof(viewModel.Frames));
@@ -372,13 +378,16 @@ namespace Cellular
 
             var existingFrameIds = await gameRepository.GetFrameIdsByGameAsync(viewModel.currentSession, viewModel.currentGame, viewModel.UserId);
 
+
             if (existingFrameIds == null || !existingFrameIds.Any())
             {
                 Debug.WriteLine("No frames found.");
+                Debug.WriteLine($" Session: {viewModel.currentSession}, Game: {viewModel.currentGame}");
             }
             else
             {
                 Debug.WriteLine("Frames found.");
+                Debug.WriteLine($" Session: {viewModel.currentSession}, Game: {viewModel.currentGame}");
                 await LoadExistingGameData();
             }
         }
@@ -438,41 +447,59 @@ namespace Cellular
                             Debug.WriteLine($"Shot2 count: {shot2?.Count}");
                         }
 
-                        // Assign values to the frame
+                        // Process shot 1
                         if (shot1 != null)
                         {
-                            if ((shot1?.Count ?? 0) == 10)
+                            viewModel.pinStates = shot1?.LeaveType ?? 0;
+                            UpdateShotBoxes();
+                            ApplyPinColors(existingFrame);
+
+                            if (existingFrame.ShotOneBox == "X")
                             {
-                                existingFrame.ShotOneBox = "X";
-                            }
-                            else if ((shot1?.Count ?? 0) == 0)
-                            {
-                                existingFrame.ShotOneBox = "_";
+                                // Update frame for strike
+                                await SaveFrameAsync(true);
+                                viewModel.CurrentFrame++;
+                                viewModel.CurrentShot = 1;
                             }
                             else
                             {
-                                existingFrame.ShotOneBox = (shot1?.Count ?? 0).ToString();
+                                await SaveFrameAsync(false);
+                                viewModel.CurrentShot++;
                             }
+
                             viewModel.shot1PinStates = shot1?.LeaveType ?? 0;
                         }
 
+                        // Process shot 2
                         if (shot2 != null)
                         {
-                            if ((shot1?.Count ?? 0) + (shot2?.Count ?? 0) == 10)
-                            {
-                                existingFrame.ShotTwoBox = "/";
-                            }
-                            else if ((shot2?.Count ?? 0) == 0)
-                            {
-                                existingFrame.ShotTwoBox = "_";
-                            }
-                            else
-                            {
-                                existingFrame.ShotTwoBox = (shot2?.Count ?? 0).ToString();
-                            }
                             viewModel.pinStates = shot2?.LeaveType ?? 0;
+                            ApplySecondShotColors(existingFrame);
+
+                            if (string.IsNullOrEmpty(existingFrame.ShotTwoBox))
+                            {
+                                int downedPinsSecondShot = GetDownedPins() - int.Parse(existingFrame.ShotOneBox);
+                                existingFrame.ShotTwoBox = downedPinsSecondShot.ToString();
+                            }
+
+                            // Save frame after second shot
+                            await SaveFrameAsync(false);
+
+                            // Move to next frame and reset states
+                            viewModel.CurrentFrame++;
+                            viewModel.CurrentShot = 1;
+                            viewModel.pinStates = 0;
+                            viewModel.firstShotId = -1;
+                            viewModel.secondShotId = -1;
+
+                            foreach (var pin in new List<Button> { pin1, pin2, pin3, pin4, pin5, pin6, pin7, pin8, pin9, pin10 })
+                                pin.BackgroundColor = Colors.LightSlateGray;
                         }
                     }
+
+                    // Notify the UI of changes
+                    existingFrame.OnPropertyChanged(nameof(existingFrame.CenterPinColors));
+                    existingFrame.OnPropertyChanged(nameof(existingFrame.PinColors));
                 }
                 else
                 {
@@ -483,8 +510,8 @@ namespace Cellular
                 }
             }
 
+            // Notify the viewModel of frame updates
             viewModel.OnPropertyChanged(nameof(viewModel.Frames));
         }
-
     }
 }

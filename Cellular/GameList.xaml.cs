@@ -26,8 +26,9 @@ namespace Cellular
             PopulateList();
         }
 
-        private async void OnGameClicked(object sender, EventArgs e,int gameID)
+        private async void OnGameClicked(object sender, EventArgs e,int gameID, int gameNumber)
         {
+            Preferences.Set("GameNumber", gameNumber);
             Preferences.Set("CurrentGame", gameID);
             await Navigation.PushAsync(new ShotPage());
         }
@@ -47,7 +48,7 @@ namespace Cellular
             {
                 Debug.WriteLine($"Session ID: {session.SessionId}, Session Number: {session.SessionNumber}");
                 Button sessionButton = new Button { Text = "Session " + session.SessionNumber.ToString() };
-                sessionButton.Clicked += (sender, e) => OnSessionClicked(sender, e, session.SessionId);
+                sessionButton.Clicked += (sender, e) => OnSessionClicked(sender, e, session.SessionId, session.SessionNumber);
                 _sessionlist.Children.Add(sessionButton);
                 StackLayout sessiongames = new StackLayout { IsVisible = false, Padding = 20 };
                 sessionGames.Add(session.SessionId.ToString(), sessiongames);
@@ -60,7 +61,7 @@ namespace Cellular
                     {
                         Debug.WriteLine("Added game to session list");
                         Button gamebutton = new Button { Text = "Game " + game.GameNumber.ToString() };
-                        gamebutton.Clicked += (sender, e) => OnGameClicked(sender, e, game.GameId);
+                        gamebutton.Clicked += (sender, e) => OnGameClicked(sender, e, game.GameId, game?.GameNumber ?? 0);
                         sessiongames.Children.Add(gamebutton);
                     }
 
@@ -84,9 +85,10 @@ namespace Cellular
             await viewModel.AddSession();
             LoadDataAsync();
         }
-        private async void OnSessionClicked(object sender, EventArgs e, int sessionId)
+        private async void OnSessionClicked(object sender, EventArgs e, int sessionId, int sessionNumber)
         {
             Preferences.Set("CurrentSession", sessionId);
+            Preferences.Set("SessionNumber", sessionNumber);
             StackLayout targetLayout;
             sessionGames.TryGetValue(sessionId.ToString(), out targetLayout);
             if (targetLayout != null)
