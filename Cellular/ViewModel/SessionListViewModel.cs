@@ -80,7 +80,7 @@ namespace Cellular.ViewModel
             try
             {
                 Debug.WriteLine("Attempting to retrieve games from the database.");
-                var gamesFromDb = await _GameRepository.GetGamesBySessionAsync(session, Preferences.Get("UserId", 0));
+                var gamesFromDb = await _GameRepository.GetGamesListBySessionAsync(session, Preferences.Get("UserId", 0));
                 Debug.WriteLine("Games retrieved successfully.");
 
                 int gameNumber = gamesFromDb.Max(g => g.GameNumber) ?? 0; ;         
