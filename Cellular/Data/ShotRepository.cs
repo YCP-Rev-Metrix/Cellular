@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using SQLite;
 using Cellular.ViewModel;
+using System.Data.Common;
 
 namespace Cellular.Data
 {
@@ -65,5 +66,30 @@ namespace Cellular.Data
                 return new List<Shot>();
             }
         }
+
+        public async Task<List<Shot>> GetShotsBySessionAndGameAsync(int sessionId, int gameId)
+        {
+            // Retrieve the game using sessionId and gameId
+            var gameRepository = new GameRepository(_conn);
+            var game = await gameRepository.GetGamesBySessionAsync(sessionId, Preferences.Get("UserId", 0));
+
+            if (game == null || game.GameId != gameId)
+            {
+                return new List<Shot>(); // No shots found for the given session and game
+            }
+
+            // Query the Shot table for shots associated with the gameId
+            return await _conn.Table<Shot>()
+                              .Where(shot => shot.Game == gameId)
+                              .ToListAsync();
+        }
+
+        public async Task<Shot?> GetShotById(int shotId)
+        {
+            return await _conn.Table<Shot>()
+                                  .Where(s => s.ShotId == shotId)
+                                  .FirstOrDefaultAsync();
+        }
+
     }
 }

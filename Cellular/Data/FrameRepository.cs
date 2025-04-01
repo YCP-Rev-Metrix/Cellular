@@ -29,18 +29,13 @@ namespace Cellular.Data
             await _conn.UpdateAsync(frame);
         }
 
-        /*public async Task<List<BowlingFrame>> GetFramesByGameId(int gameId)
+        public async Task<BowlingFrame?> GetFrameById(int frameId)
         {
-            // Retrieve the game entry to get its associated frame IDs
-            var game = await _conn.FindAsync<Game>(gameId);
-            if (game == null || game.Frames == null || game.Frames.Length == 0)
-                return new List<BowlingFrame>();
-
-            // Retrieve frames matching the IDs stored in the game's FrameIds array
             return await _conn.Table<BowlingFrame>()
-                              .Where(f => game.Frames.Contains(f.FrameId))
-                              .ToListAsync();
-        }*/
+                                  .Where(f => f.FrameId == frameId)
+                                  .FirstOrDefaultAsync();
+        }
+
 
     }
 }

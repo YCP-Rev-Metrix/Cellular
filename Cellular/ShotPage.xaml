@@ -188,23 +188,27 @@
                 <StackLayout Grid.Row="1" Grid.Column="1" Orientation="Vertical" Spacing="10" WidthRequest="{OnIdiom Phone=200, Tablet=250, Desktop=250}" HorizontalOptions="Center">
                     <!-- Pin Buttons -->
                     <FlexLayout x:Name="PinButtonLayout" Direction="Row" JustifyContent="Center" Wrap="Wrap" HorizontalOptions="Center">
-                        <Button x:Name = "pin7" Text="7" CornerRadius="25" Clicked="OnPinClicked" BackgroundColor="LightSlateGrey"/>
-                        <Button x:Name = "pin8" Text="8" CornerRadius="25" Clicked="OnPinClicked" BackgroundColor="LightSlateGrey"/>
-                        <Button x:Name = "pin9" Text="9" CornerRadius="25" Clicked="OnPinClicked" BackgroundColor="LightSlateGrey"/>
-                        <Button x:Name = "pin10" Text="10" CornerRadius="25" Clicked="OnPinClicked" BackgroundColor="LightSlateGrey"/>
+                        <Button x:Name="pin7" Text="7" Scale = "0.9" CornerRadius="25" Clicked="OnPinClicked" BackgroundColor="LightSlateGrey" Margin="1"/>
+                        <Button x:Name="pin8" Text="8" Scale = "0.9" CornerRadius="25" Clicked="OnPinClicked" BackgroundColor="LightSlateGrey" Margin="1"/>
+                        <Button x:Name="pin9" Text="9" Scale = "0.9" CornerRadius="25" Clicked="OnPinClicked" BackgroundColor="LightSlateGrey" Margin="1"/>
+                        <Button x:Name="pin10" Text="10" Scale = "0.9" CornerRadius="25" Clicked="OnPinClicked" BackgroundColor="LightSlateGrey" Margin="1"/>
                     </FlexLayout>
+
                     <FlexLayout Direction="Row" JustifyContent="Center" Wrap="Wrap" HorizontalOptions="Center">
-                        <Button x:Name = "pin4" Text="4" CornerRadius="25" Clicked="OnPinClicked" BackgroundColor="LightSlateGrey"/>
-                        <Button x:Name = "pin5" Text="5" CornerRadius="25" Clicked="OnPinClicked" BackgroundColor="LightSlateGrey"/>
-                        <Button x:Name = "pin6" Text="6" CornerRadius="25" Clicked="OnPinClicked" BackgroundColor="LightSlateGrey"/>
+                        <Button x:Name="pin4" Text="4" Scale = "0.9" CornerRadius="25" Clicked="OnPinClicked" BackgroundColor="LightSlateGrey" Margin="1"/>
+                        <Button x:Name="pin5" Text="5" Scale = "0.9" CornerRadius="25" Clicked="OnPinClicked" BackgroundColor="LightSlateGrey" Margin="1"/>
+                        <Button x:Name="pin6" Text="6" Scale = "0.9" CornerRadius="25" Clicked="OnPinClicked" BackgroundColor="LightSlateGrey" Margin="1"/>
                     </FlexLayout>
+
                     <FlexLayout Direction="Row" JustifyContent="Center" Wrap="Wrap" HorizontalOptions="Center">
-                        <Button x:Name = "pin2" Text="2" CornerRadius="25" Clicked="OnPinClicked" BackgroundColor="LightSlateGrey"/>
-                        <Button x:Name = "pin3" Text="3" CornerRadius="25" Clicked="OnPinClicked" BackgroundColor="LightSlateGrey"/>
+                        <Button x:Name="pin2" Text="2" Scale = "0.9" CornerRadius="25" Clicked="OnPinClicked" BackgroundColor="LightSlateGrey" Margin="1"/>
+                        <Button x:Name="pin3" Text="3" Scale = "0.9" CornerRadius="25" Clicked="OnPinClicked" BackgroundColor="LightSlateGrey" Margin="1"/>
                     </FlexLayout>
+
                     <FlexLayout Direction="Row" JustifyContent="Center" Wrap="Wrap" HorizontalOptions="Center">
-                        <Button x:Name = "pin1" Text="1" CornerRadius="25" Clicked="OnPinClicked" BackgroundColor="LightSlateGrey"/>
+                        <Button x:Name="pin1" Text="1" Scale = "0.9" CornerRadius="25" Clicked="OnPinClicked" BackgroundColor="LightSlateGrey" Margin="1"/>
                     </FlexLayout>
+
 
                     <!-- Board Selector -->
                     <StackLayout HorizontalOptions="Center">

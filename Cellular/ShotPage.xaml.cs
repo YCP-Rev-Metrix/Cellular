@@ -9,6 +9,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Maui.ApplicationModel.Communication;
+using System.Collections.ObjectModel;
 
 namespace Cellular
 {
@@ -26,7 +27,7 @@ namespace Cellular
         protected override void OnAppearing()
         {
             base.OnAppearing();
-            //await viewModel.LoadGame();
+            _ = CheckIfFramesExistForGame();
             _ = viewModel.LoadUserHand();
             Debug.WriteLine("Hand: " + viewModel.Hand);
         }
@@ -76,16 +77,9 @@ namespace Cellular
 
             if (viewModel.CurrentShot.Equals(1))
             {
+                //Save shot to DB
                 viewModel.firstShotId = await SaveShotAsync();
-            }
-            else
-            {
-                viewModel.secondShotId = await SaveShotAsync();
-            }
 
-            if (viewModel.CurrentShot == 1)
-
-            {
                 ApplyPinColors(currentFrame);
                 if (currentFrame.ShotOneBox == "X")
                 {
@@ -98,12 +92,16 @@ namespace Cellular
                 }
                 else
                 {
+                    await SaveFrameAsync(false);
                     viewModel.CurrentShot++;
                 }
                 viewModel.shot1PinStates = viewModel.pinStates;
             }
             else if (viewModel.CurrentShot.Equals(2))
             {
+                //Save shot to DB
+                viewModel.secondShotId = await SaveShotAsync();
+
                 ApplySecondShotColors(currentFrame);
                 if (string.IsNullOrEmpty(currentFrame.ShotTwoBox))
                 {
@@ -321,8 +319,16 @@ namespace Cellular
 
             Debug.WriteLine($"Saving Frame: Frame Number {newFrame.FrameNumber}, ShotId's {newFrame.Shots}");
 
-            // Save the frame
-            await frameRepository.AddFrame(newFrame);
+            if (viewModel.CurrentShot.Equals(1))
+            {
+                await frameRepository.AddFrame(newFrame);
+                Debug.WriteLine("Frame added to db");
+            }
+            else
+            {
+                await frameRepository.UpdateFrameAsync(newFrame);
+                Debug.WriteLine($"Frame updated {newFrame.Shots}");
+            }
 
             // Retrieve the inserted frame ID
             newFrame.FrameId = (await database.GetConnection().Table<BowlingFrame>()
@@ -333,9 +339,9 @@ namespace Cellular
 
             // Retrieve the current game
             var userId = Preferences.Get("UserId", 0);
-            var gameUpdate = await gameRepository.GetGameBySessionAndGameNumberAsync(viewModel.currentSession, viewModel.currentGame, userId);
+            var gameUpdate = await gameRepository.GetGame(viewModel.currentSession, viewModel.currentGame, userId);
 
-            if (gameUpdate != null)
+            if (gameUpdate != null && viewModel.CurrentShot.Equals(1))
             {
                 // Ensure Frames string is formatted properly with underscore separation
                 gameUpdate.Frames = string.IsNullOrEmpty(gameUpdate.Frames)
@@ -347,12 +353,103 @@ namespace Cellular
                 // Update game in the database
                 await gameRepository.UpdateGameAsync(gameUpdate);
             }
+        }
+
+        public async Task CheckIfFramesExistForGame()
+        {
+            var gameRepository = new GameRepository(new CellularDatabase().GetConnection());
+
+            var existingFrameIds = await gameRepository.GetFrameIdsByGameAsync(viewModel.currentSession, viewModel.currentGame, viewModel.UserId);
+
+            if (existingFrameIds == null || !existingFrameIds.Any())
+            {
+                Debug.WriteLine("No frames found.");
+            }
             else
             {
-                Debug.WriteLine("Error: Could not find game to update.");
+                Debug.WriteLine("Frames found.");
+                await LoadExistingGameData();
             }
         }
 
+        private async Task LoadExistingGameData()
+        {
+            var db = new CellularDatabase().GetConnection();
+            var gameRepository = new GameRepository(db);
+            var frameRepository = new FrameRepository(db);
+            var shotRepository = new ShotRepository(db);
 
+            await gameRepository.InitAsync();
+            await frameRepository.InitAsync();
+            await shotRepository.InitAsync();
+
+            // Retrieve the current game
+            var game = await gameRepository.GetGame(viewModel.currentSession, viewModel.currentGame, viewModel.UserId);
+            List<int> frameIds = new();
+
+            if (game != null && !string.IsNullOrEmpty(game.Frames))
+            {
+                frameIds = game.Frames.Split('_')
+                                      .Select(id => int.TryParse(id, out int frameId) ? frameId : (int?)null)
+                                      .Where(id => id.HasValue)
+                                      .Select(id => id.Value)
+                                      .ToList();
+            }
+
+            // Ensure there are exactly 10 frames in viewModel.Frames
+            while (viewModel.Frames.Count < 10)
+            {
+                viewModel.Frames.Add(new ShotPageFrame(viewModel.Frames.Count + 1, 0));
+            }
+
+            for (int i = 0; i < 10; i++) // Loop through all 10 frames
+            {
+                var frame = i < frameIds.Count ? await frameRepository.GetFrameById(frameIds[i]) : null;
+                var existingFrame = viewModel.Frames[i];
+
+                if (frame != null)
+                {
+                    existingFrame.FrameNumber = frame.FrameNumber ?? (i + 1);
+                    existingFrame.ShotOneBox = "";
+                    existingFrame.ShotTwoBox = "";
+
+                    if (!string.IsNullOrEmpty(frame.Shots))
+                    {
+                        var shotIds = frame.Shots.Split('_')
+                                                 .Select(id => int.TryParse(id, out int shotId) ? shotId : (int?)null)
+                                                 .Where(id => id.HasValue)
+                                                 .Select(id => id.Value)
+                                                 .ToList();
+
+                        var shots = new List<Shot>();
+                        foreach (var shotId in shotIds)
+                        {
+                            var shot = await shotRepository.GetShotById(shotId);
+                            if (shot != null) shots.Add(shot);
+                        }
+
+                        // Populate the shot boxes
+                        if (shots.Count > 0)
+                        {
+                            existingFrame.ShotOneBox = shots[0].Count == 10 ? "X" : shots[0].Count.ToString();
+                            viewModel.shot1PinStates = shots[0].LeaveType ?? 0;
+                        }
+                        if (shots.Count > 1)
+                        {
+                            existingFrame.ShotTwoBox = (shots[0].Count + shots[1].Count == 10) ? "/" : shots[1].Count.ToString();
+                        }
+                    }
+                }
+                else
+                {
+                    // Reset empty frames (if they exist in UI but not in DB)
+                    existingFrame.FrameNumber = i + 1;
+                    existingFrame.ShotOneBox = "";
+                    existingFrame.ShotTwoBox = "";
+                }
+            }
+
+            viewModel.OnPropertyChanged(nameof(viewModel.Frames));
+        }
     }
 }
