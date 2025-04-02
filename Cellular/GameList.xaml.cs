@@ -52,12 +52,13 @@ namespace Cellular
                 _sessionlist.Children.Add(sessionButton);
                 StackLayout sessiongames = new StackLayout { IsVisible = false, Padding = 20 };
                 sessionGames.Add(session.SessionId.ToString(), sessiongames);
+                Debug.WriteLine($"Number of Games: {viewModel.Games.Count}");
 
                 foreach (Game game in viewModel.Games)
                 {
                     Debug.WriteLine("This is the Game ID" + game.GameId + "and this is the Session ID" + game.Session);
 
-                    if (game.Session == session.SessionId)
+                    if (game.Session == session.SessionNumber)
                     {
                         Debug.WriteLine("Added game to session list");
                         Button gamebutton = new Button { Text = "Game " + game.GameNumber.ToString() };
@@ -77,6 +78,7 @@ namespace Cellular
 
         private async void AddGame(object sender, EventArgs e, int session)
         {
+            Debug.WriteLine("THIS IS THE SESSION NUMBER" + session + "------------------------------------------------------------------");
             await viewModel.AddGame(session);
             LoadDataAsync();
         }
