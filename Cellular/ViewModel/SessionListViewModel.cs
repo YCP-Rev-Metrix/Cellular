@@ -8,6 +8,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Cellular.Data;
 using SQLite;
+using static System.Collections.Specialized.BitVector32;
 
 namespace Cellular.ViewModel
 {
@@ -46,7 +47,7 @@ namespace Cellular.ViewModel
             {
                 Games.Add(game);
                 Debug.WriteLine("This is the Game ID " + game.GameId + " and this is the Session ID" + game.Session);
-
+                Debug.WriteLine("This is the Game Number " + game.GameNumber + "This is the USER ID"+ Preferences.Get("UserId", 0));
             }
         }
         
@@ -83,7 +84,7 @@ namespace Cellular.ViewModel
                 var gamesFromDb = await _GameRepository.GetGamesListBySessionAsync(session, Preferences.Get("UserId", 0));
                 Debug.WriteLine("Games retrieved successfully.");
 
-                int gameNumber = gamesFromDb.Max(g => g.GameNumber) ?? 0; ;         
+                int gameNumber = gamesFromDb.Max(g => g.GameNumber) ?? 0;         
                 gameNumber++;
                 return gameNumber;
             }
@@ -98,6 +99,8 @@ namespace Cellular.ViewModel
         public async Task AddGame(int sessionNumber)
         {
             int gameNumber = await getGameNumberMaxAsync(sessionNumber);
+            Debug.WriteLine("THIS IS THE SESSION NUMBER 2 " + sessionNumber + "------------------------------------------------------------------");
+            Debug.WriteLine("THIS IS THE FUCKING GAME NUMERB "+gameNumber+"------------------------------------------------------------------");
             Game game = new Game
             {
                 UserId = Preferences.Get("UserId", 0),
