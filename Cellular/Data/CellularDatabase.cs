@@ -268,7 +268,6 @@ namespace Cellular.Data
                         IndividualOpponent = data[3].Trim(),
                         Score = int.TryParse(data[4].Trim(), out int score) ? score : (int?)null,
                         Stats = int.TryParse(data[5].Trim(), out int stats) ? stats : (int?)null,
-                        Games = data[6].Trim(),
                         TeamRecord = int.TryParse(data[7].Trim(), out int teamRecord) ? teamRecord : (int?)null,
                         IndividualRecord = int.TryParse(data[8].Trim(), out int individualRecord) ? individualRecord : (int?)null,
                     };
@@ -315,19 +314,17 @@ namespace Cellular.Data
 
                     var game = new Game
                     {
-                        UserId = int.TryParse(data[0].Trim(), out int userId) ? userId : 0,
                         Lanes = data[1].Trim(),
                         GameNumber = int.TryParse(data[2].Trim(), out int gameNumber) ? gameNumber : (int?)null,
                         Score = int.TryParse(data[3].Trim(), out int score) ? score : (int?)null,
                         Win = bool.TryParse(data[4].Trim(), out bool win) ? win : (bool?)null,
                         StartingLane = int.TryParse(data[5].Trim(), out int startingLane) ? startingLane : (int?)null,
-                        Frames = data[6].Trim(),
-                        Session = int.TryParse(data[7].Trim(), out int session) ? session : 0,
+                        SessionId = int.TryParse(data[7].Trim(), out int session) ? session : 0,
                         TeamResult = int.TryParse(data[7].Trim(), out int teamResult) ? teamResult : (int?)null,
                         IndividualResult = int.TryParse(data[8].Trim(), out int individualResult) ? individualResult : (int?)null,
                     };
 
-                    var existingGame = await _database.Table<Game>().FirstOrDefaultAsync(g => g.UserId == game.UserId && g.GameNumber == game.GameNumber);
+                    var existingGame = await _database.Table<Game>().FirstOrDefaultAsync(g => g.SessionId == game.SessionId && g.GameNumber == game.GameNumber);
                     if (existingGame == null)
                     {
                         games.Add(game);

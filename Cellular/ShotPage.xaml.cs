@@ -389,11 +389,11 @@ namespace Cellular
             if (gameUpdate != null && viewModel.CurrentShot.Equals(1))
             {
                 // Ensure Frames string is formatted properly with underscore separation
-                gameUpdate.Frames = string.IsNullOrEmpty(gameUpdate.Frames)
-                    ? $"{viewModel.currentFrameId}_"
-                    : $"{gameUpdate.Frames}{viewModel.currentFrameId}_";
+                //gameUpdate.Frames = string.IsNullOrEmpty(gameUpdate.Frames)
+                //    ? $"{viewModel.currentFrameId}_"
+                //    : $"{gameUpdate.Frames}{viewModel.currentFrameId}_";
 
-                Debug.WriteLine($"Saving frame to game: frames by id: {gameUpdate.Frames}");
+                //Debug.WriteLine($"Saving frame to game: frames by id: {gameUpdate.Frames}");
 
                 // Update game in the database
                 await gameRepository.UpdateGameAsync(gameUpdate);
@@ -404,20 +404,20 @@ namespace Cellular
         {
             var gameRepository = new GameRepository(new CellularDatabase().GetConnection());
 
-            var existingFrameIds = await gameRepository.GetFrameIdsByGameAsync(viewModel.currentSession, viewModel.currentGame, viewModel.UserId);
+            //var existingFrameIds = await gameRepository.GetFrameIdsByGameAsync(viewModel.currentSession, viewModel.currentGame, viewModel.UserId);
 
 
-            if (existingFrameIds == null || !existingFrameIds.Any())
-            {
-                Debug.WriteLine("No frames found.");
-                Debug.WriteLine($" Session: {viewModel.currentSession}, Game: {viewModel.currentGame}");
-            }
-            else
-            {
-                Debug.WriteLine("Frames found.");
-                Debug.WriteLine($" Session: {viewModel.currentSession}, Game: {viewModel.currentGame}");
-                await LoadExistingGameData();
-            }
+            //if (existingFrameIds == null || !existingFrameIds.Any())
+            //{
+            //    Debug.WriteLine("No frames found.");
+            //    Debug.WriteLine($" Session: {viewModel.currentSession}, Game: {viewModel.currentGame}");
+            //}
+            //else
+            //{
+            //    Debug.WriteLine("Frames found.");
+            //    Debug.WriteLine($" Session: {viewModel.currentSession}, Game: {viewModel.currentGame}");
+            //    await LoadExistingGameData();
+            //}
         }
 
         private async Task LoadExistingGameData()
@@ -433,9 +433,9 @@ namespace Cellular
 
             // Retrieve the current game
             var game = await gameRepository.GetGame(viewModel.currentSession, viewModel.currentGame, viewModel.UserId);
-            List<int> frameIds = await gameRepository.GetFrameIdsByGameAsync(viewModel.currentSession, viewModel.currentGame, viewModel.UserId);
+            //List<int> frameIds = await gameRepository.GetFrameIdsByGameAsync(viewModel.currentSession, viewModel.currentGame, viewModel.UserId);
 
-            Debug.WriteLine($"Frame Ids to load: {string.Join(", ", frameIds)}");
+            Debug.WriteLine($"Frame Ids to load: {(", ")}");
 
             // Ensure there are exactly 10 frames in viewModel.Frames
             while (viewModel.Frames.Count < 10)
@@ -445,12 +445,12 @@ namespace Cellular
 
             for (int i = 0; i < 10; i++) // Loop through all 10 frames
             {
-                var frame = i < frameIds.Count ? await frameRepository.GetFrameById(frameIds[i]) : null;
+                var frame = i;
                 var existingFrame = viewModel.Frames[i];
 
                 if (frame != null)
                 {
-                    existingFrame.FrameNumber = frame.FrameNumber ?? (i + 1);
+                    existingFrame.FrameNumber = i;
                     existingFrame.ShotOneBox = "";
                     existingFrame.ShotTwoBox = "";
 

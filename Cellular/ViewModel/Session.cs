@@ -15,7 +15,6 @@ namespace Cellular.ViewModel
         public string? IndividualOpponent { get; set; }
         public int? Score { get; set; }
         public int? Stats { get; set; }
-        public string? Games { get; set; }
         public int? TeamRecord { get; set; }
         public int? IndividualRecord { get; set; }
 

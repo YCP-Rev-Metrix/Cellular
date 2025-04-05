@@ -46,8 +46,6 @@ namespace Cellular.ViewModel
             foreach (var game in gamesFromDb)
             {
                 Games.Add(game);
-                Debug.WriteLine("This is the Game ID " + game.GameId + " and this is the Session ID" + game.Session);
-                Debug.WriteLine("This is the Game Number " + game.GameNumber + "This is the USER ID"+ Preferences.Get("UserId", 0));
             }
         }
         
@@ -103,9 +101,8 @@ namespace Cellular.ViewModel
             Debug.WriteLine("THIS IS THE FUCKING GAME NUMERB "+gameNumber+"------------------------------------------------------------------");
             Game game = new Game
             {
-                UserId = Preferences.Get("UserId", 0),
                 GameNumber = gameNumber,
-                Session = sessionNumber
+                SessionId = sessionNumber
             };
             await _GameRepository.AddAsync(game);
         }

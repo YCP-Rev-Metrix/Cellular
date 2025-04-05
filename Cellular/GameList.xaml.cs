@@ -56,9 +56,9 @@ namespace Cellular
 
                 foreach (Game game in viewModel.Games)
                 {
-                    Debug.WriteLine("This is the Game ID" + game.GameId + "and this is the Session ID" + game.Session);
+                    Debug.WriteLine("This is the Game ID" + game.GameId + "and this is the Session ID" + game.SessionId);
 
-                    if (game.Session == session.SessionNumber)
+                    if (game.SessionId == session.SessionId)
                     {
                         Debug.WriteLine("Added game to session list");
                         Button gamebutton = new Button { Text = "Game " + game.GameNumber.ToString() };
@@ -69,7 +69,7 @@ namespace Cellular
                     
                 }
                 Button AddGameButton = new Button { Text = "Add Game" };
-                AddGameButton.Clicked += (sender,e) => AddGame(sender,e,session.SessionNumber);
+                AddGameButton.Clicked += (sender,e) => AddGame(sender,e,session.SessionId);
                 sessiongames.Children.Add(AddGameButton);
 
                 _sessionlist.Children.Add(sessiongames);

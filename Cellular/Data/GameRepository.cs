@@ -24,16 +24,20 @@ namespace Cellular.Data
             await _conn.InsertAsync(e);
             Console.WriteLine($"Game ID: {e.GameId} Game Number: {e.GameNumber}");
         }
-        public async Task<List<Game>> GetGamesByUserIdAsync(int userID) => await _conn.Table<Game>().Where(u => u.UserId == userID).ToListAsync();
 
-        public async Task<Game> GetGamesBySessionAsync(int session, int userId)
+        public async Task<List<Game>> GetGamesListBySessionAsync(int sessionId, int userId)
         {
-            return await _conn.Table<Game>().FirstOrDefaultAsync(u => u.Session == session && u.UserId == userId);
+            return await _conn.Table<Game>().Where(g => g.SessionId == sessionId).ToListAsync();
         }
-
-        public async Task<List<Game>> GetGamesListBySessionAsync(int session, int userId)
+        public async Task<List<Game>> GetGamesByUserIdAsync(int userId)
         {
-            return await _conn.Table<Game>().Where(g => g.Session == session && g.UserId == userId).ToListAsync();
+            var games = await _conn.Table<Game>().ToListAsync();
+            var sessions = await _conn.Table<Session>().ToListAsync();
+
+            return (from game in games
+                    join session in sessions on game.SessionId equals session.SessionId
+                    where session.UserId == userId
+                    select game).ToList();
         }
 
         public async Task UpdateGameAsync(Game game)
@@ -41,25 +45,11 @@ namespace Cellular.Data
             await _conn.UpdateAsync(game);
         }
 
-        public async Task<Game?> GetGame(int session, int gameNumber, int userId)
+        public async Task<Game?> GetGame(int sessionId, int gameNumber, int userId)
         {
             return await _conn.Table<Game>()
-                                  .Where(g => g.Session == session && g.GameNumber == gameNumber && g.UserId == userId)
+                                  .Where(g => g.SessionId == sessionId && g.GameNumber == gameNumber)
                                   .FirstOrDefaultAsync();
-        }
-
-        public async Task<List<int>> GetFrameIdsByGameAsync(int sessionNumber, int gameNumber, int userId)
-        {
-            var game = await GetGame(sessionNumber, gameNumber, userId);
-            if (game == null || string.IsNullOrEmpty(game.Frames))
-            {
-                return new List<int>();
-            }
-            return game.Frames.Split('_')
-                              .Where(frame => !string.IsNullOrEmpty(frame))
-                              .Select(int.Parse)
-                              .ToList();
-
         }
 
         public async Task<List<int>> GetFrameIdsByGameIdAsync(int gameId)
