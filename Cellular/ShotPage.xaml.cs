@@ -387,17 +387,17 @@ namespace Cellular
             var existingFrameIds = await gameRepository.GetFrameIdsByGameIdAsync(Preferences.Get("GameId", 0));
 
 
-            //if (existingFrameIds == null || !existingFrameIds.Any())
-            //{
-            //    Debug.WriteLine("No frames found.");
-            //    Debug.WriteLine($" Session: {viewModel.currentSession}, Game: {viewModel.currentGame}");
-            //}
-            //else
-            //{
-            //    Debug.WriteLine("Frames found.");
-            //    Debug.WriteLine($" Session: {viewModel.currentSession}, Game: {viewModel.currentGame}");
-            //    await LoadExistingGameData();
-            //}
+            if (existingFrameIds == null || !existingFrameIds.Any())
+            {
+                Debug.WriteLine("No frames found.");
+                Debug.WriteLine($" Session: {viewModel.currentSession}, Game: {viewModel.currentGame}");
+            }
+            else
+            {
+                Debug.WriteLine("Frames found.");
+                Debug.WriteLine($" Session: {viewModel.currentSession}, Game: {viewModel.currentGame}");
+                await LoadExistingGameData();
+            }
         }
 
         private async Task LoadExistingGameData()

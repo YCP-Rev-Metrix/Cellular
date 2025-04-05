@@ -29,7 +29,7 @@ namespace Cellular
         private async void OnGameClicked(object sender, EventArgs e,int gameID, int gameNumber)
         {
             Preferences.Set("GameNumber", gameNumber);
-            Preferences.Set("CurrentGame", gameID);
+            Preferences.Set("GameID", gameID);
             await Navigation.PushAsync(new ShotPage());
         }
 
@@ -89,7 +89,7 @@ namespace Cellular
         }
         private async void OnSessionClicked(object sender, EventArgs e, int sessionId, int sessionNumber)
         {
-            Preferences.Set("CurrentSession", sessionId);
+            Preferences.Set("SessionID", sessionId);
             Preferences.Set("SessionNumber", sessionNumber);
             StackLayout targetLayout;
             sessionGames.TryGetValue(sessionId.ToString(), out targetLayout);
