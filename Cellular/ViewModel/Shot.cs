@@ -12,7 +12,6 @@ namespace Cellular.ViewModel
     {
         [PrimaryKey, AutoIncrement]
         public int ShotId { get; set; }
-        public int? UserId { get; set; }
         public int? ShotNumber { get; set; }
         public int? Ball { get; set; }
         public int? Count { get; set; }
@@ -23,5 +22,6 @@ namespace Cellular.ViewModel
         public int? Frame { get; set; }
 
         public int? Game { get; set; }
+        public string? Comment { get; set; }
     }
 }

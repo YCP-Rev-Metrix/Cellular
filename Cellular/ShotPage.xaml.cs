@@ -249,7 +249,6 @@ namespace Cellular
 
             if (viewModel.CurrentShot.Equals(1))
             {
-                viewModel.pinStates = 1;
                 for (int i = 0; i < 10; i++)
                 {
                     viewModel.pinStates |= (short)(1 << i); // Set each bit from 0 to 9 to 1
@@ -313,7 +312,6 @@ namespace Cellular
 
             var newShot = new Shot
             {
-                UserId = Preferences.Get("UserId", 0),
                 ShotNumber = viewModel.CurrentShot,
                 Ball = null,
                 Count = GetDownedPins(),
@@ -346,11 +344,11 @@ namespace Cellular
             {
                 newFrame = new BowlingFrame
                 {
-                    UserId = Preferences.Get("UserId", 0),
                     FrameNumber = viewModel.CurrentFrame,
                     Lane = null,
                     Result = null,
-                    Shots = viewModel.firstShotId.ToString()
+                    Shot1 = viewModel.firstShotId,
+                    Shot2 = viewModel.secondShotId
                 };
             }
             else
@@ -360,7 +358,7 @@ namespace Cellular
 
             if (!strike && viewModel.CurrentShot == 2)
             {
-                newFrame.Shots += "_" + viewModel.secondShotId;
+                newFrame.Shot2 = viewModel.secondShotId;
             }
 
             if (viewModel.CurrentShot.Equals(1))
@@ -371,7 +369,7 @@ namespace Cellular
             else
             {
                 await frameRepository.UpdateFrameAsync(newFrame);
-                Debug.WriteLine($"Frame updated {newFrame.Shots}");
+                Debug.WriteLine($"Frame updated {newFrame.Shot1} and {newFrame.Shot2}");
             }
 
             // Retrieve the inserted frame ID
@@ -380,30 +378,13 @@ namespace Cellular
                                          .FirstOrDefaultAsync())?.FrameId ?? 0;
 
             viewModel.currentFrameId = newFrame.FrameId;
-
-            // Retrieve the current game
-            var userId = Preferences.Get("UserId", 0);
-            var gameUpdate = await gameRepository.GetGame(viewModel.currentSession, viewModel.currentGame, userId);
-
-            if (gameUpdate != null && viewModel.CurrentShot.Equals(1))
-            {
-                // Ensure Frames string is formatted properly with underscore separation
-                gameUpdate.Frames = string.IsNullOrEmpty(gameUpdate.Frames)
-                    ? $"{viewModel.currentFrameId}_"
-                    : $"{gameUpdate.Frames}{viewModel.currentFrameId}_";
-
-                Debug.WriteLine($"Saving frame to game: frames by id: {gameUpdate.Frames}");
-
-                // Update game in the database
-                await gameRepository.UpdateGameAsync(gameUpdate);
-            }
         }
 
         public async Task CheckIfFramesExistForGame()
         {
             var gameRepository = new GameRepository(new CellularDatabase().GetConnection());
 
-            var existingFrameIds = await gameRepository.GetFrameIdsByGameAsync(viewModel.currentSession, viewModel.currentGame, viewModel.UserId);
+            var existingFrameIds = await gameRepository.GetFrameIdsByGameIdAsync(Preferences.Get("GameId", 0));
 
 
             if (existingFrameIds == null || !existingFrameIds.Any())
@@ -430,9 +411,7 @@ namespace Cellular
             await frameRepository.InitAsync();
             await shotRepository.InitAsync();
 
-            // Retrieve the current game
-            var game = await gameRepository.GetGame(viewModel.currentSession, viewModel.currentGame, viewModel.UserId);
-            List<int> frameIds = await gameRepository.GetFrameIdsByGameAsync(viewModel.currentSession, viewModel.currentGame, viewModel.UserId);
+            List<int> frameIds = await gameRepository.GetFrameIdsByGameIdAsync(Preferences.Get("GameId", 0));
 
             Debug.WriteLine($"Frame Ids to load: {string.Join(", ", frameIds)}");
 
@@ -453,9 +432,9 @@ namespace Cellular
                     existingFrame.ShotOneBox = "";
                     existingFrame.ShotTwoBox = "";
 
-                    if (!string.IsNullOrEmpty(frame.Shots))
+                    if (!frame.Shot1.Equals(null))
                     {
-                        Debug.WriteLine($"Frame {frame.FrameNumber}, Shots: {frame.Shots}");
+                        Debug.WriteLine($"Frame {frame.FrameNumber}, Shots: {frame.Shot1}, {frame.Shot2}");
                         List<int> shotIds = await frameRepository.GetShotIdsByFrameIdAsync(frameIds[i]);
 
                         Debug.WriteLine($"Shot Ids to load: {string.Join(", ", shotIds)}");
