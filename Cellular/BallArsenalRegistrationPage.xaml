@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="Cellular.BallArsenalRegistrationPage">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <StackLayout Orientation="Horizontal" Padding="10" Grid.Row="0">
+            <Label Text="Event Registration" FontSize="24" HorizontalOptions="StartAndExpand" />
+        </StackLayout>
+
+        <StackLayout Padding="20" Grid.Row="1">
+            <Entry x:Name="BallName" Placeholder="Enter Ball Name" />
+            <Entry x:Name="BallDiameter" Placeholder="Enter Balls Diameter" />
+            <Entry x:Name="BallWeight" Placeholder="Enter Balls Weight" />
+            <Entry x:Name="BallCoreType" Placeholder="Enter Balls Core Type" />
+
+            <Button Text="Register Ball" Clicked="OnRegisterBallClicked" />
+        </StackLayout>
+    </Grid>
+</ContentPage>

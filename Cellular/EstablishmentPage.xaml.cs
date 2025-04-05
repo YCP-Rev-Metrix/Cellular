@@ -45,7 +45,7 @@ public partial class EstablishmentPage : ContentPage
         Establishments.Clear();
         foreach (var events in eventsFromDb)
         {
-            Debug.WriteLine("This is Event name" + events.Name);
+            //Debug.WriteLine("This is Event name" + events.Name);
             Establishments.Add(events);
         }
     }

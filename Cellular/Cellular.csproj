@@ -108,6 +108,9 @@
 	</ItemGroup>
 
 	<ItemGroup>
+		<MauiXaml Update="BallArsenalRegistrationPage.xaml">
+		  <Generator>MSBuild:Compile</Generator>
+		</MauiXaml>
 		<MauiXaml Update="DataPage.xaml">
 		  <Generator>MSBuild:Compile</Generator>
 		</MauiXaml>
