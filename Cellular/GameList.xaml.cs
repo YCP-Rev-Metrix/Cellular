@@ -29,7 +29,7 @@ namespace Cellular
         private async void OnGameClicked(object sender, EventArgs e,int gameID, int gameNumber)
         {
             Preferences.Set("GameNumber", gameNumber);
-            Preferences.Set("CurrentGame", gameID);
+            Preferences.Set("GameID", gameID);
             await Navigation.PushAsync(new ShotPage());
         }
 
