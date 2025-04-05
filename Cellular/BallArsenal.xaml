@@ -39,7 +39,7 @@
 
                 <Button
                        x:Name="addBall"
-                       Text="Add"
+                       Text="➕"
                        SemanticProperties.Hint="Add new ball to arsenal"
                        Clicked="OnAddBallBtnClicked"
                        HorizontalOptions="Center"

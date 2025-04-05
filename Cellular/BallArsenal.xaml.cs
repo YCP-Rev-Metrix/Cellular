@@ -23,10 +23,21 @@ namespace Cellular
             BallsListView.ItemsSource = Balls;
             
         }
+        protected override void OnAppearing()
+        {
+            base.OnAppearing();
+
+            // Prevent duplicate entries by resetting the list
+            BallsListView.ItemsSource = null;
+
+            // Load the event list again
+            LoadBalls();
+            BallsListView.ItemsSource = Balls;
+        }
         private async void LoadBalls()
         {
             userId = Preferences.Get("UserId", 0);
-            //Debug.WriteLine("This is USer ID"+ userId);
+            Debug.WriteLine("This is USer ID"+ userId);
             //Debug.WriteLine("This is strighat form the pref" + Preferences.Get("UserId", 0));
             if (userId == 0)
             {
@@ -43,11 +54,8 @@ namespace Cellular
 
         async private void OnAddBallBtnClicked(object sender, EventArgs e)
         {
-            // Add a new ball to the database
-            Debug.WriteLine("This is NEW BALL");
-            var newBall = new Ball { Name = "New Ball", UserId =  userId, Diameter = 15, Weight = 2, Core = "Foam" };
-            await _ballRepository.AddAsync(newBall);
-            Balls.Add(newBall);
+            // Navigate to the event registration page
+            await Navigation.PushAsync(new BallArsenalRegistrationPage());
         }
     }
 }
