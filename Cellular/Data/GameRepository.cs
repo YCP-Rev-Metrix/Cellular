@@ -54,21 +54,9 @@ namespace Cellular.Data
 
         public async Task<List<int>> GetFrameIdsByGameIdAsync(int gameId)
         {
-            // Query to get the Frames string from the Game table
-            var query = "SELECT Frames FROM Game WHERE GameId = @GameId";
-            var framesString = await _conn.ExecuteScalarAsync<string>(query, new { GameId = gameId });
-
-            // If no result is found or the Frames string is empty, return an empty list
-            if (string.IsNullOrEmpty(framesString))
-            {
-                return new List<int>();
-            }
-
-            // Split the Frames string by "_" and convert to a list of integers
-            return framesString.Split('_')
-                               .Where(frame => int.TryParse(frame, out _))  // Ensure valid integers
-                               .Select(int.Parse)  // Convert to integers
-                               .ToList();
+            var query = "SELECT Id FROM Frame WHERE GameId = @GameId";
+            var frameIds = await _conn.QueryAsync<int>(query, new { GameId = gameId });
+            return frameIds.ToList();
         }
     }
 }
