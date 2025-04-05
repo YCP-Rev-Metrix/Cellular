@@ -348,18 +348,20 @@ namespace Cellular
                     Lane = null,
                     Result = null,
                     GameId = Preferences.Get("GameID", 0),
-                    Shot1 = viewModel.firstShotId,
-                    Shot2 = viewModel.secondShotId
+                    Shot1 = viewModel.firstShotId
                 };
             }
             else
             {
                 newFrame = await frameRepository.GetFrameById(viewModel.currentFrameId);
-            }
-
-            if (!strike && viewModel.CurrentShot == 2)
-            {
-                newFrame.Shot2 = viewModel.secondShotId;
+                if (!strike && viewModel.CurrentShot == 2)
+                {
+                    if(newFrame != null)
+                    {
+                        Debug.WriteLine("NOT NULL");
+                        newFrame.Shot2 = viewModel.secondShotId;
+                    }
+                }
             }
 
             if (viewModel.CurrentShot.Equals(1))
@@ -443,6 +445,8 @@ namespace Cellular
 
                         Debug.WriteLine($"Shot Ids to load: {string.Join(", ", shotIds)}");
 
+                        viewModel.currentFrameId = frame.FrameId;
+
                         Shot shot1 = null, shot2 = null;
 
                         if (shotIds.Count > 0)
@@ -469,6 +473,12 @@ namespace Cellular
                                 // Update frame for strike
                                 viewModel.CurrentFrame++;
                                 viewModel.CurrentShot = 1;
+                            }
+                            else if(shot1.Count == 0)
+                            {
+                                var pins = new List<Button> { pin1, pin2, pin3, pin4, pin5, pin6, pin7, pin8, pin9, pin10 };
+                                foreach (var pin in pins) pin.BackgroundColor = Color.FromArgb("#9880e5");
+                                viewModel.CurrentShot++;
                             }
                             else
                             {

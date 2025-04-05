@@ -14,7 +14,7 @@ namespace Cellular.ViewModel
         private ObservableCollection<ShotPageFrame> frames;
         private readonly SQLiteAsyncConnection _database;
         public string FrameDisplay => $"Gm 1-{CurrentFrame} Shot {CurrentShot}";
-        private string _hand = "Left";
+        private string _hand = "Right";
         public short pinStates = 0;
         public short shot1PinStates = 0;
         public int _currentFrame = 1;
