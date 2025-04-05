@@ -51,13 +51,6 @@ namespace Cellular.Data
                                   .Where(g => g.SessionId == sessionId && g.GameNumber == gameNumber)
                                   .FirstOrDefaultAsync();
         }
-
-        public async Task<List<int>> GetFrameIdsByGameIdAsync(int gameId)
-        {
-            var query = "SELECT Id FROM Frame WHERE GameId = @GameId";
-            var frameIds = await _conn.QueryAsync<int>(query, new { GameId = gameId });
-            return frameIds.ToList();
-        }
     }
 }
 

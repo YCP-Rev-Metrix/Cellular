@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using SQLite;
 using Cellular.ViewModel;
+using System.Diagnostics;
 
 namespace Cellular.Data
 {
@@ -40,10 +41,10 @@ namespace Cellular.Data
 
         public async Task<List<int>> GetShotIdsByFrameIdAsync(int frameId)
         {
-            // Query the Frame table to get the frame by FrameId
-            var frame = await _conn.Table<BowlingFrame>().Where(f => f.FrameId == frameId).FirstOrDefaultAsync();
+            var frame = await _conn.Table<BowlingFrame>()
+                                   .Where(f => f.FrameId == frameId)
+                                   .FirstOrDefaultAsync();
 
-            // If the frame is null, return an empty list
             if (frame == null)
             {
                 return new List<int>();
@@ -51,10 +52,25 @@ namespace Cellular.Data
 
             var shots = new List<int>();
 
-            shots.Add(frame?.Shot1?? 0);
+            if (frame.Shot1.HasValue)
+                shots.Add(frame.Shot1.Value);
+
+            if (frame.Shot2.HasValue)
+                shots.Add(frame.Shot2.Value);
 
             return shots;
         }
 
+
+        public async Task<List<int>> GetFrameIdsByGameIdAsync(int gameId)
+        {
+            var frameIds = await _conn.Table<BowlingFrame>()
+                                       .Where(f => f.GameId == gameId)
+                                       .ToListAsync();
+
+            Debug.WriteLine($"Frame ids: {frameIds.Select(f => f.FrameId)}");
+
+            return frameIds.Select(f => f.FrameId).ToList();
+        }
     }
 }
