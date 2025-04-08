@@ -218,12 +218,27 @@ namespace Cellular.ViewModel
             }
         }
 
+        private string _shotThreeBox;
+        public string ShotThreeBox
+        {
+            get => _shotThreeBox;
+            set
+            {
+                if (_shotThreeBox != value)
+                {
+                    _shotThreeBox = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
         public ShotPageFrame(int frameNumber)
         {
             FrameNumber = frameNumber;
             RollingScore = null;
             ShotOneBox = "";
             ShotTwoBox = "";
+            ShotThreeBox = "";
             PinColors = [.. Enumerable.Repeat(Colors.Black, 10)];
             CenterPinColors = [.. Enumerable.Repeat(Colors.Transparent, 10)];
         }
@@ -255,15 +270,26 @@ namespace Cellular.ViewModel
 
         public void UpdateShotBox(int box, string value)
         {
-            if(box == 1)
+            if (box == 1)
             {
-                if(ShotOneBox == value)
+                if (ShotOneBox == value)
                 {
                     ShotOneBox = "";
                 }
                 else
                 {
                     ShotOneBox = value;
+                }
+            }
+            else if (box == 2)
+            {
+                if (ShotTwoBox == value)
+                {
+                    ShotTwoBox = "";
+                }
+                else
+                {
+                    ShotTwoBox = value;
                 }
             }
             else
@@ -276,10 +302,9 @@ namespace Cellular.ViewModel
                 {
                     ShotTwoBox = value;
                 }
+
             }
-
         }
-
     }
 
 }

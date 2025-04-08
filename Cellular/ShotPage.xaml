@@ -51,7 +51,7 @@
                                                TextColor="Black"
                                                HorizontalOptions="Center"/>
                                         </StackLayout>
-                                        <!-- Two Score Boxes at the Top -->
+                                        <!-- Two Score Boxes at the Top. Third one is hidden for frame 10 -->
                                         <FlexLayout Direction="Row" JustifyContent="Center" AlignItems="Center" Padding="0, 10, 0, 5">
                                             <Border Stroke="Black" StrokeThickness="1" Margin="0,0">
                                                 <Grid>
@@ -63,6 +63,12 @@
                                                 <Grid>
                                                     <BoxView HeightRequest="20" WidthRequest="20" BackgroundColor="LightGray" x:Name="shot2Box"/>
                                                     <Label Text="{Binding ShotTwoBox}" HorizontalOptions="Center" VerticalOptions="Center" FontSize="12" TextColor="Black"/>
+                                                </Grid>
+                                            </Border>
+                                            <Border Stroke="Black" StrokeThickness="1" Margin="0,0">
+                                                <Grid>
+                                                    <BoxView HeightRequest="20" WidthRequest="20" BackgroundColor="LightGray" x:Name="shot3Box" IsVisible="False"/>
+                                                    <Label Text="{Binding ShotThreeBox}" HorizontalOptions="Center" VerticalOptions="Center" FontSize="12" TextColor="Black" IsVisible="False"/>
                                                 </Grid>
                                             </Border>
                                         </FlexLayout>

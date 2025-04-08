@@ -74,6 +74,7 @@ namespace Cellular
             var pins = new List<Button> { pin1, pin2, pin3, pin4, pin5, pin6, pin7, pin8, pin9, pin10 };
 
             if (currentFrame == null) return;
+            if (viewModel.CurrentFrame > 12) return;
 
             if (viewModel.CurrentShot.Equals(1))
             {
@@ -449,35 +450,44 @@ namespace Cellular
 
                 if (isStrike)
                 {
-                    // Gather next two shots (not necessarily from the next one frame)
                     List<Shot> bonusShots = new();
+                    bool hasNonStrike = false;
 
-                    int lookAhead = i + 1;
-                    while (bonusShots.Count < 2 && lookAhead < frames.Count)
+                    // Search all future frames for 2 valid shots
+                    for (int j = i + 1; j < frames.Count; j++)
                     {
-                        var futureFrame = frames[lookAhead];
+                        var futureFrame = frames[j];
 
                         if (futureFrame.Shot1.HasValue)
                         {
-                            var s = await shotRepository.GetShotById(futureFrame.Shot1.Value);
-                            if (s != null)
-                                bonusShots.Add(s);
+                            var s1 = await shotRepository.GetShotById(futureFrame.Shot1.Value);
+                            if (s1 != null)
+                            {
+                                bonusShots.Add(s1);
+                                if (s1.Count < 10) hasNonStrike = true;
+                            }
                         }
 
-                        if (bonusShots.Count < 2 && futureFrame.Shot2.HasValue)
+                        if (futureFrame.Shot2.HasValue)
                         {
-                            var s = await shotRepository.GetShotById(futureFrame.Shot2.Value);
-                            if (s != null)
-                                bonusShots.Add(s);
+                            var s2 = await shotRepository.GetShotById(futureFrame.Shot2.Value);
+                            if (s2 != null)
+                            {
+                                bonusShots.Add(s2);
+                                if (s2.Count < 10) hasNonStrike = true;
+                            }
                         }
 
-                        lookAhead++;
+                        // Only exit loop once we have 2 shots AND at least one non-strike
+                        if (bonusShots.Count >= 2 && hasNonStrike)
+                            break;
                     }
 
-                    // Only calculate and update score if 2 bonus shots exist
-                    if (bonusShots.Count == 2)
+                    bool gameComplete = frames.Count >= 10 && i >= 9 && bonusShots.Count == 2;
+
+                    if ((bonusShots.Count >= 2 && hasNonStrike) || gameComplete)
                     {
-                        frameScore = 10 + bonusShots[0].Count + bonusShots[1].Count ?? 0;
+                        frameScore = 10 + bonusShots[0].Count + bonusShots[1].Count?? 0;
                         totalScore += frameScore;
 
                         if (i < viewModel.Frames.Count)
@@ -489,16 +499,18 @@ namespace Cellular
                     }
                     else
                     {
-                        // Incomplete data — don’t update this or future frames yet
-                        break;
+                        // Not enough data yet — skip this frame
+                        continue;
                     }
                 }
+
                 else if (isSpare)
                 {
                     if (i + 1 < frames.Count)
                     {
-                        Shot bonus = null;
                         var nextFrame = frames[i + 1];
+                        Shot bonus = null;
+
                         if (nextFrame.Shot1.HasValue)
                         {
                             bonus = await shotRepository.GetShotById(nextFrame.Shot1.Value);
@@ -518,7 +530,7 @@ namespace Cellular
                         }
                         else
                         {
-                            break; // wait until the bonus shot is known
+                            continue;
                         }
                     }
                 }
@@ -538,6 +550,7 @@ namespace Cellular
 
             viewModel.OnPropertyChanged(nameof(viewModel.Frames));
         }
+
 
         public async Task CheckIfFramesExistForGame()
         {
