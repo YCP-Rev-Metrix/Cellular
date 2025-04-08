@@ -86,8 +86,6 @@ namespace Cellular
                     //Save the frame to the database
                     await SaveFrameAsync(true);
 
-                    await UpdateScore();
-
                     viewModel.CurrentFrame++;
                     viewModel.CurrentShot = 1;
                 }
@@ -114,8 +112,6 @@ namespace Cellular
                 //Save the frame to the database
                 await SaveFrameAsync(false);
 
-                await UpdateScore();
-
                 //Call these after saving the frame
                 viewModel.CurrentFrame++;
                 viewModel.CurrentShot = 1;
@@ -127,6 +123,7 @@ namespace Cellular
                     pin.BackgroundColor = Colors.LightSlateGray;
             }
 
+            await UpdateScore();
             currentFrame.OnPropertyChanged(nameof(currentFrame.CenterPinColors));
             currentFrame.OnPropertyChanged(nameof(currentFrame.PinColors));
             viewModel.OnPropertyChanged(nameof(viewModel.Frames));
@@ -444,82 +441,98 @@ namespace Cellular
                 if (frame.Shot2.HasValue)
                     shot2 = await shotRepository.GetShotById(frame.Shot2.Value);
 
-                if (shot1 == null) continue;
+                if (shot1 == null)
+                    continue;
 
                 bool isStrike = shot1.Count == 10;
                 bool isSpare = !isStrike && shot2 != null && (shot1.Count + shot2.Count == 10);
 
                 if (isStrike)
                 {
-                    frameScore = 10;
+                    // Gather next two shots (not necessarily from the next one frame)
+                    List<Shot> bonusShots = new();
 
-                    // Bonus: next two shots
-                    if (i + 1 < frames.Count)
+                    int lookAhead = i + 1;
+                    while (bonusShots.Count < 2 && lookAhead < frames.Count)
                     {
-                        var nextFrame = frames[i + 1];
-                        Shot next1 = null;
-                        Shot next2 = null;
+                        var futureFrame = frames[lookAhead];
 
-                        if (nextFrame.Shot1.HasValue)
-                            next1 = await shotRepository.GetShotById(nextFrame.Shot1.Value);
-
-                        if (nextFrame.Shot2.HasValue)
-                            next2 = await shotRepository.GetShotById(nextFrame.Shot2.Value);
-
-                        if (next1 != null)
+                        if (futureFrame.Shot1.HasValue)
                         {
-                            frameScore += next1?.Count ?? 0;
-
-                            if (next2 != null)
-                            {
-                                frameScore += next2?.Count ?? 0;
-                            }
-                            else if (i + 2 < frames.Count)
-                            {
-                                var nextNextFrame = frames[i + 2];
-                                if (nextNextFrame.Shot1.HasValue)
-                                {
-                                    var nextNextShot1 = await shotRepository.GetShotById(nextNextFrame.Shot1.Value);
-                                    if (nextNextShot1 != null)
-                                    {
-                                        frameScore += nextNextShot1?.Count ?? 0;
-                                    }
-                                }
-                            }
+                            var s = await shotRepository.GetShotById(futureFrame.Shot1.Value);
+                            if (s != null)
+                                bonusShots.Add(s);
                         }
+
+                        if (bonusShots.Count < 2 && futureFrame.Shot2.HasValue)
+                        {
+                            var s = await shotRepository.GetShotById(futureFrame.Shot2.Value);
+                            if (s != null)
+                                bonusShots.Add(s);
+                        }
+
+                        lookAhead++;
+                    }
+
+                    // Only calculate and update score if 2 bonus shots exist
+                    if (bonusShots.Count == 2)
+                    {
+                        frameScore = 10 + bonusShots[0].Count + bonusShots[1].Count ?? 0;
+                        totalScore += frameScore;
+
+                        if (i < viewModel.Frames.Count)
+                        {
+                            var uiFrame = viewModel.Frames[i];
+                            uiFrame.RollingScore = totalScore;
+                            uiFrame.OnPropertyChanged(nameof(uiFrame.RollingScore));
+                        }
+                    }
+                    else
+                    {
+                        // Incomplete data — don’t update this or future frames yet
+                        break;
                     }
                 }
                 else if (isSpare)
                 {
-                    frameScore = 10;
-
-                    // Bonus: next one shot
                     if (i + 1 < frames.Count)
                     {
+                        Shot bonus = null;
                         var nextFrame = frames[i + 1];
                         if (nextFrame.Shot1.HasValue)
                         {
-                            var nextShot1 = await shotRepository.GetShotById(nextFrame.Shot1.Value);
-                            if (nextShot1 != null)
+                            bonus = await shotRepository.GetShotById(nextFrame.Shot1.Value);
+                        }
+
+                        if (bonus != null)
+                        {
+                            frameScore = 10 + bonus.Count ?? 0;
+                            totalScore += frameScore;
+
+                            if (i < viewModel.Frames.Count)
                             {
-                                frameScore += nextShot1?.Count ?? 0;
+                                var uiFrame = viewModel.Frames[i];
+                                uiFrame.RollingScore = totalScore;
+                                uiFrame.OnPropertyChanged(nameof(uiFrame.RollingScore));
                             }
+                        }
+                        else
+                        {
+                            break; // wait until the bonus shot is known
                         }
                     }
                 }
                 else if (shot2 != null)
                 {
-                    frameScore = shot1.Count + shot2?.Count ?? 0;
-                }
+                    frameScore = shot1.Count + shot2.Count ?? 0;
+                    totalScore += frameScore;
 
-                totalScore += frameScore;
-
-                // Update UI frame object
-                if (i < viewModel.Frames.Count)
-                {
-                    var uiFrame = viewModel.Frames[i];
-                    uiFrame.RollingScore = totalScore;
-                    uiFrame.OnPropertyChanged(nameof(uiFrame.RollingScore));
+                    if (i < viewModel.Frames.Count)
+                    {
+                        var uiFrame = viewModel.Frames[i];
+                        uiFrame.RollingScore = totalScore;
+                        uiFrame.OnPropertyChanged(nameof(uiFrame.RollingScore));
+                    }
                 }
             }
 
