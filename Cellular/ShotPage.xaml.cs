@@ -78,13 +78,15 @@ namespace Cellular
             if (viewModel.CurrentShot.Equals(1))
             {
                 //Save shot to DB
-                viewModel.firstShotId = await SaveShotAsync();
+                viewModel.firstShotId = await SaveShotAsync(1);
 
                 ApplyPinColors(currentFrame);
                 if (currentFrame.ShotOneBox == "X")
                 {
                     //Save the frame to the database
                     await SaveFrameAsync(true);
+
+                    await UpdateScore();
 
                     viewModel.CurrentFrame++;
                     viewModel.CurrentShot = 1;
@@ -99,18 +101,20 @@ namespace Cellular
             else if (viewModel.CurrentShot.Equals(2))
             {
                 //Save shot to DB
-                viewModel.secondShotId = await SaveShotAsync();
+                viewModel.secondShotId = await SaveShotAsync(2);
                 Debug.WriteLine($"Second Shot Id: {viewModel.secondShotId}");
 
                 ApplySecondShotColors(currentFrame);
                 if (string.IsNullOrEmpty(currentFrame.ShotTwoBox))
                 {
-                    int downedPinsSecondShot = GetDownedPins() - int.Parse(currentFrame.ShotOneBox);
+                    int downedPinsSecondShot = GetDownedPins(2) - int.Parse(currentFrame.ShotOneBox);
                     currentFrame.ShotTwoBox = downedPinsSecondShot.ToString();
                 }
 
                 //Save the frame to the database
                 await SaveFrameAsync(false);
+
+                await UpdateScore();
 
                 //Call these after saving the frame
                 viewModel.CurrentFrame++;
@@ -129,18 +133,38 @@ namespace Cellular
         }
 
         // Counts the number of downed pins based on pinStates
-        private int GetDownedPins()
+        private int GetDownedPins(int shotNumber)
         {
             int count = 0;
             short pinStates = viewModel.pinStates;
+            short shot1PinStates = viewModel.shot1PinStates;
 
-            for (int i = 0; i < 10; i++)
+            if (shotNumber == 1)
             {
-                if ((pinStates & (1 << i)) == 0) count++;
+                // Count pins that are down (bit is 0)
+                for (int i = 0; i < 10; i++)
+                {
+                    if ((pinStates & (1 << i)) == 0) count++;
+                }
+            }
+            else
+            {
+                // Count newly downed pins: were up in shot1, but now down
+                for (int i = 0; i < 10; i++)
+                {
+                    bool wasStanding = (shot1PinStates & (1 << i)) != 0;
+                    bool isNowDown = (pinStates & (1 << i)) == 0;
+
+                    if (wasStanding && isNowDown)
+                    {
+                        count++;
+                    }
+                }
             }
 
             return count;
         }
+
 
         private int CountKnockedDownPins(short previousState, short currentState)
         {
@@ -164,7 +188,7 @@ namespace Cellular
             var currentFrame = viewModel.Frames.FirstOrDefault(f => f.FrameNumber == viewModel.CurrentFrame);
             if (currentFrame == null) return;
 
-            int downedPins = GetDownedPins(); // Assume this method gets the current number of pins knocked down
+            int downedPins = GetDownedPins(1); // Assume this method gets the current number of pins knocked down
 
             if (viewModel.CurrentShot == 1)
             {
@@ -304,7 +328,7 @@ namespace Cellular
             viewModel.OnPropertyChanged(nameof(viewModel.Frames));
         }
 
-        private async Task<int> SaveShotAsync()
+        private async Task<int> SaveShotAsync(int shotNumber)
         {
             var shotRepository = new ShotRepository(new CellularDatabase().GetConnection());
             await shotRepository.InitAsync();
@@ -313,7 +337,7 @@ namespace Cellular
             {
                 ShotNumber = viewModel.CurrentShot,
                 Ball = null,
-                Count = GetDownedPins(),
+                Count = GetDownedPins(shotNumber),
                 LeaveType = viewModel.pinStates,
                 Side = null,
                 Position = null,
@@ -383,13 +407,132 @@ namespace Cellular
             viewModel.currentFrameId = newFrame.FrameId;
         }
 
+        public async Task UpdateScore()
+        {
+            var db = new CellularDatabase().GetConnection();
+            var frameRepository = new FrameRepository(db);
+            var shotRepository = new ShotRepository(db);
+
+            await frameRepository.InitAsync();
+            await shotRepository.InitAsync();
+
+            var frameIds = await frameRepository.GetFrameIdsByGameIdAsync(Preferences.Get("GameID", 0));
+
+            List<BowlingFrame> frames = new();
+            foreach (int id in frameIds)
+            {
+                var frame = await frameRepository.GetFrameById(id);
+                if (frame != null)
+                {
+                    frames.Add(frame);
+                }
+            }
+
+            int totalScore = 0;
+
+            for (int i = 0; i < frames.Count && i < 10; i++)
+            {
+                var frame = frames[i];
+                int frameScore = 0;
+
+                Shot shot1 = null;
+                Shot shot2 = null;
+
+                if (frame.Shot1.HasValue)
+                    shot1 = await shotRepository.GetShotById(frame.Shot1.Value);
+
+                if (frame.Shot2.HasValue)
+                    shot2 = await shotRepository.GetShotById(frame.Shot2.Value);
+
+                if (shot1 == null) continue;
+
+                bool isStrike = shot1.Count == 10;
+                bool isSpare = !isStrike && shot2 != null && (shot1.Count + shot2.Count == 10);
+
+                if (isStrike)
+                {
+                    frameScore = 10;
+
+                    // Bonus: next two shots
+                    if (i + 1 < frames.Count)
+                    {
+                        var nextFrame = frames[i + 1];
+                        Shot next1 = null;
+                        Shot next2 = null;
+
+                        if (nextFrame.Shot1.HasValue)
+                            next1 = await shotRepository.GetShotById(nextFrame.Shot1.Value);
+
+                        if (nextFrame.Shot2.HasValue)
+                            next2 = await shotRepository.GetShotById(nextFrame.Shot2.Value);
+
+                        if (next1 != null)
+                        {
+                            frameScore += next1?.Count ?? 0;
+
+                            if (next2 != null)
+                            {
+                                frameScore += next2?.Count ?? 0;
+                            }
+                            else if (i + 2 < frames.Count)
+                            {
+                                var nextNextFrame = frames[i + 2];
+                                if (nextNextFrame.Shot1.HasValue)
+                                {
+                                    var nextNextShot1 = await shotRepository.GetShotById(nextNextFrame.Shot1.Value);
+                                    if (nextNextShot1 != null)
+                                    {
+                                        frameScore += nextNextShot1?.Count ?? 0;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                else if (isSpare)
+                {
+                    frameScore = 10;
+
+                    // Bonus: next one shot
+                    if (i + 1 < frames.Count)
+                    {
+                        var nextFrame = frames[i + 1];
+                        if (nextFrame.Shot1.HasValue)
+                        {
+                            var nextShot1 = await shotRepository.GetShotById(nextFrame.Shot1.Value);
+                            if (nextShot1 != null)
+                            {
+                                frameScore += nextShot1?.Count ?? 0;
+                            }
+                        }
+                    }
+                }
+                else if (shot2 != null)
+                {
+                    frameScore = shot1.Count + shot2?.Count ?? 0;
+                }
+
+                totalScore += frameScore;
+
+                // Update UI frame object
+                if (i < viewModel.Frames.Count)
+                {
+                    var uiFrame = viewModel.Frames[i];
+                    uiFrame.RollingScore = totalScore;
+                    uiFrame.OnPropertyChanged(nameof(uiFrame.RollingScore));
+                }
+            }
+
+            viewModel.OnPropertyChanged(nameof(viewModel.Frames));
+        }
+
         public async Task CheckIfFramesExistForGame()
         {
             var frameRepository = new FrameRepository(new CellularDatabase().GetConnection());
-            Debug.WriteLine("-------------------------------------------------------------------------*");
-            Debug.WriteLine($"Game Id: "+Preferences.Get("GameID", 0));
+            //Debug.WriteLine("-------------------------------------------------------------------------*");
+            //Debug.WriteLine($"Game Id: "+Preferences.Get("GameID", 0));
             var existingFrameIds = await frameRepository.GetFrameIdsByGameIdAsync(Preferences.Get("GameID", 0));
-            Debug.WriteLine("-------------------------------------------------------------------------");
+            //Debug.WriteLine("-------------------------------------------------------------------------");
 
             if (!existingFrameIds.Any())
             {
@@ -424,7 +567,7 @@ namespace Cellular
             // Ensure there are exactly 10 frames in viewModel.Frames
             while (viewModel.Frames.Count < 10)
             {
-                viewModel.Frames.Add(new ShotPageFrame(viewModel.Frames.Count + 1, 0));
+                viewModel.Frames.Add(new ShotPageFrame(viewModel.Frames.Count + 1));
             }
 
             for (int i = 0; i < 10; i++) // Loop through all 10 frames
@@ -497,7 +640,7 @@ namespace Cellular
 
                             if (string.IsNullOrEmpty(existingFrame.ShotTwoBox))
                             {
-                                int downedPinsSecondShot = GetDownedPins() - int.Parse(existingFrame.ShotOneBox);
+                                int downedPinsSecondShot = GetDownedPins(2) - int.Parse(existingFrame.ShotOneBox);
                                 existingFrame.ShotTwoBox = downedPinsSecondShot.ToString();
                             }
 
@@ -526,6 +669,7 @@ namespace Cellular
                 }
             }
 
+            await UpdateScore();
             // Notify the viewModel of frame updates
             viewModel.OnPropertyChanged(nameof(viewModel.Frames));
         }

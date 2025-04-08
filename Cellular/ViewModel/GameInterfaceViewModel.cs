@@ -73,16 +73,16 @@ namespace Cellular.ViewModel
 
             frames =
             [
-                new (1, 10),
-                new (2, 20),
-                new (3, 30),
-                new (4, 40),
-                new (5, 50),
-                new (6, 60),
-                new (7, 70),
-                new (8, 80),
-                new (9, 90),
-                new (10, 100)
+                new (1),
+                new (2),
+                new (3),
+                new (4),
+                new (5),
+                new (6),
+                new (7),
+                new (8),
+                new (9),
+                new (10)
             ];
 
             LoadUsers();
@@ -166,7 +166,7 @@ namespace Cellular.ViewModel
     public class ShotPageFrame : INotifyPropertyChanged
     {
         public int FrameNumber { get; set; }
-        public int RollingScore { get; set; }
+        public int? RollingScore { get; set; }
 
         private ObservableCollection<Color> _pinColors;
         private ObservableCollection<Color> _centerPinColors;
@@ -218,10 +218,10 @@ namespace Cellular.ViewModel
             }
         }
 
-        public ShotPageFrame(int frameNumber, int rollingScore)
+        public ShotPageFrame(int frameNumber)
         {
             FrameNumber = frameNumber;
-            RollingScore = rollingScore;
+            RollingScore = null;
             ShotOneBox = "";
             ShotTwoBox = "";
             PinColors = [.. Enumerable.Repeat(Colors.Black, 10)];
