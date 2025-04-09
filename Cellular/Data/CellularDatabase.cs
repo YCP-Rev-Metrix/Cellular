@@ -212,7 +212,6 @@ namespace Cellular.Data
                         FirstName = data[2].Trim(),
                         LastName = data[3].Trim(),
                         Email = data[4].Trim(),
-                        BallList = data[5].Trim(),
                         LastLogin = DateTime.TryParse(data[5].Trim(), out DateTime lastLogin) ? lastLogin : DateTime.Now,
                         PhoneNumber = data[6].Trim(),
                         Hand = data[7].Trim()

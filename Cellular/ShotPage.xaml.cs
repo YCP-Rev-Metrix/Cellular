@@ -451,7 +451,6 @@ namespace Cellular
                 if (isStrike)
                 {
                     List<Shot> bonusShots = new();
-                    bool hasNonStrike = false;
 
                     // Search all future frames for 2 valid shots
                     for (int j = i + 1; j < frames.Count; j++)
@@ -464,7 +463,6 @@ namespace Cellular
                             if (s1 != null)
                             {
                                 bonusShots.Add(s1);
-                                if (s1.Count < 10) hasNonStrike = true;
                             }
                         }
 
@@ -474,18 +472,17 @@ namespace Cellular
                             if (s2 != null)
                             {
                                 bonusShots.Add(s2);
-                                if (s2.Count < 10) hasNonStrike = true;
                             }
                         }
 
-                        // Only exit loop once we have 2 shots AND at least one non-strike
-                        if (bonusShots.Count >= 2 && hasNonStrike)
+                        // Only exit loop once we have 2 shots
+                        if (bonusShots.Count >= 2)
                             break;
                     }
 
                     bool gameComplete = frames.Count >= 10 && i >= 9 && bonusShots.Count == 2;
 
-                    if ((bonusShots.Count >= 2 && hasNonStrike) || gameComplete)
+                    if ((bonusShots.Count >= 2) || gameComplete)
                     {
                         frameScore = 10 + bonusShots[0].Count + bonusShots[1].Count?? 0;
                         totalScore += frameScore;
