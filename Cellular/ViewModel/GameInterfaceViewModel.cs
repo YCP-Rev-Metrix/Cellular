@@ -292,18 +292,6 @@ namespace Cellular.ViewModel
                     ShotTwoBox = value;
                 }
             }
-            else
-            {
-                if (ShotTwoBox == value)
-                {
-                    ShotTwoBox = "";
-                }
-                else
-                {
-                    ShotTwoBox = value;
-                }
-
-            }
         }
     }
 

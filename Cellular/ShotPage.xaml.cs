@@ -356,7 +356,7 @@ namespace Cellular
             if (currentFrame == null || viewModel.CurrentShot == 1) return;
 
             currentFrame.UpdateShotBox(viewModel.CurrentShot, "/");
-            viewModel.pinStates = 0; // All pins knocked down
+            viewModel.pinStates &= unchecked((short)~0x03FF); // All pins knocked down
 
             var pins = new List<Button> { pin1, pin2, pin3, pin4, pin5, pin6, pin7, pin8, pin9, pin10 };
             foreach (var pin in pins) pin.BackgroundColor = Colors.LightSlateGrey;
@@ -369,7 +369,7 @@ namespace Cellular
             var currentFrame = viewModel.Frames.FirstOrDefault(f => f.FrameNumber == viewModel.CurrentFrame);
             if (currentFrame == null || viewModel.CurrentShot == 2) return;
 
-            viewModel.pinStates = 0; // All pins knocked down
+            viewModel.pinStates &= unchecked((short)~0x03FF); // All pins knocked down
             currentFrame.UpdateShotBox(viewModel.CurrentShot, "X");
 
             var pins = new List<Button> { pin1, pin2, pin3, pin4, pin5, pin6, pin7, pin8, pin9, pin10 };
@@ -723,7 +723,7 @@ namespace Cellular
                             // Move to next frame and reset states
                             viewModel.CurrentFrame++;
                             viewModel.CurrentShot = 1;
-                            viewModel.pinStates = 0;
+                            viewModel.pinStates &= unchecked((short)~0x03FF);
                             viewModel.firstShotId = -1;
                             viewModel.secondShotId = -1;
 
