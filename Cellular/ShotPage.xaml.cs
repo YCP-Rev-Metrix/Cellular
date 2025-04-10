@@ -10,6 +10,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Maui.ApplicationModel.Communication;
 using System.Collections.ObjectModel;
+using System.Numerics;
 
 namespace Cellular
 {
@@ -53,16 +54,50 @@ namespace Cellular
         {
             if (sender is Button button && int.TryParse(button.Text, out int pinNumber) && pinNumber >= 1 && pinNumber <= 10)
             {
-                // Toggle the bit for the selected pin
-                viewModel.pinStates ^= (short)(1 << (pinNumber - 1));
+                int pinBit = 1 << (pinNumber - 1);
 
-                // Update button color based on pin state
-                bool isPinDown = (viewModel.pinStates & (1 << (pinNumber - 1))) == 0;
-                button.BackgroundColor = isPinDown ? Colors.LightSlateGrey : Color.FromArgb("#9880e5");
+                if (viewModel.CurrentShot.Equals(1))
+                {
+                    // Toggle the bit for the selected pin
+                    viewModel.pinStates ^= (short)pinBit;
 
-                Console.WriteLine($"Pin {pinNumber} is now {(isPinDown ? "Down" : "Up")}");
+                    // Update button color based on pin state
+                    bool isPinDown = (viewModel.pinStates & pinBit) == 0;
+                    button.BackgroundColor = isPinDown ? Colors.LightSlateGrey : Color.FromArgb("#9880e5");
 
-                // Update shot boxes
+                    Console.WriteLine($"Pin {pinNumber} is now {(isPinDown ? "Down" : "Up")}");
+                }
+                else
+                {
+                    // Only allow pins that were UP in shot 1 to be modified
+                    bool wasUpInShot1 = (viewModel.shot1PinStates & pinBit) != 0;
+
+                    if (!wasUpInShot1)
+                    {
+                        Console.WriteLine($"Pin {pinNumber} was down in shot 1 and can't be changed in shot 2.");
+                        return;
+                    }
+
+                    bool isCurrentlyDown = (viewModel.pinStates & pinBit) == 0;
+
+                    if (isCurrentlyDown)
+                    {
+                        // Set the bit to 1 (mark as up)
+                        viewModel.pinStates |= (short)pinBit;
+                        button.BackgroundColor = Colors.Red;
+
+                        Console.WriteLine($"Pin {pinNumber} is now Up");
+                    }
+                    else
+                    {
+                        // Set the bit to 0 (mark as down)
+                        viewModel.pinStates &= (short)~pinBit;
+                        button.BackgroundColor = Color.FromArgb("#9880e5");
+
+                        Console.WriteLine($"Pin {pinNumber} is now Down");
+                    }
+                }
+
                 UpdateShotBoxes();
             }
         }
@@ -96,6 +131,7 @@ namespace Cellular
                     viewModel.CurrentShot++;
                 }
                 viewModel.shot1PinStates = viewModel.pinStates;
+                viewModel.pinStates = 0;
             }
             else if (viewModel.CurrentShot.Equals(2))
             {
@@ -239,15 +275,31 @@ namespace Cellular
             for (int i = 0; i < 10; i++)
             {
                 bool wasStanding = (viewModel.shot1PinStates & (1 << i)) != 0;
-                bool isNowDown = (viewModel.pinStates & (1 << i)) == 0;
+                bool isStillStanding = (viewModel.pinStates & (1 << i)) != 0;
 
-                if (wasStanding && isNowDown)
+                if (isStillStanding)
                 {
-                    currentFrame.UpdateCenterPinColor(i, Colors.White);
+                    currentFrame.UpdatePinColor(i, Colors.Red); // Still standing, color it red
                 }
-                else if (wasStanding)
+            }
+        }
+
+        private void ReloadButtonColors()
+        {
+            var pins = new List<Button> { pin1, pin2, pin3, pin4, pin5, pin6, pin7, pin8, pin9, pin10 };
+
+            for (int i = 0; i < 10; i++)
+            {
+                int pinBit = 1 << i;
+                bool wasUpInShot1 = (viewModel.shot1PinStates & pinBit) != 0;
+
+                if (wasUpInShot1)
                 {
-                    currentFrame.UpdatePinColor(i, Colors.Red);
+                    // Set the pin state to 0 (down)
+                    viewModel.pinStates &= (short)~pinBit;
+
+                    // Set button color to purple
+                    pins[i].BackgroundColor = Color.FromArgb("#9880e5");
                 }
             }
         }
@@ -652,6 +704,7 @@ namespace Cellular
                             }
 
                             viewModel.shot1PinStates = shot1?.LeaveType ?? 0;
+                            ReloadButtonColors();
                         }
 
                         // Process shot 2
