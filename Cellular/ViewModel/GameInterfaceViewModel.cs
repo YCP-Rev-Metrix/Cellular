@@ -25,6 +25,7 @@ namespace Cellular.ViewModel
         public int secondShotId = -1;
         public int currentFrameId = -1;
         public int UserId = Preferences.Get("UserId", 0);
+        public bool GameCompleted = false;
 
         public ObservableCollection<string> Players
         {
@@ -218,27 +219,12 @@ namespace Cellular.ViewModel
             }
         }
 
-        private string _shotThreeBox;
-        public string ShotThreeBox
-        {
-            get => _shotThreeBox;
-            set
-            {
-                if (_shotThreeBox != value)
-                {
-                    _shotThreeBox = value;
-                    OnPropertyChanged();
-                }
-            }
-        }
-
         public ShotPageFrame(int frameNumber)
         {
             FrameNumber = frameNumber;
             RollingScore = null;
             ShotOneBox = "";
             ShotTwoBox = "";
-            ShotThreeBox = "";
             PinColors = [.. Enumerable.Repeat(Colors.Black, 10)];
             CenterPinColors = [.. Enumerable.Repeat(Colors.Transparent, 10)];
         }
