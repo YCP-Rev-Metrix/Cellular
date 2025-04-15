@@ -54,19 +54,6 @@ namespace Cellular.Data
         }
 
         // Retrieves all shots for a specific game
-        public async Task<List<Shot>> GetShotsByGame(int gameId)
-        {
-            try
-            {
-                return await _conn.Table<Shot>().Where(s => s.Game == gameId).ToListAsync();
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error retrieving shots: {ex.Message}");
-                return new List<Shot>();
-            }
-        }
-
         public async Task<Shot?> GetShotById(int shotId)
         {
             return await _conn.Table<Shot>()

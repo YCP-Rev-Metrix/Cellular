@@ -162,13 +162,13 @@ namespace Cellular
                 ApplySecondShotColors(currentFrame);
                 if (string.IsNullOrEmpty(currentFrame.ShotTwoBox))
                 {
-                    int downedPinsSecondShot = GetDownedPins(2) - int.Parse(currentFrame.ShotOneBox);
+                    int downedPinsSecondShot = GetDownedPinsForShot(2) - int.Parse(currentFrame.ShotOneBox);
                     currentFrame.ShotTwoBox = downedPinsSecondShot.ToString();
                 }
 
                 //Save the frame to the database
                 await SaveFrameAsync(false);
-                int downedPins = CountKnockedDownPins(viewModel.shot1PinStates, viewModel.pinStates);
+                int downedPins = GetDownedPinsForFrame(viewModel.shot1PinStates, viewModel.pinStates);
 
                 if (currentFrame.ShotTwoBox == "/" && viewModel.CurrentFrame == 10)
                 {
@@ -199,7 +199,7 @@ namespace Cellular
         }
 
         // Counts the number of downed pins based on pinStates
-        private int GetDownedPins(int shotNumber)
+        private int GetDownedPinsForShot(int shotNumber)
         {
             int count = 0;
             short pinStates = viewModel.pinStates;
@@ -232,7 +232,7 @@ namespace Cellular
         }
 
 
-        private int CountKnockedDownPins(short previousState, short currentState)
+        private int GetDownedPinsForFrame(short previousState, short currentState)
         {
             int count = 0;
             for (int i = 0; i < 10; i++) // Only check first 10 bits
@@ -254,7 +254,7 @@ namespace Cellular
             var currentFrame = viewModel.Frames.FirstOrDefault(f => f.FrameNumber == viewModel.CurrentFrame);
             if (currentFrame == null || viewModel.GameCompleted == true) return;
 
-            int downedPins = GetDownedPins(1); // Assume this method gets the current number of pins knocked down
+            int downedPins = GetDownedPinsForShot(1); // Assume this method gets the current number of pins knocked down
 
             if (viewModel.CurrentShot == 1)
             {
@@ -272,7 +272,7 @@ namespace Cellular
             else if (viewModel.CurrentShot == 2)
             {
                 // Count newly knocked-down pins by comparing shot1PinState and current pinState
-                int newlyDownedPins = CountKnockedDownPins(viewModel.shot1PinStates, viewModel.pinStates);
+                int newlyDownedPins = GetDownedPinsForFrame(viewModel.shot1PinStates, viewModel.pinStates);
 
                 if (newlyDownedPins == 0)
                 {
@@ -281,7 +281,7 @@ namespace Cellular
                 else
                 {
                     // Calculate how many pins were still standing before this shot
-                    int shotOnePins = 10 - CountKnockedDownPins(0b1111111111, viewModel.shot1PinStates);
+                    int shotOnePins = 10 - GetDownedPinsForFrame(0b1111111111, viewModel.shot1PinStates);
                     int remainingPins = 10 - shotOnePins;
 
                     // Display "/" if all remaining pins were knocked down, otherwise show newly downed pins
@@ -426,12 +426,11 @@ namespace Cellular
             {
                 ShotNumber = viewModel.CurrentShot,
                 Ball = null,
-                Count = GetDownedPins(shotNumber),
+                Count = GetDownedPinsForShot(shotNumber),
                 LeaveType = viewModel.pinStates,
                 Side = null,
                 Position = null,
-                Frame = viewModel.CurrentFrame,
-                Game = viewModel.currentGame
+                Frame = viewModel.CurrentFrame
             };
 
             Debug.WriteLine($"Saving Shot: Frame {newShot.Frame}, Shot {newShot.ShotNumber}, Pins Down {newShot.Count}");
@@ -780,11 +779,11 @@ namespace Cellular
 
                             if (string.IsNullOrEmpty(existingFrame.ShotTwoBox))
                             {
-                                int downedPinsSecondShot = GetDownedPins(2) - int.Parse(existingFrame.ShotOneBox);
+                                int downedPinsSecondShot = GetDownedPinsForShot(2) - int.Parse(existingFrame.ShotOneBox);
                                 existingFrame.ShotTwoBox = downedPinsSecondShot.ToString();
                             }
 
-                            int downedPins = CountKnockedDownPins(viewModel.shot1PinStates, viewModel.pinStates);
+                            int downedPins = GetDownedPinsForFrame(viewModel.shot1PinStates, viewModel.pinStates);
 
                             if (existingFrame.ShotTwoBox == "/" && viewModel.CurrentFrame == 10)
                             {
