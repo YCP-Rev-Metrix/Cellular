@@ -59,7 +59,6 @@ public partial class EventRegistrationPage : ContentPage
             Name = eventName,
             Type = eventType,
             Location = establishment,
-            Sessions ="",
             Average = 0,
             Stats = 0,
             Standings = "",

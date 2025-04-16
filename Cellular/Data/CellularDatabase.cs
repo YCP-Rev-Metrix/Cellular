@@ -101,7 +101,7 @@ namespace Cellular.Data
                     var line = await reader.ReadLineAsync();
                     var data = line?.Split(',');
 
-                    if (data == null || data.Length < 7) continue; // Ensure valid data
+                    if (data == null || data.Length < 6) continue; // Ensure valid data
 
                     var event_ = new Event
                     {
@@ -109,10 +109,9 @@ namespace Cellular.Data
                         Name = data[1].Trim(),
                         Type = data[2].Trim(),
                         Location = data[3].Trim(),
-                        Sessions = data[4].Trim(),
-                        Average = int.TryParse(data[5].Trim(), out int average) ? average : 0,
-                        Stats = int.TryParse(data[6].Trim(), out int stats) ? stats : 0,
-                        Standings = data[7].Trim(),
+                        Average = int.TryParse(data[4].Trim(), out int average) ? average : 0,
+                        Stats = int.TryParse(data[5].Trim(), out int stats) ? stats : 0,
+                        Standings = data[6].Trim(),
 
                     };
                     var existingUser = await _database.Table<Event>().FirstOrDefaultAsync(u => u.Name == event_.Name);

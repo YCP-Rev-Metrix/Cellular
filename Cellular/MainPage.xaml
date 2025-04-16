@@ -75,7 +75,14 @@
                     Clicked="OnDataClicked"
                     HorizontalOptions="Fill"
                     IsVisible="True" />
-            
+
+            <Button x:Name="API"
+                    Text="API Test Page" 
+                    SemanticProperties.Hint="takes you to the API page"
+                    Clicked="OnAPIClicked"
+                    HorizontalOptions="Fill"
+                    IsVisible="True" /> 
+
             <Button x:Name="account"
                     Text="Account" 
                     SemanticProperties.Hint="takes you to the account page"

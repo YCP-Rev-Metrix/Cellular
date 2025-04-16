@@ -21,6 +21,7 @@ namespace Cellular
         private DataPage? dataPage;
         private EventPage? EventPage;
         private EstablishmentPage? EstablishmentPage;
+        private APItestPage? apiTestPage;
 
         public MainPage()
         {
@@ -49,6 +50,7 @@ namespace Cellular
             dataPage = new DataPage();
             EventPage = new EventPage();
             EstablishmentPage = new EstablishmentPage();
+            apiTestPage = new APItestPage();
         }
 
         protected override async void OnAppearing()
@@ -65,6 +67,9 @@ namespace Cellular
         }
         private void UpdateUI()
         {
+            // Ensure apiTestPage is not null before accessing its properties
+            
+
             // Set which buttons show up when logged in or out
             login.IsVisible = !isLoggedIn;
             register.IsVisible = !isLoggedIn;
@@ -77,6 +82,8 @@ namespace Cellular
             account.IsVisible = isLoggedIn;
             SessionList.IsVisible = isLoggedIn;
             data.IsVisible = isLoggedIn;
+            API.IsVisible = isLoggedIn;
+
         }
 
         private async void OnLoginClicked(object sender, EventArgs e)
@@ -131,6 +138,11 @@ namespace Cellular
             await Navigation.PushAsync(dataPage);
         }
 
-        
+        private async void OnAPIClicked(object sender, EventArgs e)
+        {
+            await Navigation.PushAsync(apiTestPage);
+        }
+
+
     }
 }
