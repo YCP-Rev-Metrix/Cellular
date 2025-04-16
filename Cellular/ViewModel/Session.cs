@@ -9,6 +9,7 @@ namespace Cellular.ViewModel
         public int SessionId { get; set; }
         public int SessionNumber { get; set; }
         public int UserId { get; set; }
+        public int EventId { get; set; }
         public int? Establishment { get; set; }
         public DateTime? DateTime { get; set; }
         public string? TeamOpponent { get; set; }
