@@ -14,7 +14,7 @@ namespace Cellular.ViewModel
         private ObservableCollection<ShotPageFrame> frames;
         private readonly SQLiteAsyncConnection _database;
         public string FrameDisplay => $"Gm 1-{CurrentFrame} Shot {CurrentShot}";
-        private string _hand = "Left";
+        private string _hand = "Right";
         public short pinStates = 0;
         public short shot1PinStates = 0;
         public int _currentFrame = 1;
@@ -25,6 +25,7 @@ namespace Cellular.ViewModel
         public int secondShotId = -1;
         public int currentFrameId = -1;
         public int UserId = Preferences.Get("UserId", 0);
+        public bool GameCompleted = false;
 
         public ObservableCollection<string> Players
         {
@@ -73,16 +74,16 @@ namespace Cellular.ViewModel
 
             frames =
             [
-                new (1, 10),
-                new (2, 20),
-                new (3, 30),
-                new (4, 40),
-                new (5, 50),
-                new (6, 60),
-                new (7, 70),
-                new (8, 80),
-                new (9, 90),
-                new (10, 100)
+                new (1),
+                new (2),
+                new (3),
+                new (4),
+                new (5),
+                new (6),
+                new (7),
+                new (8),
+                new (9),
+                new (10)
             ];
 
             LoadUsers();
@@ -166,7 +167,7 @@ namespace Cellular.ViewModel
     public class ShotPageFrame : INotifyPropertyChanged
     {
         public int FrameNumber { get; set; }
-        public int RollingScore { get; set; }
+        public int? RollingScore { get; set; }
 
         private ObservableCollection<Color> _pinColors;
         private ObservableCollection<Color> _centerPinColors;
@@ -218,10 +219,10 @@ namespace Cellular.ViewModel
             }
         }
 
-        public ShotPageFrame(int frameNumber, int rollingScore)
+        public ShotPageFrame(int frameNumber)
         {
             FrameNumber = frameNumber;
-            RollingScore = rollingScore;
+            RollingScore = null;
             ShotOneBox = "";
             ShotTwoBox = "";
             PinColors = [.. Enumerable.Repeat(Colors.Black, 10)];
@@ -255,9 +256,9 @@ namespace Cellular.ViewModel
 
         public void UpdateShotBox(int box, string value)
         {
-            if(box == 1)
+            if (box == 1)
             {
-                if(ShotOneBox == value)
+                if (ShotOneBox == value)
                 {
                     ShotOneBox = "";
                 }
@@ -266,7 +267,7 @@ namespace Cellular.ViewModel
                     ShotOneBox = value;
                 }
             }
-            else
+            else if (box == 2)
             {
                 if (ShotTwoBox == value)
                 {
@@ -277,9 +278,7 @@ namespace Cellular.ViewModel
                     ShotTwoBox = value;
                 }
             }
-
         }
-
     }
 
 }

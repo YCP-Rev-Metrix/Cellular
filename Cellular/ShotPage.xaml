@@ -51,7 +51,7 @@
                                                TextColor="Black"
                                                HorizontalOptions="Center"/>
                                         </StackLayout>
-                                        <!-- Two Score Boxes at the Top -->
+                                        <!-- Two Score Boxes at the Top. Third one is hidden for frame 10 -->
                                         <FlexLayout Direction="Row" JustifyContent="Center" AlignItems="Center" Padding="0, 10, 0, 5">
                                             <Border Stroke="Black" StrokeThickness="1" Margin="0,0">
                                                 <Grid>
@@ -72,78 +72,48 @@
                                             <FlexLayout Direction="Row" JustifyContent="Center">
                                                 <AbsoluteLayout>
                                                     <BoxView HeightRequest="10" WidthRequest="10" CornerRadius="5" BackgroundColor="{Binding PinColors[6]}" Margin="1" x:Name="pin7"/>
-                                                    <BoxView HeightRequest="5" WidthRequest="5" CornerRadius="2.5" BackgroundColor="{Binding CenterPinColors[6]}" x:Name="center7"
-                                                         AbsoluteLayout.LayoutFlags="PositionProportional"
-                                                         AbsoluteLayout.LayoutBounds="0.5, 0.5, AutoSize, AutoSize"/>
                                                 </AbsoluteLayout>
 
                                                 <AbsoluteLayout>
                                                     <BoxView HeightRequest="10" WidthRequest="10" CornerRadius="5" BackgroundColor="{Binding PinColors[7]}" Margin="1" x:Name="pin8"/>
-                                                    <BoxView HeightRequest="5" WidthRequest="5" CornerRadius="2.5" BackgroundColor="{Binding CenterPinColors[7]}" x:Name="center8"
-                                                         AbsoluteLayout.LayoutFlags="PositionProportional"
-                                                         AbsoluteLayout.LayoutBounds="0.5, 0.5, AutoSize, AutoSize"/>
                                                 </AbsoluteLayout>
 
                                                 <AbsoluteLayout>
                                                     <BoxView HeightRequest="10" WidthRequest="10" CornerRadius="5" BackgroundColor="{Binding PinColors[8]}" Margin="1" x:Name="pin9"/>
-                                                    <BoxView HeightRequest="5" WidthRequest="5" CornerRadius="2.5" BackgroundColor="{Binding CenterPinColors[8]}" x:Name="center9"
-                                                         AbsoluteLayout.LayoutFlags="PositionProportional"
-                                                         AbsoluteLayout.LayoutBounds="0.5, 0.5, AutoSize, AutoSize"/>
                                                 </AbsoluteLayout>
 
                                                 <AbsoluteLayout>
                                                     <BoxView HeightRequest="10" WidthRequest="10" CornerRadius="5" BackgroundColor="{Binding PinColors[9]}" Margin="1" x:Name="pin10"/>
-                                                    <BoxView HeightRequest="5" WidthRequest="5" CornerRadius="2.5" BackgroundColor="{Binding CenterPinColors[9]}" x:Name="center10"
-                                                         AbsoluteLayout.LayoutFlags="PositionProportional"
-                                                         AbsoluteLayout.LayoutBounds="0.5, 0.5, AutoSize, AutoSize"/>
                                                 </AbsoluteLayout>
                                             </FlexLayout>
 
                                             <FlexLayout Direction="Row" JustifyContent="Center">
                                                 <AbsoluteLayout>
                                                     <BoxView HeightRequest="10" WidthRequest="10" CornerRadius="5" BackgroundColor="{Binding PinColors[3]}" Margin="1" x:Name="pin4"/>
-                                                    <BoxView HeightRequest="5" WidthRequest="5" CornerRadius="2.5" BackgroundColor="{Binding CenterPinColors[3]}" x:Name="center4"
-                                                         AbsoluteLayout.LayoutFlags="PositionProportional"
-                                                         AbsoluteLayout.LayoutBounds="0.5, 0.5, AutoSize, AutoSize"/>
                                                 </AbsoluteLayout>
 
                                                 <AbsoluteLayout>
                                                     <BoxView HeightRequest="10" WidthRequest="10" CornerRadius="5" BackgroundColor="{Binding PinColors[4]}" Margin="1" x:Name="pin5"/>
-                                                    <BoxView HeightRequest="5" WidthRequest="5" CornerRadius="2.5" BackgroundColor="{Binding CenterPinColors[4]}" x:Name="center5"
-                                                         AbsoluteLayout.LayoutFlags="PositionProportional"
-                                                         AbsoluteLayout.LayoutBounds="0.5, 0.5, AutoSize, AutoSize"/>
                                                 </AbsoluteLayout>
 
                                                 <AbsoluteLayout>
                                                     <BoxView HeightRequest="10" WidthRequest="10" CornerRadius="5" BackgroundColor="{Binding PinColors[5]}" Margin="1" x:Name="pin6"/>
-                                                    <BoxView HeightRequest="5" WidthRequest="5" CornerRadius="2.5" BackgroundColor="{Binding CenterPinColors[5]}" x:Name="center6"
-                                                         AbsoluteLayout.LayoutFlags="PositionProportional"
-                                                         AbsoluteLayout.LayoutBounds="0.5, 0.5, AutoSize, AutoSize"/>
                                                 </AbsoluteLayout>
                                             </FlexLayout>
 
                                             <FlexLayout Direction="Row" JustifyContent="Center">
                                                 <AbsoluteLayout>
                                                     <BoxView HeightRequest="10" WidthRequest="10" CornerRadius="5" BackgroundColor="{Binding PinColors[1]}" Margin="1" x:Name="pin2"/>
-                                                    <BoxView HeightRequest="5" WidthRequest="5" CornerRadius="2.5" BackgroundColor="{Binding CenterPinColors[1]}" x:Name="center2"
-                                                         AbsoluteLayout.LayoutFlags="PositionProportional"
-                                                         AbsoluteLayout.LayoutBounds="0.5, 0.5, AutoSize, AutoSize"/>       
                                                 </AbsoluteLayout>
 
                                                 <AbsoluteLayout>
                                                     <BoxView HeightRequest="10" WidthRequest="10" CornerRadius="5" BackgroundColor="{Binding PinColors[2]}" Margin="1" x:Name="pin3"/>
-                                                    <BoxView HeightRequest="5" WidthRequest="5" CornerRadius="2.5" BackgroundColor="{Binding CenterPinColors[2]}" x:Name="center3"
-                                                         AbsoluteLayout.LayoutFlags="PositionProportional"
-                                                         AbsoluteLayout.LayoutBounds="0.5, 0.5, AutoSize, AutoSize"/>
                                                 </AbsoluteLayout>
                                             </FlexLayout>
 
                                             <FlexLayout Direction="Row" JustifyContent="Center">
                                                 <AbsoluteLayout>
                                                     <BoxView HeightRequest="10" WidthRequest="10" CornerRadius="5" BackgroundColor="{Binding PinColors[0]}" Margin="1" x:Name="pin1"/>
-                                                    <BoxView HeightRequest="5" WidthRequest="5" CornerRadius="2.5" BackgroundColor="{Binding CenterPinColors[0]}" x:Name="center1"
-                                                         AbsoluteLayout.LayoutFlags="PositionProportional"
-                                                         AbsoluteLayout.LayoutBounds="0.5, 0.5, AutoSize, AutoSize"/>
                                                 </AbsoluteLayout>
                                             </FlexLayout>
                                         </StackLayout>
@@ -175,11 +145,11 @@
                         <Picker x:Name="PlayerPicker" HeightRequest="30" WidthRequest="{OnIdiom Phone=80, Tablet=100, Desktop=120}" ItemsSource="{Binding Players}" BackgroundColor="Grey"/>
                     </StackLayout>
                     <StackLayout>
-                        <Label Text="1st Ball" />
+                        <Label Text="Strike Ball" />
                         <Picker x:Name="BallPicker1" HeightRequest="30" WidthRequest="{OnIdiom Phone=80, Tablet=100, Desktop=120}" ItemsSource="{Binding Arsenal}" BackgroundColor="Grey"/>
                     </StackLayout>
                     <StackLayout>
-                        <Label Text="2nd Ball" />
+                        <Label Text="Spare Ball" />
                         <Picker x:Name="BallPicker2" HeightRequest="30" WidthRequest="{OnIdiom Phone=80, Tablet=100, Desktop=120}" ItemsSource="{Binding Arsenal}" BackgroundColor="Grey"/>
                     </StackLayout>
                 </StackLayout>

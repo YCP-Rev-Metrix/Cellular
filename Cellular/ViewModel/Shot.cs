@@ -19,7 +19,6 @@ namespace Cellular.ViewModel
         public string? Side { get; set; }
         public string? Position { get; set; }
         public int? Frame { get; set; }
-        public int? Game { get; set; }
         public string? Comment { get; set; }
     }
 }
