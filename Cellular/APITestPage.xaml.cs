@@ -8,12 +8,6 @@ public partial class APItestPage : ContentPage
     {
         InitializeComponent();
     }
-
-    public class TestResponse
-    {
-        public int TestInt { get; set; }
-    }
-
     private async void OnLoadTestDataClicked(object sender, EventArgs e)
     {
         try
@@ -21,12 +15,17 @@ public partial class APItestPage : ContentPage
             using HttpClient client = new();
             string url = "https://api.revmetrix.io/api/gets/Test";
 
-            var result = await client.GetFromJsonAsync<TestResponse>(url);
+            string response = await client.GetStringAsync(url);
 
-            if (result != null)
-                ResultLabel.Text = $"TestInt value: {result.TestInt}";
+            // Try to parse the response as an integer
+            if (int.TryParse(response, out int value))
+            {
+                ResultLabel.Text = $"Returned value: {value}";
+            }
             else
-                ResultLabel.Text = "Failed to load data.";
+            {
+                ResultLabel.Text = "Failed to parse the response.";
+            }
         }
         catch (Exception ex)
         {
