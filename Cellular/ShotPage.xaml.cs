@@ -145,17 +145,19 @@ namespace Cellular
                     {
                         viewModel.GameCompleted = true;
                     }
-                    viewModel.CurrentFrame++;
-                    viewModel.CurrentShot = 1;
+                    if(viewModel.GameCompleted != true)
+                    {
+                        viewModel.CurrentFrame++;
+                        viewModel.CurrentShot = 1;
+                    }
                 }
                 else
                 {
-                    if (viewModel.CurrentFrame == 11)
-                    {
-                        viewModel.GameCompleted = true;
-                    }
                     await SaveFrameAsync(false);
-                    viewModel.CurrentShot++;
+                    if (viewModel.GameCompleted != true)
+                    {
+                        viewModel.CurrentShot++;
+                    }
                 }
                 if (foul == true && viewModel.CurrentShot == 1)
                 {
@@ -198,15 +200,19 @@ namespace Cellular
                 {
                     viewModel.GameCompleted = true;
                 }
-                //Call these after saving the frame
-                viewModel.CurrentFrame++;
-                viewModel.CurrentShot = 1;
-                viewModel.pinStates = 0;
-                viewModel.firstShotId = -1;
-                viewModel.secondShotId = -1;
 
-                foreach (var pin in pins)
-                    pin.BackgroundColor = Colors.LightSlateGray;
+                //Call these after saving the frame
+                if(viewModel.GameCompleted != true)
+                {
+                    viewModel.CurrentFrame++;
+                    viewModel.CurrentShot = 1;
+                    viewModel.pinStates = 0;
+                    viewModel.firstShotId = -1;
+                    viewModel.secondShotId = -1;
+
+                    foreach (var pin in pins)
+                        pin.BackgroundColor = Colors.LightSlateGray;
+                }
             }
             await UpdateScore();
             viewModel.OnPropertyChanged(nameof(viewModel.FrameDisplay));
@@ -861,14 +867,18 @@ namespace Cellular
                                 viewModel.GameCompleted = true;
                             }
                             // Move to next frame and reset states
-                            viewModel.CurrentFrame++;
-                            viewModel.CurrentShot = 1;
-                            viewModel.pinStates &= unchecked((short)~0x03FF);
-                            viewModel.firstShotId = -1;
-                            viewModel.secondShotId = -1;
 
-                            foreach (var pin in new List<Button> { pin1, pin2, pin3, pin4, pin5, pin6, pin7, pin8, pin9, pin10 })
-                                pin.BackgroundColor = Colors.LightSlateGray;
+                            if(viewModel.GameCompleted != true)
+                            {
+                                viewModel.CurrentFrame++;
+                                viewModel.CurrentShot = 1;
+                                viewModel.pinStates &= unchecked((short)~0x03FF);
+                                viewModel.firstShotId = -1;
+                                viewModel.secondShotId = -1;
+
+                                foreach (var pin in new List<Button> { pin1, pin2, pin3, pin4, pin5, pin6, pin7, pin8, pin9, pin10 })
+                                    pin.BackgroundColor = Colors.LightSlateGray;
+                            }
                         }
                     }
 
