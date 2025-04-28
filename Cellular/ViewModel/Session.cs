@@ -11,7 +11,7 @@ namespace Cellular.ViewModel
         public int UserId { get; set; }
         public int EventId { get; set; }
         public int? Establishment { get; set; }
-        public DateTime? DateTime { get; set; }
+        public string? DateTime { get; set; }
         public string? TeamOpponent { get; set; }
         public string? IndividualOpponent { get; set; }
         public int? Score { get; set; }

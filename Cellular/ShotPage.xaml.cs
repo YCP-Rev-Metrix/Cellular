@@ -31,6 +31,7 @@ namespace Cellular
             _ = CheckIfFramesExistForGame();
             _ = viewModel.LoadUserHand();
             Debug.WriteLine("Hand: " + viewModel.Hand);
+            Debug.WriteLine("Date: " + viewModel.CurrentDate);
         }
 
         public void BoardChanged(object sender, EventArgs e)
