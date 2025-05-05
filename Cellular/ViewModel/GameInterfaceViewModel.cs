@@ -13,7 +13,7 @@ namespace Cellular.ViewModel
         private ObservableCollection<string> arsenal;
         private ObservableCollection<ShotPageFrame> frames;
         private readonly SQLiteAsyncConnection _database;
-        public string FrameDisplay => $"Gm {currentGame}-{CurrentFrame} Shot {CurrentShot}";
+        public string FrameDisplay => $"Gm {currentGame}-{CurrentFrame} \nShot {CurrentShot}";
         public string CurrentDate { get; set; } = Preferences.Get("Date", "Unknown");
         private string _hand = "Right";
         public short pinStates = 0;

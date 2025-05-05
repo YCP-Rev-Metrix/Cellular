@@ -104,9 +104,12 @@ namespace Cellular
             if (user != null)
             {
                 // Set preferences for guest login
-                Preferences.Set("IsLoggedIn", false);
+                Preferences.Set("IsLoggedIn", true);
                 Preferences.Set("UserId", user.UserId);
                 ((AppShell)Shell.Current).UpdateMenuForLoginStatus(true);
+
+                var mainViewModel = new MainViewModel();
+                mainViewModel.UserID = user.UserId; // Set UserId instead of UserName
 
                 await ((AppShell)Shell.Current).OnLoginSuccess();
                 await Shell.Current.GoToAsync("//MainPage");
