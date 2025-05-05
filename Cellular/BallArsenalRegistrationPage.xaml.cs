@@ -19,7 +19,7 @@ public partial class BallArsenalRegistrationPage : ContentPage
     {
         // Get the entered data
         string ballName = BallName.Text;
-        string? ballDiameter = BallDiameter.Text;
+        string? ballSerial = BallSerial.Text;
         string? ballWeight = BallWeight.Text;
         string? ballCore = BallCoreType.Text;
         // Validation to ensure all fields are filled
@@ -28,7 +28,7 @@ public partial class BallArsenalRegistrationPage : ContentPage
             await DisplayAlert("Error", "Please enter a Ball name.", "OK");
             return;
         }
-        if (string.IsNullOrEmpty(ballDiameter))
+        if (string.IsNullOrEmpty(ballSerial))
         {
             await DisplayAlert("Error", "Please enter a Ball diameter.", "OK");
             return;
@@ -44,7 +44,7 @@ public partial class BallArsenalRegistrationPage : ContentPage
             return;
         }
         // Convert string inputs to integers where necessary
-        if (!int.TryParse(ballDiameter, out int diameter))
+        if (!int.TryParse(ballSerial, out int serial))
         {
             await DisplayAlert("Error", "Ball diameter must be a valid number.", "OK");
             return;
@@ -59,7 +59,7 @@ public partial class BallArsenalRegistrationPage : ContentPage
         {
             UserId = Preferences.Get("UserId", 0),
             Name = ballName,
-            Diameter = diameter,
+            SerialNumber = serial,
             Weight = weight,
             Core = ballCore
         };
@@ -74,7 +74,7 @@ public partial class BallArsenalRegistrationPage : ContentPage
         await DisplayAlert("Ball", "The Ball was Added", "OK");
         // Optionally, clear the form
         BallName.Text = string.Empty;
-        BallDiameter.Text = string.Empty;
+        BallSerial.Text = string.Empty;
         BallWeight.Text = string.Empty;
         BallCoreType.Text = string.Empty;
     }
