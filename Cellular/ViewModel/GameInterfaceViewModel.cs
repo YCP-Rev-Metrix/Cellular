@@ -25,6 +25,7 @@ namespace Cellular.ViewModel
         public int firstShotId = -1;
         public int secondShotId = -1;
         public int currentFrameId = -1;
+        public int lastFrameId = -1;
         public int UserId = Preferences.Get("UserId", 0);
         public bool GameCompleted = false;
         public ObservableCollection<string> Players
