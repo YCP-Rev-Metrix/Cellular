@@ -26,11 +26,9 @@ namespace Cellular
             if (user != null && VerifyPassword(password, user.PasswordHash))
             {
                 Preferences.Set("UserId", user.UserId); // Store UserId properly
-
+                Preferences.Set("IsLoggedIn", true);
                 Debug.WriteLine("This is the login page "+Preferences.Get("UserId", 0));
                 ((AppShell)Shell.Current).UpdateMenuForLoginStatus(true);
-
-                await ((AppShell)Shell.Current).OnLoginSuccess();
                 await Shell.Current.GoToAsync("//MainPage");
             }
             else

@@ -23,19 +23,19 @@
         x:Name="register"
         Title="Register"
         ContentTemplate="{DataTemplate local:RegisterPage}"
-        Route="registerPage"
-        IsVisible="False"/>
+        Route="RegisterPage"
+        IsVisible="True"/>
 
     <ShellContent 
         x:Name="ballArsenal"
-        Title="BallArsenal"
+        Title="Ball Arsenal"
         ContentTemplate="{DataTemplate local:BallArsenal}"
         Route="ballArsenal"
         IsVisible="False"/>
 
     <ShellContent 
         x:Name="sessionList"
-        Title="SessionList"
+        Title="Session List"
         ContentTemplate="{DataTemplate local:SessionList}"
         Route="sessionList"
         IsVisible="False"/>
@@ -49,21 +49,21 @@
 
     <ShellContent 
         x:Name="dataPage"
-        Title="DataPage"
+        Title="Data"
         ContentTemplate="{DataTemplate local:DataPage}"
         Route="dataPage"
         IsVisible="False"/>
 
     <ShellContent 
         x:Name="apiPage"
-        Title="APIPage"
+        Title="API Test Page"
         ContentTemplate="{DataTemplate local:APItestPage}"
         Route="apiPage"
         IsVisible="False"/>
 
     <ShellContent
         x:Name="accountPage"
-        Title="AccountPage"
+        Title="Account"
         ContentTemplate="{DataTemplate local:AccountPage}"
         Route="account"
         IsVisible="False"/>
