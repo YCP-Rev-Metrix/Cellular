@@ -12,17 +12,6 @@ namespace Cellular
         private MainViewModel? viewModel;
         private UserRepository? _userRepository;
 
-        private BallArsenal? arsenalPage;
-        private SessionList? SessionListPage;
-        private Bluetooth? bluetoothPage;
-        private AccountPage? accountPage;
-        private RegisterPage? registerPage;
-        private LoginPage? loginPage;
-        private DataPage? dataPage;
-        private EventPage? EventPage;
-        private EstablishmentPage? EstablishmentPage;
-        private APItestPage? apiTestPage;
-
         public MainPage()
         {
             InitializeComponent();
@@ -39,18 +28,6 @@ namespace Cellular
             var isLoggedInValue = Preferences.Get("IsLoggedIn", false);
             isLoggedIn = isLoggedInValue == true;
             UpdateUI();
-
-            // Initialize other pages
-            arsenalPage = new BallArsenal();
-            SessionListPage = new SessionList();
-            bluetoothPage = new Bluetooth();
-            accountPage = new AccountPage();
-            registerPage = new RegisterPage();
-            loginPage = new LoginPage();
-            dataPage = new DataPage();
-            EventPage = new EventPage();
-            EstablishmentPage = new EstablishmentPage();
-            apiTestPage = new APItestPage();
         }
 
         protected override async void OnAppearing()
@@ -66,10 +43,7 @@ namespace Cellular
             }
         }
         private void UpdateUI()
-        {
-            // Ensure apiTestPage is not null before accessing its properties
-            
-
+        { 
             // Set which buttons show up when logged in or out
             login.IsVisible = !isLoggedIn;
             register.IsVisible = !isLoggedIn;
@@ -88,12 +62,12 @@ namespace Cellular
 
         private async void OnLoginClicked(object sender, EventArgs e)
         {
-            await Navigation.PushAsync(loginPage);
+            await Shell.Current.GoToAsync("//LoginPage");
         }
 
         private async void OnRegisterClicked(object sender, EventArgs e)
         {
-            await Navigation.PushAsync(registerPage);
+            await Shell.Current.GoToAsync("//registerPage");
         }
 
 
@@ -118,32 +92,32 @@ namespace Cellular
 
         private async void OnArsenalClicked(object sender, EventArgs e)
         {
-            await Navigation.PushAsync(arsenalPage);
+            await Shell.Current.GoToAsync("//ballArsenal");
         }
 
         private async void OnSessionListClicked(object sender, EventArgs e)
         {
-            await Navigation.PushAsync(SessionListPage);
+            await Shell.Current.GoToAsync("//sessionList");
         }
 
         private async void OnBluetoothClicked(object sender, EventArgs e)
         {
-            await Navigation.PushAsync(bluetoothPage);
+            await Shell.Current.GoToAsync("//bluetooth");
         }
 
         private async void OnAccountClicked(object sender, EventArgs e)
         {
-            await Navigation.PushAsync(accountPage);
+            await Shell.Current.GoToAsync("//account");
         }
 
         private async void OnDataClicked(object sender, EventArgs e)
         {
-            await Navigation.PushAsync(dataPage);
+            await Shell.Current.GoToAsync("//dataPage");
         }
 
         private async void OnAPIClicked(object sender, EventArgs e)
         {
-            await Navigation.PushAsync(apiTestPage);
+            await Shell.Current.GoToAsync("//apiPage");
         }
 
 
