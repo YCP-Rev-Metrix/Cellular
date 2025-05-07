@@ -23,16 +23,17 @@ namespace Cellular
             _userRepository = new UserRepository(new CellularDatabase().GetConnection());
             viewModel = new MainViewModel();
             BindingContext = viewModel;
-
-            // Check login status
-            var isLoggedInValue = Preferences.Get("IsLoggedIn", false);
-            isLoggedIn = isLoggedInValue == true;
-            UpdateUI();
         }
 
         protected override async void OnAppearing()
         {
             base.OnAppearing();
+
+            // Check login status
+            var isLoggedInValue = Preferences.Get("IsLoggedIn", false);
+            Debug.WriteLine($"Is the user logged in: {isLoggedIn}");
+            isLoggedIn = isLoggedInValue == true;
+            UpdateUI();
 
             // Refresh the username or other necessary details
             if (viewModel != null)
@@ -67,7 +68,7 @@ namespace Cellular
 
         private async void OnRegisterClicked(object sender, EventArgs e)
         {
-            await Shell.Current.GoToAsync("//registerPage");
+            await Shell.Current.GoToAsync("//RegisterPage");
         }
 
 
@@ -81,12 +82,7 @@ namespace Cellular
                 Preferences.Set("IsLoggedIn", true);
                 Preferences.Set("UserId", user.UserId);
                 ((AppShell)Shell.Current).UpdateMenuForLoginStatus(true);
-
-                var mainViewModel = new MainViewModel();
-                mainViewModel.UserID = user.UserId; // Set UserId instead of UserName
-
-                await ((AppShell)Shell.Current).OnLoginSuccess();
-                await Shell.Current.GoToAsync("//MainPage");
+                await SoftRefreshAsync();
             }
         }
 
@@ -120,6 +116,18 @@ namespace Cellular
             await Shell.Current.GoToAsync("//apiPage");
         }
 
+        public async Task SoftRefreshAsync()
+        {
+            isLoggedIn = Preferences.Get("IsLoggedIn", false);
+            UpdateUI();
+
+            if (viewModel != null)
+            {
+                await viewModel.LoadUserData();
+                user.Text = viewModel.FirstName;
+                Debug.WriteLine("User's Hand: " + viewModel.Hand);
+            }
+        }
 
     }
 }

@@ -1,6 +1,7 @@
 ﻿using System;
 using Microsoft.Maui.Storage;
 using System.Threading.Tasks;
+using Cellular.ViewModel;
 
 namespace Cellular
 {
@@ -25,6 +26,12 @@ namespace Cellular
             {
                 login.IsVisible = true;
                 register.IsVisible = true;
+                ballArsenal.IsVisible = false;
+                sessionList.IsVisible = false;
+                bluetooth.IsVisible = false;
+                dataPage.IsVisible = false;
+                apiPage.IsVisible = false;
+                accountPage.IsVisible = false;
                 signout.IsVisible = false;
             }
             else
@@ -46,13 +53,12 @@ namespace Cellular
             Preferences.Set("IsLoggedIn", false); // Ensure login state is updated correctly
             UpdateMenuForLoginStatus(false);
             await Shell.Current.GoToAsync("//MainPage");
-        }
+            await Task.Delay(100);
 
-        public async Task OnLoginSuccess()
-        {
-            Preferences.Set("IsLoggedIn", true);
-            UpdateMenuForLoginStatus(true);
-            await Shell.Current.GoToAsync("//MainPage");
+            if (Shell.Current.CurrentPage is MainPage mainPage)
+            {
+                await mainPage.SoftRefreshAsync();
+            }
         }
     }
 }
