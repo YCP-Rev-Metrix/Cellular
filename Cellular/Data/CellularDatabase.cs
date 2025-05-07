@@ -159,7 +159,7 @@ namespace Cellular.Data
                     {
                         UserId = int.TryParse(data[0].Trim(), out int UserId) ? UserId : 0,
                         Name = data[1].Trim(),
-                        Diameter = int.TryParse(data[2].Trim(), out int diameter) ? diameter : 0,
+                        SerialNumber = int.TryParse(data[2].Trim(), out int diameter) ? diameter : 0,
                         Weight = int.TryParse(data[3].Trim(), out int weight) ? weight : 0,
                         Core = data[4].Trim(),
                     };
@@ -261,7 +261,7 @@ namespace Cellular.Data
                         SessionId = int.TryParse(data[0].Trim(), out int sessionId) ? sessionId : 0,
                         UserId = int.TryParse(data[0].Trim(), out int userId) ? userId : 0,
                         Establishment = int.TryParse(data[0].Trim(), out int establishment) ? establishment : (int?)null,
-                        DateTime = DateTime.TryParse(data[1].Trim(), out DateTime dateTime) ? dateTime : DateTime.MinValue,
+                        DateTime = data[1].Trim(),
                         TeamOpponent = data[2].Trim(),
                         IndividualOpponent = data[3].Trim(),
                         Score = int.TryParse(data[4].Trim(), out int score) ? score : (int?)null,

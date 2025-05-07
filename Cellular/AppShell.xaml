@@ -8,14 +8,65 @@
     Title="Cellular">
 
     <ShellContent
+        x:Name="mainPage"
         Title="Home"
         ContentTemplate="{DataTemplate local:MainPage}"
         Route="MainPage" />
 
     <ShellContent 
+        x:Name="login"
         Title="Login"
         ContentTemplate="{DataTemplate local:LoginPage}"
         Route="LoginPage" />
+
+    <ShellContent 
+        x:Name="register"
+        Title="Register"
+        ContentTemplate="{DataTemplate local:RegisterPage}"
+        Route="registerPage"
+        IsVisible="False"/>
+
+    <ShellContent 
+        x:Name="ballArsenal"
+        Title="BallArsenal"
+        ContentTemplate="{DataTemplate local:BallArsenal}"
+        Route="ballArsenal"
+        IsVisible="False"/>
+
+    <ShellContent 
+        x:Name="sessionList"
+        Title="SessionList"
+        ContentTemplate="{DataTemplate local:SessionList}"
+        Route="sessionList"
+        IsVisible="False"/>
+
+    <ShellContent 
+        x:Name="bluetooth"
+        Title="Bluetooth"
+        ContentTemplate="{DataTemplate local:Bluetooth}"
+        Route="bluetooth"
+        IsVisible="False"/>
+
+    <ShellContent 
+        x:Name="dataPage"
+        Title="DataPage"
+        ContentTemplate="{DataTemplate local:DataPage}"
+        Route="dataPage"
+        IsVisible="False"/>
+
+    <ShellContent 
+        x:Name="apiPage"
+        Title="APIPage"
+        ContentTemplate="{DataTemplate local:APItestPage}"
+        Route="apiPage"
+        IsVisible="False"/>
+
+    <ShellContent
+        x:Name="accountPage"
+        Title="AccountPage"
+        ContentTemplate="{DataTemplate local:AccountPage}"
+        Route="account"
+        IsVisible="False"/>
 
     <Shell.FlyoutFooter>
         <Button

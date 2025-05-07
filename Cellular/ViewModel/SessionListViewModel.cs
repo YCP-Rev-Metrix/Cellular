@@ -112,7 +112,8 @@ namespace Cellular.ViewModel
             Session session = new Session
             {
                 UserId = Preferences.Get("UserId", 0),
-                SessionNumber = sessionNumber
+                SessionNumber = sessionNumber,
+                DateTime = DateTime.Now.ToString("MM/dd/yyyy")
             };
             await _SessionRepository.AddAsync(session);
         }

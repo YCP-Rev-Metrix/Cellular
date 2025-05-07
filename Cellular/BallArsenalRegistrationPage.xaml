@@ -14,7 +14,7 @@
 
         <StackLayout Padding="20" Grid.Row="1">
             <Entry x:Name="BallName" Placeholder="Enter Ball Name" />
-            <Entry x:Name="BallDiameter" Placeholder="Enter Balls Diameter" />
+            <Entry x:Name="BallSerial" Placeholder="Enter Balls Serial Number" />
             <Entry x:Name="BallWeight" Placeholder="Enter Balls Weight" />
             <Entry x:Name="BallCoreType" Placeholder="Enter Balls Core Type" />
 

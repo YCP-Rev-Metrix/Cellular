@@ -8,7 +8,7 @@
         <!-- Wrap the entire Grid in a StackLayout to center it -->
         <StackLayout VerticalOptions="Start" HorizontalOptions="Center">
             <StackLayout Background="Gray">
-                <Label Text="3/21/25"
+                <Label Text="{Binding CurrentDate}"
                    FontSize="12"
                    TextColor="White"
                    HorizontalOptions="Center"/>
@@ -39,10 +39,9 @@
                             <LinearItemsLayout Orientation="Horizontal" />
                         </CollectionView.ItemsLayout>
                         <CollectionView.ItemTemplate>
-                            <!-- Set x:DataType to the type of the item (Frame in this case) -->
                             <DataTemplate x:DataType="local:ShotPageFrame">
                                 <Border Stroke="DarkGray" StrokeThickness="1" Padding="0"
-                                    BackgroundColor="White" HeightRequest="135" WidthRequest="80">
+                                    BackgroundColor="White" HeightRequest="135" WidthRequest="80" MaximumHeightRequest="135">
                                     <StackLayout VerticalOptions="Center" HorizontalOptions="Center" Padding="0">
                                         <!-- Frame Numbers -->
                                         <StackLayout Background="Gray">
@@ -133,7 +132,7 @@
 
                 <!-- Left Side: Player Picker, Ball Selectors, Comment Button -->
                 <StackLayout Grid.Row="1" Grid.Column="1" VerticalOptions="Start" HorizontalOptions="Start" Padding="0, 10" Spacing="10">
-                    <StackLayout Background="Gray" WidthRequest="50" HorizontalOptions="Start" TranslationY="-30">
+                    <StackLayout Background="Gray" WidthRequest="50" HorizontalOptions="Start" TranslationY="-30" HeightRequest="35">
                         <Label
                             Text="{Binding FrameDisplay}"
                             FontSize="12"

@@ -13,20 +13,21 @@ namespace Cellular.ViewModel
         private ObservableCollection<string> arsenal;
         private ObservableCollection<ShotPageFrame> frames;
         private readonly SQLiteAsyncConnection _database;
-        public string FrameDisplay => $"Gm 1-{CurrentFrame} Shot {CurrentShot}";
+        public string FrameDisplay => $"Gm {currentGame}-{CurrentFrame} \nShot {CurrentShot}";
+        public string CurrentDate { get; set; } = Preferences.Get("Date", "Unknown");
         private string _hand = "Right";
         public short pinStates = 0;
         public short shot1PinStates = 0;
         public int _currentFrame = 1;
         public int _currentShot = 1;
-        public int currentSession = Preferences.Get("SessionNumber", 0);
-        public int currentGame = Preferences.Get("GameNumber", 0);
+        public int currentSession { get; set; } = Preferences.Get("SessionNumber", 0);
+        public int currentGame { get; set; } = Preferences.Get("GameNumber", 0);
         public int firstShotId = -1;
         public int secondShotId = -1;
         public int currentFrameId = -1;
+        public int lastFrameId = -1;
         public int UserId = Preferences.Get("UserId", 0);
         public bool GameCompleted = false;
-
         public ObservableCollection<string> Players
         {
             get => players;
@@ -108,11 +109,6 @@ namespace Cellular.ViewModel
             var mainViewModel = new MainViewModel();
             await mainViewModel.LoadUserData();
             _hand = mainViewModel.Hand;
-        }
-
-        public async Task LoadGame()
-        {
-
         }
 
         public int CurrentFrame

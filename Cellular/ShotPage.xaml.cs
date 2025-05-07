@@ -31,6 +31,7 @@ namespace Cellular
             _ = CheckIfFramesExistForGame();
             _ = viewModel.LoadUserHand();
             Debug.WriteLine("Hand: " + viewModel.Hand);
+            Debug.WriteLine("Date: " + viewModel.CurrentDate);
         }
 
         public void BoardChanged(object sender, EventArgs e)
@@ -108,7 +109,10 @@ namespace Cellular
         // Moves to the next shot or frame
         private async void OnNextClicked(object sender, EventArgs e)
         {
+            var frameRepository = new FrameRepository(new CellularDatabase().GetConnection());
+            await frameRepository.InitAsync();
             var currentFrame = viewModel.Frames.FirstOrDefault(f => f.FrameNumber == viewModel.CurrentFrame);
+            var lastFrame = viewModel.Frames.FirstOrDefault(f => f.FrameNumber == viewModel.CurrentFrame - 1);
             var pins = new List<Button> { pin1, pin2, pin3, pin4, pin5, pin6, pin7, pin8, pin9, pin10 };
             bool foul = true;
 
@@ -130,7 +134,7 @@ namespace Cellular
                 if (currentFrame.ShotOneBox == "X")
                 {
                     //Save the frame to the database
-                    await SaveFrameAsync(true);
+                    await SaveFrameAsync(true, false);
                     if(viewModel.CurrentFrame == 10)
                     {
                         ShotPageFrame frame = new ShotPageFrame(11);
@@ -145,17 +149,30 @@ namespace Cellular
                     {
                         viewModel.GameCompleted = true;
                     }
-                    viewModel.CurrentFrame++;
-                    viewModel.CurrentShot = 1;
+                    if(viewModel.GameCompleted != true)
+                    {
+                        viewModel.CurrentFrame++;
+                        viewModel.CurrentShot = 1;
+                    }
                 }
                 else
                 {
                     if (viewModel.CurrentFrame == 11)
                     {
+                        if (lastFrame.ShotTwoBox == "/")
+                        {
+                            viewModel.GameCompleted = true;
+                        }
+                    }
+                    if (viewModel.CurrentFrame == 12)
+                    {
                         viewModel.GameCompleted = true;
                     }
-                    await SaveFrameAsync(false);
-                    viewModel.CurrentShot++;
+                    await SaveFrameAsync(false, false);
+                    if (viewModel.GameCompleted != true)
+                    {
+                        viewModel.CurrentShot++;
+                    }
                 }
                 if (foul == true && viewModel.CurrentShot == 1)
                 {
@@ -183,11 +200,19 @@ namespace Cellular
                     int downedPinsSecondShot = GetDownedPinsForShot(2) - int.Parse(currentFrame.ShotOneBox);
                     currentFrame.ShotTwoBox = downedPinsSecondShot.ToString();
                 }
+                int downedPins = GetDownedPinsTotalFrame(viewModel.pinStates);
 
-                //Save the frame to the database
-                await SaveFrameAsync(false);
-                int downedPins = GetDownedPinsForFrame(viewModel.shot1PinStates, viewModel.pinStates);
-
+                //Save the frame to the database and pass false for strike and true/false for spare
+                if (downedPins == 10)
+                {
+                    await SaveFrameAsync(false, true);
+                    Debug.WriteLine("Frame is saved as a spare");
+                }
+                else
+                {
+                    await SaveFrameAsync(false, false);
+                    Debug.WriteLine("Frame is saved as neither");
+                }
                 if (currentFrame.ShotTwoBox == "/" && viewModel.CurrentFrame == 10)
                 {
                     ShotPageFrame frame = new ShotPageFrame(11);
@@ -198,15 +223,20 @@ namespace Cellular
                 {
                     viewModel.GameCompleted = true;
                 }
-                //Call these after saving the frame
-                viewModel.CurrentFrame++;
-                viewModel.CurrentShot = 1;
-                viewModel.pinStates = 0;
-                viewModel.firstShotId = -1;
-                viewModel.secondShotId = -1;
 
-                foreach (var pin in pins)
-                    pin.BackgroundColor = Colors.LightSlateGray;
+                //Call these after saving the frame
+                if(viewModel.GameCompleted != true)
+                {
+                    viewModel.CurrentFrame++;
+                    viewModel.CurrentShot = 1;
+                    viewModel.pinStates = 0;
+                    viewModel.firstShotId = -1;
+                    viewModel.secondShotId = -1;
+                    viewModel.lastFrameId = -1;
+
+                    foreach (var pin in pins)
+                        pin.BackgroundColor = Colors.LightSlateGray;
+                }
             }
             await UpdateScore();
             viewModel.OnPropertyChanged(nameof(viewModel.FrameDisplay));
@@ -249,7 +279,7 @@ namespace Cellular
         }
 
 
-        private int GetDownedPinsForFrame(short previousState, short currentState)
+        private int GetDownedPinsForFrameView(short previousState, short currentState)
         {
             int count = 0;
             for (int i = 0; i < 10; i++) // Only check first 10 bits
@@ -265,11 +295,26 @@ namespace Cellular
             return count;
         }
 
+        private int GetDownedPinsTotalFrame(short currentState)
+        {
+            int count = 0;
+            for (int i = 0; i < 10; i++) // Only check first 10 bits
+            {
+                int currPin = (currentState >> i) & 1;
+
+                if (currPin == 0) // Pin was up before and is now down
+                {
+                    count++;
+                }
+            }
+            return count;
+        }
+
         // Updates the shot boxes based on the number of downed pins
         private void UpdateShotBoxes()
         {
             var currentFrame = viewModel.Frames.FirstOrDefault(f => f.FrameNumber == viewModel.CurrentFrame);
-            if (currentFrame == null || viewModel.GameCompleted == true) return;
+            if (currentFrame == null) return;
 
             bool isFoul = (viewModel.pinStates & (1 << 10)) != 0; // 11th bit check (bit index 10)
             int downedPins = GetDownedPinsForShot(1); // Assume this method gets the current number of pins knocked down
@@ -304,7 +349,7 @@ namespace Cellular
                 }
                 else
                 {
-                    newlyDownedPins = GetDownedPinsForFrame(viewModel.shot1PinStates, viewModel.pinStates);
+                    newlyDownedPins = GetDownedPinsForFrameView(viewModel.shot1PinStates, viewModel.pinStates);
                 }
 
                 if (isFoul)
@@ -318,7 +363,7 @@ namespace Cellular
                 else
                 {
                     // Calculate how many pins were still standing before this shot
-                    int shotOnePins = 10 - GetDownedPinsForFrame(0b1111111111, viewModel.shot1PinStates);
+                    int shotOnePins = 10 - GetDownedPinsForFrameView(0b1111111111, viewModel.shot1PinStates);
                     int remainingPins = 10 - shotOnePins;
 
                     // Display "/" if all remaining pins were knocked down, otherwise show newly downed pins
@@ -481,7 +526,7 @@ namespace Cellular
             return shotId;
         }
 
-        private async Task SaveFrameAsync(bool strike)
+        private async Task SaveFrameAsync(bool strike, bool spare)
         {
             // Initialize repositories
             var database = new CellularDatabase();
@@ -492,6 +537,14 @@ namespace Cellular
             await gameRepository.InitAsync();
 
             BowlingFrame newFrame;
+            string result = null;
+
+            if (strike)
+            {
+                result = "strike";
+            } else if (spare) {
+                result = "spare";
+            }
 
             if (viewModel.CurrentShot.Equals(1))
             {
@@ -500,17 +553,18 @@ namespace Cellular
                 {
                     FrameNumber = viewModel.CurrentFrame,
                     Lane = null,
-                    Result = null,
+                    Result = result,
                     GameId = Preferences.Get("GameID", 0),
                     Shot1 = viewModel.firstShotId
                 };
+                Debug.WriteLine($"Result is a {result}");
             }
             else
             {
                 newFrame = await frameRepository.GetFrameById(viewModel.currentFrameId);
                 if (!strike && viewModel.CurrentShot == 2)
                 {
-                    if(newFrame != null)
+                    if (newFrame != null)
                     {
                         Debug.WriteLine("NOT NULL");
                         newFrame.Shot2 = viewModel.secondShotId;
@@ -526,6 +580,7 @@ namespace Cellular
             else
             {
                 await frameRepository.UpdateFrameAsync(newFrame);
+                viewModel.lastFrameId = newFrame.FrameId;
                 Debug.WriteLine($"Frame updated {newFrame.Shot1} and {newFrame.Shot2}");
             }
 
@@ -624,7 +679,7 @@ namespace Cellular
                         frameScore = 10 + bonusShots[0].Count + bonusShots[1].Count ?? 0;
                         totalScore += frameScore;
 
-                        if (i < viewModel.Frames.Count)
+                        if (i < 10)
                         {
                             var uiFrame = viewModel.Frames[i];
                             uiFrame.RollingScore = totalScore;
@@ -820,15 +875,24 @@ namespace Cellular
                                 viewModel.CurrentFrame++;
                                 viewModel.CurrentShot = 1;
                             }
-                            else if(shot1.Count == 0)
-                            {
-                                var pins = new List<Button> { pin1, pin2, pin3, pin4, pin5, pin6, pin7, pin8, pin9, pin10 };
-                                foreach (var pin in pins) pin.BackgroundColor = Color.FromArgb("#9880e5");
-                                viewModel.CurrentShot++;
-                            }
                             else
                             {
-                                viewModel.CurrentShot++;
+                                if (viewModel.CurrentFrame == 11)
+                                {
+                                    var lastFrame = viewModel.Frames.FirstOrDefault(f => f.FrameNumber == viewModel.CurrentFrame - 1);
+                                    if (lastFrame.ShotTwoBox == "/")
+                                    {
+                                        viewModel.GameCompleted = true;
+                                    }
+                                }
+                                if (viewModel.CurrentFrame == 12)
+                                {
+                                    viewModel.GameCompleted = true;
+                                }
+                                if(viewModel.GameCompleted != true)
+                                {
+                                    viewModel.CurrentShot++;
+                                }
                             }
 
                             viewModel.shot1PinStates = shot1?.LeaveType ?? 0;
@@ -848,12 +912,15 @@ namespace Cellular
                                 existingFrame.ShotTwoBox = downedPinsSecondShot.ToString();
                             }
 
-                            int downedPins = GetDownedPinsForFrame(viewModel.shot1PinStates, viewModel.pinStates);
+                            int downedPins = GetDownedPinsForFrameView(viewModel.shot1PinStates, viewModel.pinStates);
 
                             if (existingFrame.ShotTwoBox == "/" && viewModel.CurrentFrame == 10)
                             {
                                 ShotPageFrame newFrame = new ShotPageFrame(11);
                                 viewModel.Frames.Add(newFrame);
+                                viewModel.CurrentFrame ++;
+                                viewModel.CurrentShot = 1;
+
                             }
 
                             if ((viewModel.CurrentFrame == 10 && downedPins != 10) || viewModel.CurrentFrame == 11)
@@ -861,14 +928,19 @@ namespace Cellular
                                 viewModel.GameCompleted = true;
                             }
                             // Move to next frame and reset states
-                            viewModel.CurrentFrame++;
-                            viewModel.CurrentShot = 1;
-                            viewModel.pinStates &= unchecked((short)~0x03FF);
-                            viewModel.firstShotId = -1;
-                            viewModel.secondShotId = -1;
 
-                            foreach (var pin in new List<Button> { pin1, pin2, pin3, pin4, pin5, pin6, pin7, pin8, pin9, pin10 })
-                                pin.BackgroundColor = Colors.LightSlateGray;
+                            if(viewModel.GameCompleted != true)
+                            {
+                                viewModel.CurrentFrame++;
+                                viewModel.CurrentShot = 1;
+                                viewModel.pinStates &= unchecked((short)~0x03FF);
+                                viewModel.firstShotId = -1;
+                                viewModel.secondShotId = -1;
+                                viewModel.lastFrameId = -1;
+
+                                foreach (var pin in new List<Button> { pin1, pin2, pin3, pin4, pin5, pin6, pin7, pin8, pin9, pin10 })
+                                    pin.BackgroundColor = Colors.LightSlateGray;
+                            }
                         }
                     }
 

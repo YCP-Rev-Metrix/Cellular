@@ -26,10 +26,11 @@ namespace Cellular
             PopulateList();
         }
 
-        private async void OnGameClicked(object sender, EventArgs e,int gameID, int gameNumber)
+        private async void OnGameClicked(object sender, EventArgs e,int gameID, int gameNumber, string date)
         {
             Preferences.Set("GameNumber", gameNumber);
             Preferences.Set("GameID", gameID);
+            Preferences.Set("Date", date);
             await Navigation.PushAsync(new ShotPage());
         }
 
@@ -62,7 +63,8 @@ namespace Cellular
                     {
                         Debug.WriteLine("Added game to session list");
                         Button gamebutton = new Button { Text = "Game " + game.GameNumber.ToString() };
-                        gamebutton.Clicked += (sender, e) => OnGameClicked(sender, e, game.GameId, game?.GameNumber ?? 0);
+                        gamebutton.Clicked += (sender, e) => OnGameClicked(sender, e, game.GameId, game?.GameNumber ?? 0, session?.DateTime ?? null);
+                        Debug.WriteLine($"Date: {session?.DateTime ?? null}");
                         sessiongames.Children.Add(gamebutton);
                     }
 
