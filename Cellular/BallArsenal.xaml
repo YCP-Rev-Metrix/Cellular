@@ -61,10 +61,10 @@
 
                                     <!-- Labels -->
                                     <StackLayout Grid.Row="0" Grid.Column="0" Orientation="Vertical">
-                                        <Label Text="{Binding Name}" />
-                                        <Label Text="{Binding SerialNumber}" />
-                                        <Label Text="{Binding Weight}" />
-                                        <Label Text="{Binding Core}" />
+                                        <Label Text="{Binding Name} " TextColor="#000000" />
+                                        <Label Text="{Binding SerialNumber}" TextColor="#000000" />
+                                        <Label Text="{Binding Weight}" TextColor="#000000" />
+                                        <Label Text="{Binding Core}" TextColor="#000000"/>
                                     </StackLayout>
 
                                     <!-- Image -->
