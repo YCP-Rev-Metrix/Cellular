@@ -63,12 +63,12 @@ namespace Cellular
 
         private async void OnLoginClicked(object sender, EventArgs e)
         {
-            await Shell.Current.GoToAsync("//LoginPage");
+            await Navigation.PushAsync(new LoginPage());
         }
 
         private async void OnRegisterClicked(object sender, EventArgs e)
         {
-            await Shell.Current.GoToAsync("//RegisterPage");
+            await Navigation.PushAsync(new RegisterPage());
         }
 
 
@@ -88,32 +88,32 @@ namespace Cellular
 
         private async void OnArsenalClicked(object sender, EventArgs e)
         {
-            await Shell.Current.GoToAsync("//ballArsenal");
+            await Navigation.PushAsync(new BallArsenal());
         }
 
         private async void OnSessionListClicked(object sender, EventArgs e)
         {
-            await Shell.Current.GoToAsync("//sessionList");
+            await Navigation.PushAsync(new SessionList());
         }
 
         private async void OnBluetoothClicked(object sender, EventArgs e)
         {
-            await Shell.Current.GoToAsync("//bluetooth");
+            await Navigation.PushAsync(new Bluetooth());
         }
 
         private async void OnAccountClicked(object sender, EventArgs e)
         {
-            await Shell.Current.GoToAsync("//account");
+            await Navigation.PushAsync(new AccountPage());
         }
 
         private async void OnDataClicked(object sender, EventArgs e)
         {
-            await Shell.Current.GoToAsync("//dataPage");
+            await Navigation.PushAsync(new DataPage());
         }
 
         private async void OnAPIClicked(object sender, EventArgs e)
         {
-            await Shell.Current.GoToAsync("//apiPage");
+            await Navigation.PushAsync(new APItestPage());
         }
 
         public async Task SoftRefreshAsync()
