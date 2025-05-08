@@ -33,6 +33,7 @@ namespace Cellular
 
             // Update menu and navigate to Home after logging out
             ((AppShell)Shell.Current).UpdateMenuForLoginStatus(false);
+            Preferences.Default.Clear();
 
             await Shell.Current.GoToAsync("//MainPage");
         }

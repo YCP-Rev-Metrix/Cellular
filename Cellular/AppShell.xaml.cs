@@ -54,6 +54,7 @@ namespace Cellular
             UpdateMenuForLoginStatus(false);
             await Shell.Current.GoToAsync("//MainPage");
             await Task.Delay(100);
+            Preferences.Default.Clear();
 
             if (Shell.Current.CurrentPage is MainPage mainPage)
             {

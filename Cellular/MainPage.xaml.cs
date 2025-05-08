@@ -9,6 +9,7 @@ namespace Cellular
     public partial class MainPage : ContentPage
     {
         private bool isLoggedIn;
+        private int userId;
         private MainViewModel? viewModel;
         private UserRepository? _userRepository;
 
@@ -29,19 +30,7 @@ namespace Cellular
         {
             base.OnAppearing();
 
-            // Check login status
-            var isLoggedInValue = Preferences.Get("IsLoggedIn", false);
-            Debug.WriteLine($"Is the user logged in: {isLoggedIn}");
-            isLoggedIn = isLoggedInValue == true;
-            UpdateUI();
-
-            // Refresh the username or other necessary details
-            if (viewModel != null)
-            {
-                await viewModel.LoadUserData();
-                user.Text = viewModel.FirstName;
-                Debug.WriteLine("User's Hand: " + viewModel.Hand);
-            }
+            await SoftRefreshAsync();
         }
         private void UpdateUI()
         { 
@@ -78,9 +67,9 @@ namespace Cellular
            
             if (user != null)
             {
-                // Set preferences for guest login
+                Preferences.Set("UserId", user.UserId); // Store UserId properly
                 Preferences.Set("IsLoggedIn", true);
-                Preferences.Set("UserId", user.UserId);
+                Debug.WriteLine("This is the login page " + Preferences.Get("UserId", 0));
                 ((AppShell)Shell.Current).UpdateMenuForLoginStatus(true);
                 await SoftRefreshAsync();
             }
@@ -118,10 +107,14 @@ namespace Cellular
 
         public async Task SoftRefreshAsync()
         {
-            isLoggedIn = Preferences.Get("IsLoggedIn", false);
+            // Check login status
+            var isLoggedInValue = Preferences.Get("IsLoggedIn", false);
+            Debug.WriteLine($"Is the user logged in: {isLoggedIn}");
+            isLoggedIn = isLoggedInValue == true;
+            viewModel.UserID = Preferences.Get("UserId", -1);
             UpdateUI();
 
-            if (viewModel != null)
+            if (viewModel.UserID != -1)
             {
                 await viewModel.LoadUserData();
                 user.Text = viewModel.FirstName;
