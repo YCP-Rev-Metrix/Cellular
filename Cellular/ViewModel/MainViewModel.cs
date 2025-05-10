@@ -176,9 +176,9 @@ namespace Cellular.ViewModel
         {
             if (UserID == null)
             {
-                UserName = "Guest";
+                UserName = "Null";
                 Password = "N/A";
-                FirstName = "N/A";
+                FirstName = "N/A1";
                 LastName = "N/A";
                 Email = "N/A";
                 PhoneNumber = "N/A";
@@ -191,9 +191,9 @@ namespace Cellular.ViewModel
             if (user != null)
             {
                 UserID = user.UserId;
-                UserName = user.UserName ?? "Guest";
+                UserName = user.UserName ?? "Null2";
                 Password = user.PasswordHash ?? "N/A";
-                FirstName = user.FirstName ?? "N/A";
+                FirstName = user.FirstName ?? "N/A2";
                 LastName = user.LastName ?? "N/A";
                 Email = user.Email ?? "N/A";
                 PhoneNumber = user.PhoneNumber ?? "N/A";
@@ -204,7 +204,7 @@ namespace Cellular.ViewModel
                 UserID = null;
                 UserName = "Guest";
                 Password = "N/A";
-                FirstName = "N/A";
+                FirstName = "N/A3";
                 LastName = "N/A";
                 Email = "N/A";
                 PhoneNumber = "N/A";
