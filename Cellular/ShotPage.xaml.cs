@@ -131,25 +131,31 @@ namespace Cellular
                     viewModel.firstShotId = await SaveShotAsync(1);
 
                 ApplyPinColors(currentFrame);
-                if (currentFrame.ShotOneBox == "X")
+                if (viewModel.CurrentFrame == 12)
+                {
+                    viewModel.GameCompleted = true;
+                }else if (currentFrame.ShotOneBox == "X")
                 {
                     //Save the frame to the database
                     await SaveFrameAsync(true, false);
-                    if(viewModel.CurrentFrame == 10)
+                    if (viewModel.CurrentFrame == 10)
                     {
                         ShotPageFrame frame = new ShotPageFrame(11);
                         viewModel.Frames.Add(frame);
                     }
-                    if(viewModel.CurrentFrame == 11)
+                    if (viewModel.CurrentFrame == 11)
                     {
-                        ShotPageFrame frame = new ShotPageFrame(12);
-                        viewModel.Frames.Add(frame);
+                        if (lastFrame.ShotTwoBox == "/")
+                        {
+                            viewModel.GameCompleted = true;
+                        }
+                        else
+                        {
+                            ShotPageFrame frame = new ShotPageFrame(12);
+                            viewModel.Frames.Add(frame);
+                        }
                     }
-                    if(viewModel.CurrentFrame == 12)
-                    {
-                        viewModel.GameCompleted = true;
-                    }
-                    if(viewModel.GameCompleted != true)
+                    if (viewModel.GameCompleted != true)
                     {
                         viewModel.CurrentFrame++;
                         viewModel.CurrentShot = 1;
@@ -157,17 +163,6 @@ namespace Cellular
                 }
                 else
                 {
-                    if (viewModel.CurrentFrame == 11)
-                    {
-                        if (lastFrame.ShotTwoBox == "/")
-                        {
-                            viewModel.GameCompleted = true;
-                        }
-                    }
-                    if (viewModel.CurrentFrame == 12)
-                    {
-                        viewModel.GameCompleted = true;
-                    }
                     await SaveFrameAsync(false, false);
                     if (viewModel.GameCompleted != true)
                     {
@@ -676,6 +671,7 @@ namespace Cellular
                     // Only compute frameScore if we have enough bonus shots
                     if (bonusShots.Count >= 2)
                     {
+                        Debug.WriteLine($"Bonus shot 1: {bonusShots[0].Count} and bonus shot 2: {bonusShots[1].Count}");
                         frameScore = 10 + bonusShots[0].Count + bonusShots[1].Count ?? 0;
                         totalScore += frameScore;
 
@@ -695,25 +691,7 @@ namespace Cellular
 
                 else if (isSpare)
                 {
-                    // Special case: Frame 10 was a spare, so frame 11 contains the bonus shot
-                    if (frame.FrameNumber == 11)
-                    {
-                        Shot bonus = shot1;
-
-                        if (bonus != null)
-                        {
-                            if (viewModel.Frames.Count >= 10)
-                            {
-                                var frame10 = viewModel.Frames[9];
-                                frame10.RollingScore += (bonus?.Count ?? 0);
-                                frame10.OnPropertyChanged(nameof(frame10.RollingScore));
-                            }
-
-                            totalScore += (bonus?.Count ?? 0);
-                        }
-                    }
-                    // Regular spare logic
-                    else if (i + 1 < frames.Count)
+                    if (i + 1 < frames.Count)
                     {
                         var nextFrame = frames[i + 1];
                         Shot bonus = null;
@@ -855,7 +833,11 @@ namespace Cellular
                             UpdateShotBoxes();
                             ApplyPinColors(existingFrame);
 
-                            if (existingFrame.ShotOneBox.Equals("X"))
+                            if (viewModel.CurrentFrame == 12)
+                            {
+                                viewModel.GameCompleted = true;
+                            }
+                            else if (existingFrame.ShotOneBox.Equals("X"))
                             {
                                 if (viewModel.CurrentFrame == 10)
                                 {
@@ -864,41 +846,33 @@ namespace Cellular
                                 }
                                 if (viewModel.CurrentFrame == 11)
                                 {
-                                    ShotPageFrame newFrame = new ShotPageFrame(12);
-                                    viewModel.Frames.Add(newFrame);
-                                }
-                                if (viewModel.CurrentFrame == 12)
-                                {
-                                    viewModel.GameCompleted = true;
-                                }
-                                // Update frame for strike
-                                viewModel.CurrentFrame++;
-                                viewModel.CurrentShot = 1;
-                            }
-                            else
-                            {
-                                if (viewModel.CurrentFrame == 11)
-                                {
                                     var lastFrame = viewModel.Frames.FirstOrDefault(f => f.FrameNumber == viewModel.CurrentFrame - 1);
                                     if (lastFrame.ShotTwoBox == "/")
                                     {
                                         viewModel.GameCompleted = true;
                                     }
+                                    else
+                                    {
+                                        ShotPageFrame newFrame = new ShotPageFrame(12);
+                                        viewModel.Frames.Add(newFrame);
+                                    }
                                 }
-                                if (viewModel.CurrentFrame == 12)
+                                if (viewModel.GameCompleted != true)
                                 {
-                                    viewModel.GameCompleted = true;
+                                    viewModel.CurrentFrame++;
+                                    viewModel.CurrentShot = 1;
                                 }
-                                if(viewModel.GameCompleted != true)
+                            }
+                            else
+                            {
+                                if (viewModel.GameCompleted != true)
                                 {
                                     viewModel.CurrentShot++;
                                 }
                             }
-
-                            viewModel.shot1PinStates = shot1?.LeaveType ?? 0;
-                            ReloadButtonColors();
+                            viewModel.shot1PinStates = viewModel.pinStates;
+                            viewModel.pinStates &= unchecked((short)~0x03FF);
                         }
-
                         // Process shot 2
                         if (shot2 != null)
                         {
