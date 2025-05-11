@@ -870,6 +870,7 @@ namespace Cellular
                                     viewModel.CurrentShot++;
                                 }
                             }
+                            ReloadButtonColors();
                             viewModel.shot1PinStates = viewModel.pinStates;
                             viewModel.pinStates &= unchecked((short)~0x03FF);
                         }
