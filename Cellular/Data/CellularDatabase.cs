@@ -351,8 +351,6 @@ namespace Cellular.Data
         }
 
         public SQLiteAsyncConnection GetConnection() => _database;
-
-        public UserRepository CreateUserRepository() => new(_database);
     }
 }
 
