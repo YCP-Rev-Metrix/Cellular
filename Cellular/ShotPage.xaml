@@ -23,7 +23,7 @@
 
                 <Grid.ColumnDefinitions>
                     <!-- Left Column with fixed width -->
-                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto"/>
                     <!-- Center column with responsive width -->
                     <ColumnDefinition Width="*" />
                     <!-- Right Column with fixed width -->
@@ -34,15 +34,16 @@
                 <StackLayout Grid.Row="0" Grid.Column="1" HorizontalOptions="Center" Padding="0, -10, 0, 30">
                     <CollectionView x:Name="FramesCollectionView" ItemsSource="{Binding Frames}"
                            HorizontalScrollBarVisibility="Always"
+                           HeightRequest = "135"
                            VerticalScrollBarVisibility="Never">
                         <CollectionView.ItemsLayout>
-                            <LinearItemsLayout Orientation="Horizontal" />
+                            <LinearItemsLayout Orientation="Horizontal"  />
                         </CollectionView.ItemsLayout>
                         <CollectionView.ItemTemplate>
                             <DataTemplate x:DataType="local:ShotPageFrame">
                                 <Border Stroke="DarkGray" StrokeThickness="1" Padding="0"
-                                    BackgroundColor="White" Height="135" Width="80" MaximumHeightRequest="135">
-                                    <StackLayout VerticalOptions="Center" HorizontalOptions="Center" Padding="0">
+                                    BackgroundColor="White" Width="80">
+                                    <StackLayout VerticalOptions="Center" HorizontalOptions="Center" Padding="0" HeightRequest="135">
                                         <!-- Frame Numbers -->
                                         <StackLayout Background="Gray">
                                             <Label Text="{Binding FrameNumber, StringFormat='{0}'}"
