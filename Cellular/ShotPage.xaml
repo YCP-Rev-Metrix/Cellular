@@ -42,8 +42,8 @@
                         <CollectionView.ItemTemplate>
                             <DataTemplate x:DataType="local:ShotPageFrame">
                                 <Border Stroke="DarkGray" StrokeThickness="1" Padding="0"
-                                    BackgroundColor="White" Width="80">
-                                    <StackLayout VerticalOptions="Center" HorizontalOptions="Center" Padding="0" HeightRequest="135">
+                                    BackgroundColor="White" WidthRequest="80">
+                                    <StackLayout VerticalOptions="Center" HorizontalOptions="Center" Padding="0" HeightRequest="135" WidthRequest="80">
                                         <!-- Frame Numbers -->
                                         <StackLayout Background="Gray">
                                             <Label Text="{Binding FrameNumber, StringFormat='{0}'}"

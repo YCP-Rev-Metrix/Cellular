@@ -112,12 +112,10 @@ namespace Cellular
             var frameRepository = new FrameRepository(new CellularDatabase().GetConnection());
             await frameRepository.InitAsync();
             var currentFrame = viewModel.Frames.FirstOrDefault(f => f.FrameNumber == viewModel.CurrentFrame);
-            var lastFrame = viewModel.Frames.FirstOrDefault(f => f.FrameNumber == viewModel.CurrentFrame - 1);
             var pins = new List<Button> { pin1, pin2, pin3, pin4, pin5, pin6, pin7, pin8, pin9, pin10 };
             bool foul = true;
 
-            if (currentFrame == null || viewModel.GameCompleted == true) return;
-            if (viewModel.CurrentFrame > 12) return;
+            if (currentFrame == null || viewModel.GameCompleted == true || viewModel.CurrentFrame > 12) return;
 
             if (viewModel.CurrentShot.Equals(1))
             {
@@ -127,17 +125,18 @@ namespace Cellular
                     viewModel.pinStates |= (short)(0 << 10); // Make sure the bit is saved as a 0 if foul was selected and no longer is
                     foul = false;
                 }
-                    //Save shot to DB
-                    viewModel.firstShotId = await SaveShotAsync(1);
+                //Save shot to DB
+                viewModel.firstShotId = await SaveShotAsync(1);
 
                 ApplyPinColors(currentFrame);
-                if (viewModel.CurrentFrame == 12)
-                {
-                    viewModel.GameCompleted = true;
-                }else if (currentFrame.ShotOneBox == "X")
+
+                SetIsGameOver(); //Check if the game is over
+
+                if (currentFrame.ShotOneBox == "X")
                 {
                     //Save the frame to the database
                     await SaveFrameAsync(true, false);
+
                     if (viewModel.CurrentFrame == 10)
                     {
                         ShotPageFrame frame = new ShotPageFrame(11);
@@ -145,17 +144,10 @@ namespace Cellular
                     }
                     if (viewModel.CurrentFrame == 11)
                     {
-                        if (lastFrame.ShotTwoBox == "/")
-                        {
-                            viewModel.GameCompleted = true;
-                        }
-                        else
-                        {
-                            ShotPageFrame frame = new ShotPageFrame(12);
-                            viewModel.Frames.Add(frame);
-                        }
+                        ShotPageFrame frame = new ShotPageFrame(12);
+                        viewModel.Frames.Add(frame);
                     }
-                    if (viewModel.GameCompleted != true)
+                    if (viewModel.GameCompleted == false)
                     {
                         viewModel.CurrentFrame++;
                         viewModel.CurrentShot = 1;
@@ -164,7 +156,7 @@ namespace Cellular
                 else
                 {
                     await SaveFrameAsync(false, false);
-                    if (viewModel.GameCompleted != true)
+                    if (viewModel.GameCompleted == false)
                     {
                         viewModel.CurrentShot++;
                     }
@@ -214,13 +206,10 @@ namespace Cellular
                     viewModel.Frames.Add(frame);
                 }
 
-                if ((viewModel.CurrentFrame == 10 && currentFrame.ShotTwoBox != "/") || viewModel.CurrentFrame == 11)
-                {
-                    viewModel.GameCompleted = true;
-                }
+                SetIsGameOver(); //Check if the game is over
 
                 //Call these after saving the frame
-                if(viewModel.GameCompleted != true)
+                if (viewModel.GameCompleted != true)
                 {
                     viewModel.CurrentFrame++;
                     viewModel.CurrentShot = 1;
@@ -238,6 +227,41 @@ namespace Cellular
             currentFrame.OnPropertyChanged(nameof(currentFrame.CenterPinColors));
             currentFrame.OnPropertyChanged(nameof(currentFrame.PinColors));
             viewModel.OnPropertyChanged(nameof(viewModel.Frames));
+        }
+
+        //Check if game is over
+        private void SetIsGameOver()
+        {
+            var currentFrame = viewModel.Frames.FirstOrDefault(f => f.FrameNumber == viewModel.CurrentFrame);
+            var lastFrame = viewModel.Frames.FirstOrDefault(f => f.FrameNumber == viewModel.CurrentFrame - 1);
+            if (viewModel.CurrentFrame == 10)
+            {
+                if (currentFrame.ShotOneBox != "X")
+                {
+                    if (currentFrame.ShotTwoBox != "/" && viewModel.CurrentShot == 2)
+                    {
+                        viewModel.GameCompleted = true;
+                        Debug.WriteLine("Game is now over");
+                    }
+                }
+            }
+            else if (viewModel.CurrentFrame == 11)
+            {
+                if (lastFrame.ShotTwoBox == "/" && viewModel.CurrentShot == 1)
+                {
+                    viewModel.GameCompleted = true;
+                    Debug.WriteLine("Game is now over");
+                }
+                else if(viewModel.CurrentShot == 2)
+                {
+                    viewModel.GameCompleted = true;
+                }
+            }
+            else if (viewModel.CurrentFrame == 12)
+            {
+                viewModel.GameCompleted = true;
+                Debug.WriteLine("Game is now over");
+            }
         }
 
         // Counts the number of downed pins based on pinStates
@@ -512,7 +536,8 @@ namespace Cellular
                 LeaveType = viewModel.pinStates,
                 Side = null,
                 Position = null,
-                Frame = viewModel.CurrentFrame
+                Frame = viewModel.CurrentFrame,
+                Comment = null
             };
 
             Debug.WriteLine($"Saving Shot: Frame {newShot.Frame}, Shot {newShot.ShotNumber}, Pins Down {newShot.Count}");
@@ -832,12 +857,9 @@ namespace Cellular
                             viewModel.pinStates = shot1?.LeaveType ?? 0;
                             UpdateShotBoxes();
                             ApplyPinColors(existingFrame);
-
-                            if (viewModel.CurrentFrame == 12)
-                            {
-                                viewModel.GameCompleted = true;
-                            }
-                            else if (existingFrame.ShotOneBox.Equals("X"))
+                            SetIsGameOver(); //Check if the game is over
+                       
+                            if (existingFrame.ShotOneBox.Equals("X"))
                             {
                                 if (viewModel.CurrentFrame == 10)
                                 {
@@ -846,22 +868,15 @@ namespace Cellular
                                 }
                                 if (viewModel.CurrentFrame == 11)
                                 {
-                                    var lastFrame = viewModel.Frames.FirstOrDefault(f => f.FrameNumber == viewModel.CurrentFrame - 1);
-                                    if (lastFrame.ShotTwoBox == "/")
-                                    {
-                                        viewModel.GameCompleted = true;
-                                    }
-                                    else
-                                    {
-                                        ShotPageFrame newFrame = new ShotPageFrame(12);
-                                        viewModel.Frames.Add(newFrame);
-                                    }
+                                    ShotPageFrame newFrame = new ShotPageFrame(12);
+                                    viewModel.Frames.Add(newFrame);
                                 }
-                                if (viewModel.GameCompleted != true)
+                                if (viewModel.GameCompleted != true && viewModel.CurrentFrame < viewModel.Frames.Count)
                                 {
                                     viewModel.CurrentFrame++;
                                     viewModel.CurrentShot = 1;
                                 }
+
                             }
                             else
                             {
@@ -880,6 +895,7 @@ namespace Cellular
                             viewModel.pinStates = shot2?.LeaveType ?? 0;
                             ApplySecondShotColors(existingFrame);
                             UpdateShotBoxes();
+                            SetIsGameOver(); //Check if the game is over
 
                             if (string.IsNullOrEmpty(existingFrame.ShotTwoBox))
                             {
@@ -893,18 +909,10 @@ namespace Cellular
                             {
                                 ShotPageFrame newFrame = new ShotPageFrame(11);
                                 viewModel.Frames.Add(newFrame);
-                                viewModel.CurrentFrame ++;
-                                viewModel.CurrentShot = 1;
-
                             }
 
-                            if ((viewModel.CurrentFrame == 10 && downedPins != 10) || viewModel.CurrentFrame == 11)
-                            {
-                                viewModel.GameCompleted = true;
-                            }
                             // Move to next frame and reset states
-
-                            if(viewModel.GameCompleted != true)
+                            if (viewModel.GameCompleted != true)
                             {
                                 viewModel.CurrentFrame++;
                                 viewModel.CurrentShot = 1;
