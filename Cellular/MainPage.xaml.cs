@@ -43,6 +43,7 @@ namespace Cellular
             user.IsVisible = isLoggedIn;
             arsenal.IsVisible = isLoggedIn;
             bluetooth.IsVisible = isLoggedIn;
+            video.IsVisible = isLoggedIn;
             account.IsVisible = isLoggedIn;
             SessionList.IsVisible = isLoggedIn;
             data.IsVisible = isLoggedIn;
@@ -88,6 +89,11 @@ namespace Cellular
         private async void OnBluetoothClicked(object sender, EventArgs e)
         {
             await Navigation.PushAsync(new Bluetooth());
+        }
+
+        private async void OnVideoClicked(object sender, EventArgs e)
+        {
+            await Navigation.PushAsync(new Video());
         }
 
         private async void OnAccountClicked(object sender, EventArgs e)
