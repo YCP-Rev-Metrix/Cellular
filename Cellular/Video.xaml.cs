@@ -1,8 +1,10 @@
-﻿using System;
-using System.IO;
-using Camera.MAUI;
+﻿using Camera.MAUI;
+using CommunityToolkit.Maui;
+using CommunityToolkit.Maui.Storage;
 using Microsoft.Maui.Controls;
 using Microsoft.Maui.Storage;
+using System;
+using System.IO;
 
 namespace Cellular
 {
@@ -51,7 +53,7 @@ namespace Cellular
                     //Delay is placed here so that the camera goes to the correct resolution
                     await Task.Delay(100);
 
-                    // Start the camera preview now
+                    // Start the camera preview
                     await cameraView.StartCameraAsync(previewResolution);
                 });
             }
@@ -59,6 +61,7 @@ namespace Cellular
 
         private async void OnRecordClicked(object sender, EventArgs e)
         {
+            // 1. Check if the camera is ready
             if (!isCameraStarted)
             {
                 await DisplayAlert("Error", "Camera is not yet ready.", "OK");
@@ -67,15 +70,22 @@ namespace Cellular
 
             if (!isRecording)
             {
-                // Start Recording
                 try
                 {
+                    // Update state and UI first
                     isRecording = true;
                     Record.Text = "Stop";
-                    Record.BackgroundColor = Colors.Red; //Make button red for recording
+                    Record.BackgroundColor = Colors.Red; // Make button red for recording
 
-                    // Define where to save the video. We use the cache directory.
-                    currentVideoPath = Path.Combine(FileSystem.CacheDirectory, $"{Guid.NewGuid()}.mp4");
+                    // Define where to save the video
+                    string targetFolder = Path.Combine(FileSystem.AppDataDirectory, "MyVideos");
+
+                    // Create the directory if it doesn't exist
+                    Directory.CreateDirectory(targetFolder);
+
+                    // Create a unique filename and the full path
+                    string fileName = $"rm_{DateTime.Now:yyyyMMdd_HHmmss}.mp4";
+                    currentVideoPath = Path.Combine(targetFolder, fileName);
 
                     // Start recording
                     await cameraView.StartRecordingAsync(currentVideoPath);
@@ -83,26 +93,61 @@ namespace Cellular
                 catch (Exception ex)
                 {
                     await DisplayAlert("Error", $"Failed to start recording: {ex.Message}", "OK");
-                    isRecording = false; // Reset button state
+
+                    // Reset button state
+                    isRecording = false;
                     Record.Text = "Record";
-                    Record.BackgroundColor = Colors.Red;
+                    Record.BackgroundColor = Color.FromArgb("#9880e5");
                 }
             }
             else
             {
-                // Stop Recording
                 try
                 {
+                    // Update state and UI
                     isRecording = false;
                     Record.Text = "Record";
-                    Record.BackgroundColor = Colors.Red;
+                    Record.BackgroundColor = Color.FromArgb("#9880e5");
 
                     // Stop recording
                     CameraResult result = await cameraView.StopRecordingAsync();
 
                     if (result == CameraResult.Success)
                     {
-                        await DisplayAlert("Success", $"Video saved to: {currentVideoPath}", "OK");
+                        if (File.Exists(currentVideoPath))
+                        {
+                            try
+                            {
+                                using var videoStream = File.OpenRead(currentVideoPath);
+
+                                string fileName = Path.GetFileName(currentVideoPath);
+
+                                string initialPath = App.LastSavePath;
+
+                                var saveResult = await FileSaver.Default.SaveAsync(initialPath, fileName, videoStream, CancellationToken.None);
+
+                                if (saveResult.IsSuccessful)
+                                {
+                                    App.LastSavePath = Path.GetDirectoryName(saveResult.FilePath);
+
+                                    await DisplayAlert("Success", $"Video saved to: {saveResult.FilePath}", "OK");
+
+                                    File.Delete(currentVideoPath);
+                                }
+                                else
+                                {
+                                    await DisplayAlert("Error", $"Failed to save to gallery: {saveResult.Exception?.Message}", "OK");
+                                }
+                            }
+                            catch (Exception saveEx)
+                            {
+                                await DisplayAlert("Error", $"Error preparing to save: {saveEx.Message}", "OK");
+                            }
+                        }
+                        else
+                        {
+                            await DisplayAlert("Error", "Could not find the recorded video file to save.", "OK");
+                        }
                     }
                     else
                     {

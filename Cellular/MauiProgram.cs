@@ -11,11 +11,11 @@ namespace Cellular
         public static MauiApp CreateMauiApp()
         {
             var builder = MauiApp.CreateBuilder();
-            builder.UseMauiApp<App>().UseMauiCameraView().ConfigureFonts(fonts =>
+            builder.UseMauiApp<App>().UseMauiCameraView().UseMauiCommunityToolkit().ConfigureFonts(fonts =>
             {
                 fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
                 fonts.AddFont("OpenSans-Semibold.ttf", "OpenSansSemibold");
-            }).UseMauiCommunityToolkit();
+            });
             // Register services with dependency injection (DI)
             builder.Services.AddSingleton<CellularDatabase>(); // Register CellularDatabase as a Singleton
             builder.Services.AddSingleton<UserRepository>();

@@ -6,6 +6,7 @@ namespace Cellular
     public partial class App : Application
     {
         public static string LoggedInUserName { get; set; } = "Guest"; // Default name
+        private const string LastSavePathKey = "last_save_path"; // Video save path
 
         public App()
         {
@@ -24,5 +25,10 @@ namespace Cellular
             Preferences.Set("IsLoggedIn", false);
         }
 
+        public static string LastSavePath
+        {
+            get => Preferences.Get(LastSavePathKey, string.Empty);
+            set => Preferences.Set(LastSavePathKey, value);
+        }
     }
 }
