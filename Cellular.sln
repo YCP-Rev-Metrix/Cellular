@@ -7,6 +7,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Cellular", "Cellular\Cellul
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CellularUnitTests", "CellularUnitTests\CellularUnitTests.csproj", "{8F6CC3D1-1274-453C-8BCD-25F128499847}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CellularCore", "CellularCore\CellularCore.csproj", "{C8F8851E-FC9D-4441-B020-D04C85C9A158}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -22,8 +24,15 @@ Global
 		{8F6CC3D1-1274-453C-8BCD-25F128499847}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{8F6CC3D1-1274-453C-8BCD-25F128499847}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{8F6CC3D1-1274-453C-8BCD-25F128499847}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C8F8851E-FC9D-4441-B020-D04C85C9A158}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C8F8851E-FC9D-4441-B020-D04C85C9A158}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C8F8851E-FC9D-4441-B020-D04C85C9A158}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C8F8851E-FC9D-4441-B020-D04C85C9A158}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {42535DE7-B638-45F3-967C-395C9E8D0A02}
 	EndGlobalSection
 EndGlobal

@@ -3,6 +3,7 @@ using Microsoft.Maui.Storage;
 using Cellular.ViewModel;
 using System.Diagnostics;
 using Cellular.Data;
+using CellularCore;
 using SQLitePCL;
 using Microsoft.Maui.Controls;
 using System.Collections.Generic;
@@ -267,66 +268,20 @@ namespace Cellular
         // Counts the number of downed pins based on pinStates
         private int GetDownedPinsForShot(int shotNumber)
         {
-            int count = 0;
-            short pinStates = viewModel.pinStates;
-            short shot1PinStates = viewModel.shot1PinStates;
-
-            if (shotNumber == 1)
-            {
-                // Count pins that are down (bit is 0)
-                for (int i = 0; i < 10; i++)
-                {
-                    if ((pinStates & (1 << i)) == 0) count++;
-                }
-            }
-            else
-            {
-                // Count newly downed pins: were up in shot1, but now down
-                for (int i = 0; i < 10; i++)
-                {
-                    bool wasStanding = (shot1PinStates & (1 << i)) != 0;
-                    bool isNowDown = (pinStates & (1 << i)) == 0;
-
-                    if (wasStanding && isNowDown)
-                    {
-                        count++;
-                    }
-                }
-            }
-
-            return count;
+            // Delegate to ShotCalculator to make logic testable
+            return ShotCalculator.GetDownedPinsForShot(viewModel.pinStates, viewModel.shot1PinStates, shotNumber);
         }
-
 
         private int GetDownedPinsForFrameView(short previousState, short currentState)
         {
-            int count = 0;
-            for (int i = 0; i < 10; i++) // Only check first 10 bits
-            {
-                int prevPin = (previousState >> i) & 1;
-                int currPin = (currentState >> i) & 1;
-
-                if (prevPin == 1 && currPin == 0) // Pin was up before and is now down
-                {
-                    count++;
-                }
-            }
-            return count;
+            // Delegate to ShotCalculator
+            return ShotCalculator.GetDownedPinsForFrameView(previousState, currentState);
         }
 
         private int GetDownedPinsTotalFrame(short currentState)
         {
-            int count = 0;
-            for (int i = 0; i < 10; i++) // Only check first 10 bits
-            {
-                int currPin = (currentState >> i) & 1;
-
-                if (currPin == 0) // Pin was up before and is now down
-                {
-                    count++;
-                }
-            }
-            return count;
+            // Delegate to ShotCalculator
+            return ShotCalculator.GetDownedPinsTotalFrame(currentState);
         }
 
         // Updates the shot boxes based on the number of downed pins

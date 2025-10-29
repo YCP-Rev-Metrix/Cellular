@@ -143,6 +143,10 @@
 	</ItemGroup>
 
 	<ItemGroup>
+	  <ProjectReference Include="..\CellularCore\CellularCore.csproj" />
+	</ItemGroup>
+
+	<ItemGroup>
 		<Compile Update="ClickerPage.xaml.cs">
 			<DependentUpon>ClickerPage.xaml</DependentUpon>
 		</Compile>
