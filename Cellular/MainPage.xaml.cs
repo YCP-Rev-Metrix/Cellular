@@ -48,7 +48,7 @@ namespace Cellular
             SessionList.IsVisible = isLoggedIn;
             data.IsVisible = isLoggedIn;
             API.IsVisible = isLoggedIn;
-
+            BlankPage.IsVisible = isLoggedIn;
         }
 
         private async void OnLoginClicked(object sender, EventArgs e)
@@ -109,6 +109,10 @@ namespace Cellular
         private async void OnAPIClicked(object sender, EventArgs e)
         {
             await Navigation.PushAsync(new APItestPage());
+        }
+        private async void OnBlankPageClicked(object sender, EventArgs e)
+        {
+            await Navigation.PushAsync(new BlankPage());
         }
 
         public async Task SoftRefreshAsync()
