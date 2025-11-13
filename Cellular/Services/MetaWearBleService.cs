@@ -11,6 +11,7 @@ namespace Cellular.Services
     /// <summary>
     /// BLE-based implementation of IMetaWearService using Plugin.BLE
     /// This implements the MetaWear protocol directly via BLE GATT
+    /// Assume this is cross-platform if not stated otherwise
     /// </summary>
     public class MetaWearBleService : IMetaWearService
     {
@@ -104,17 +105,17 @@ namespace Cellular.Services
             {
                 System.Diagnostics.Debug.WriteLine($"Connecting to device: {_device.Name} ({_device.Id})");
                 
-                // Connect to device (cross-platform)
+                // Connect to device 
                 // Plugin.BLE handles platform differences automatically
                 // Don't rely on DeviceState enum - just connect and verify by accessing services
                 await _adapter.ConnectToDeviceAsync(_device);
                 
                 System.Diagnostics.Debug.WriteLine("Device connected, waiting for services to stabilize...");
                 
-                // Wait a bit for connection to stabilize (cross-platform)
+                // Wait a bit for connection to stabilize 
                 await Task.Delay(1000); // Increased delay for service discovery
 
-                // Discover services (cross-platform) - this will fail if not connected
+                // Discover services - this will fail if not connected
                 System.Diagnostics.Debug.WriteLine("Discovering services...");
                 var services = await _device.GetServicesAsync();
                 
@@ -138,7 +139,7 @@ namespace Cellular.Services
 
                 System.Diagnostics.Debug.WriteLine($"MetaWear service found: {_metaWearService.Id}");
 
-                // Get characteristics (cross-platform)
+                // Get characteristics 
                 System.Diagnostics.Debug.WriteLine("Discovering characteristics...");
                 var characteristics = await _metaWearService.GetCharacteristicsAsync();
                 
@@ -179,7 +180,7 @@ namespace Cellular.Services
                 System.Diagnostics.Debug.WriteLine($"  Command: {_commandCharacteristic.Id}");
                 System.Diagnostics.Debug.WriteLine($"  Notification: {_notificationCharacteristic.Id}");
 
-                // Enable notifications (cross-platform)
+                // Enable notifications 
                 System.Diagnostics.Debug.WriteLine("Enabling notifications...");
                 await _notificationCharacteristic.StartUpdatesAsync();
                 _notificationCharacteristic.ValueUpdated += OnNotificationReceived;
@@ -203,7 +204,7 @@ namespace Cellular.Services
         {
             try
             {
-                // Stop notifications first (cross-platform)
+                // Stop notifications first 
                 if (_notificationCharacteristic != null)
                 {
                     _notificationCharacteristic.ValueUpdated -= OnNotificationReceived;
@@ -217,7 +218,7 @@ namespace Cellular.Services
                     }
                 }
 
-                // Disconnect device (cross-platform)
+                // Disconnect device 
                 if (_device != null && _isDeviceConnected)
                 {
                     try
@@ -248,8 +249,7 @@ namespace Cellular.Services
 
         private void OnNotificationReceived(object? sender, Plugin.BLE.Abstractions.EventArgs.CharacteristicUpdatedEventArgs e)
         {
-            // Get data from characteristic value (cross-platform)
-            // Characteristic.Value is byte[] property in Plugin.BLE
+            // Get data from characteristic value 
             byte[]? data = e.Characteristic.Value;
             if (data == null || data.Length < 2)
                 return;
@@ -277,7 +277,6 @@ namespace Cellular.Services
                 return;
 
             // Parse accelerometer data (typically 3-axis, 16-bit signed integers)
-            // This is a simplified parser - actual format depends on MetaWear configuration
             short x = BitConverter.ToInt16(data, 2);
             short y = BitConverter.ToInt16(data, 4);
             short z = BitConverter.ToInt16(data, 6);
@@ -333,14 +332,13 @@ namespace Cellular.Services
                 // This is a simplified implementation - actual commands depend on MetaWear API
                 
                 // Configure accelerometer range and sample rate
-                // Note: These are example commands - you'll need to reference MetaWear API docs
                 byte[] configCommand = new byte[]
                 {
                     0x03, 0x03, // Module ID, Register ID
                     0x00,       // Configuration bytes (simplified)
                 };
 
-                // Write command (cross-platform)
+                // Write command 
                 await _commandCharacteristic.WriteAsync(configCommand);
                 _accelerometerActive = true;
             }
@@ -358,7 +356,7 @@ namespace Cellular.Services
 
             try
             {
-                // Stop accelerometer (cross-platform)
+                // Stop accelerometer 
                 byte[] stopCommand = new byte[] { 0x03, 0x01 }; // Module ID, Stop command
                 await _commandCharacteristic.WriteAsync(stopCommand);
                 _accelerometerActive = false;
@@ -384,10 +382,10 @@ namespace Cellular.Services
                 byte[] configCommand = new byte[]
                 {
                     0x13, 0x03, // Module ID, Register ID
-                    0x00,       // Configuration bytes (simplified)
+                    0x00,       // Configuration bytes 
                 };
 
-                // Write command (cross-platform)
+                // Write command 
                 await _commandCharacteristic.WriteAsync(configCommand);
                 _gyroscopeActive = true;
             }
@@ -405,7 +403,7 @@ namespace Cellular.Services
 
             try
             {
-                // Stop gyroscope (cross-platform)
+                // Stop gyroscope 
                 byte[] stopCommand = new byte[] { 0x13, 0x01 }; // Module ID, Stop command
                 await _commandCharacteristic.WriteAsync(stopCommand);
                 _gyroscopeActive = false;
@@ -504,7 +502,7 @@ namespace Cellular.Services
 
             try
             {
-                // MetaWear reset command (cross-platform)
+                // MetaWear reset command 
                 byte[] resetCommand = new byte[] { 0x0F, 0x0A }; // System module, Reset command
                 await _commandCharacteristic.WriteAsync(resetCommand);
             }
