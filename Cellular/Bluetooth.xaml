@@ -18,12 +18,160 @@
                 Style="{StaticResource Headline}"
                 SemanticProperties.HeadingLevel="Level1" />
 
+            <Label
+                x:Name="StatusLabel"
+                Text="Ready to scan"
+                FontSize="16"
+                TextColor="Gray" />
+
+            <!-- Scan Button -->
             <Button
-                x:Name="addDevice"
-                Text="Add Device" 
-                SemanticProperties.Hint="Adds a device"
-                Clicked="OnAddClicked"
-                HorizontalOptions="Fill" /> 
+                x:Name="ScanButton"
+                Text="Scan"
+                Clicked="OnScanClicked"
+                HorizontalOptions="Fill" />
+
+            <!-- Device List -->
+            <Label
+                Text="Available Devices:"
+                FontSize="18"
+                FontAttributes="Bold" />
+
+            <CollectionView
+                x:Name="DeviceListView"
+                ItemsSource="{Binding Devices}"
+                SelectionMode="Single">
+                <CollectionView.ItemTemplate>
+                    <DataTemplate>
+                        <Grid Padding="10">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            
+                            <Label
+                                Grid.Row="0"
+                                Grid.Column="0"
+                                Text="{Binding Name}"
+                                FontSize="16"
+                                FontAttributes="Bold" />
+                            
+                            <Label
+                                Grid.Row="1"
+                                Grid.Column="0"
+                                Text="{Binding Id}"
+                                FontSize="12"
+                                TextColor="Gray" />
+                            
+                            <Label
+                                Grid.Row="0"
+                                Grid.Column="1"
+                                Text="{Binding Rssi, StringFormat='{0} dBm'}"
+                                FontSize="14"
+                                TextColor="Gray"
+                                VerticalOptions="Center" />
+                        </Grid>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+
+            <!-- Connect/Disconnect Buttons -->
+            <Button
+                x:Name="ConnectButton"
+                Text="Connect"
+                Clicked="OnConnectClicked"
+                IsEnabled="{Binding CanConnect}"
+                HorizontalOptions="Fill" />
+
+            <Button
+                x:Name="DisconnectButton"
+                Text="Disconnect"
+                Clicked="OnDisconnectClicked"
+                IsEnabled="{Binding CanDisconnect}"
+                HorizontalOptions="Fill" />
+
+            <!-- Device Info -->
+            <Label
+                x:Name="DeviceInfoLabel"
+                Text=""
+                FontSize="14"
+                TextColor="Blue" />
+
+            <!-- Sensor Controls -->
+            <Label
+                Text="Sensors:"
+                FontSize="18"
+                FontAttributes="Bold"
+                Margin="0,20,0,0" />
+
+            <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto,Auto" ColumnSpacing="10" RowSpacing="10">
+                <Label
+                    Grid.Row="0"
+                    Grid.Column="0"
+                    Grid.ColumnSpan="2"
+                    Text="Accelerometer"
+                    FontSize="16"
+                    FontAttributes="Bold" />
+
+                <Button
+                    Grid.Row="1"
+                    Grid.Column="0"
+                    Text="Start"
+                    Clicked="OnStartAccelerometerClicked"
+                    IsEnabled="{Binding CanStartAccelerometer}" />
+
+                <Button
+                    Grid.Row="1"
+                    Grid.Column="1"
+                    Text="Stop"
+                    Clicked="OnStopAccelerometerClicked"
+                    IsEnabled="{Binding CanStartAccelerometer}" />
+
+                <Label
+                    Grid.Row="2"
+                    Grid.Column="0"
+                    Grid.ColumnSpan="2"
+                    x:Name="AccelerometerLabel"
+                    Text=""
+                    FontSize="14" />
+
+                <Label
+                    Grid.Row="3"
+                    Grid.Column="0"
+                    Grid.ColumnSpan="2"
+                    Text="Gyroscope"
+                    FontSize="16"
+                    FontAttributes="Bold"
+                    Margin="0,10,0,0" />
+            </Grid>
+
+            <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto" ColumnSpacing="10" RowSpacing="10">
+                <Button
+                    Grid.Row="0"
+                    Grid.Column="0"
+                    Text="Start"
+                    Clicked="OnStartGyroscopeClicked"
+                    IsEnabled="{Binding CanStartGyroscope}" />
+
+                <Button
+                    Grid.Row="0"
+                    Grid.Column="1"
+                    Text="Stop"
+                    Clicked="OnStopGyroscopeClicked"
+                    IsEnabled="{Binding CanStartGyroscope}" />
+
+                <Label
+                    Grid.Row="1"
+                    Grid.Column="0"
+                    Grid.ColumnSpan="2"
+                    x:Name="GyroscopeLabel"
+                    Text=""
+                    FontSize="14" />
+            </Grid>
 
         </VerticalStackLayout>
     </ScrollView>
