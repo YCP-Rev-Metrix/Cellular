@@ -43,6 +43,12 @@
                             <DataTemplate x:DataType="local:ShotPageFrame">
                                 <Border Stroke="DarkGray" StrokeThickness="1" Padding="0"
                                     BackgroundColor="White" WidthRequest="80">
+                                    <Border.GestureRecognizers>
+                                        <TapGestureRecognizer 
+                                            NumberOfTapsRequired="1"
+                                            Command="{Binding Source={RelativeSource AncestorType={x:Type local:GameInterfaceViewModel}}, Path=FrameTappedCommand}"
+                                            CommandParameter="{Binding .}" />
+                                    </Border.GestureRecognizers>
                                     <StackLayout VerticalOptions="Center" HorizontalOptions="Center" Padding="0" HeightRequest="135" WidthRequest="80">
                                         <!-- Frame Numbers -->
                                         <StackLayout Background="Gray">

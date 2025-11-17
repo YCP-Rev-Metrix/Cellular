@@ -1,6 +1,7 @@
 ﻿using System.Collections.ObjectModel;
 using System.ComponentModel;
-using System.Linq; // For LINQ extension methods
+using System.Windows.Input;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using Cellular.Data;
 using SQLite;
@@ -68,6 +69,8 @@ namespace Cellular.ViewModel
             }
         }
 
+        public ICommand FrameTappedCommand { get; private set; }
+
         public GameInterfaceViewModel()
         {
             string dbPath = Path.Combine(FileSystem.AppDataDirectory, "appdata.db");
@@ -89,6 +92,7 @@ namespace Cellular.ViewModel
 
             LoadUsers();
             LoadArsenal();
+            FrameTappedCommand = new Command<ShotPageFrame>(OnFrameTapped);
         }
 
         public string Hand
@@ -156,6 +160,18 @@ namespace Cellular.ViewModel
         {
             var arsenalList = await _database.Table<Ball>().ToListAsync();
             Arsenal = [.. arsenalList.Select(a => a.Name)];
+        }
+
+        //Method used to edit frames/shots
+        private void OnFrameTapped(ShotPageFrame frame)
+        {
+            if (frame == null) return;
+            if (frame.ShotOneBox == "") return;
+
+            // NOW YOU HAVE ACCESS TO THE SPECIFIC ITEM
+            Console.WriteLine($"Tapped Frame Number: {frame.FrameNumber}");
+            CurrentFrame = frame.FrameNumber;
+            CurrentShot = 1;
         }
 
     }
