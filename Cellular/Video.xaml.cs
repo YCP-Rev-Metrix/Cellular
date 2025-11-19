@@ -10,10 +10,17 @@ namespace Cellular
 {
     public partial class Video : ContentPage
     {
+        private readonly List<Size> CommonResolutions = new List<Size>
+        {
+            new Size(3840, 2160), // 4K UHD
+            new Size(2560, 1440), // 1440p / QHD
+            new Size(1920, 1080), // 1080p / Full HD
+            new Size(1280, 720),  // 720p / HD
+            new Size(854, 480)    // 480p / FWVGA
+        };
+
         private bool isCameraStarted = false;
-        private Size previewResolution = new Size(1920, 1080); // 1080p
-        //private Size previewResolution = new Size(1280, 720); // 720p
-        //private Size previewResolution = new Size(3840, 2160); // 4K
+        private Size previewResolution = new Size(1920, 1080);
 
         //Recording state
         private bool isRecording = false;
@@ -37,11 +44,56 @@ namespace Cellular
         {
             if (cameraView.Cameras.Count > 0)
             {
-                //Select camera
+                // Select camera
                 cameraView.Camera = cameraView.Cameras.FirstOrDefault(c => c.Position == Camera.MAUI.CameraPosition.Back);
+
+                // Populate the ResolutionPicker
+                if (cameraView.Camera != null)
+                {
+                    var supportedResolutions = cameraView.Camera.AvailableResolutions
+                        .Where(available => CommonResolutions.Any(common =>
+                            common.Width == available.Width && common.Height == available.Height))
+                        .OrderByDescending(s => s.Width * s.Height)
+                        .ToList();
+
+                    // Set the display format for the Picker items
+                    ResolutionPicker.ItemDisplayBinding = new Binding(".", stringFormat: "{0.Width}x{0.Height}");
+
+                    ResolutionPicker.ItemsSource = supportedResolutions;
+
+                    // Try to find and select the default resolution (1080p)
+                    var defaultResolution = supportedResolutions
+                        .FirstOrDefault(s => s.Width == 1920 && s.Height == 1080);
+
+                    if (defaultResolution != null)
+                    {
+                        ResolutionPicker.SelectedItem = defaultResolution;
+                    }
+                    else if (supportedResolutions.Any())
+                    {
+                        // If 1080p isn't available, select the first (highest) available resolution
+                        ResolutionPicker.SelectedIndex = 0;
+                    }
+                }
             }
         }
+        private async void ResolutionPicker_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            if (ResolutionPicker.SelectedItem is Size selectedSize)
+            {
+                // Update the internal resolution field
+                previewResolution = selectedSize;
 
+                // If the camera is already running, stop and restart it with the new resolution
+                if (isCameraStarted)
+                {
+                    await cameraView.StopCameraAsync();
+                    isCameraStarted = false;
+
+                    CameraView_SizeChanged(cameraView, EventArgs.Empty);
+                }
+            }
+        }
         private void CameraView_SizeChanged(object sender, EventArgs e)
         {
             if (cameraView.Camera != null && !isCameraStarted && cameraView.Width > 0 && cameraView.Height > 0)

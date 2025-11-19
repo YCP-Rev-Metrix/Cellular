@@ -72,5 +72,32 @@ namespace Cellular.Data
 
             return frameIds.Select(f => f.FrameId).ToList();
         }
+
+        // Checks if a specific shot (1 or 2) has a value (is not null) for a specific Game and Frame Number
+        public async Task<bool> DoesShotExistAsync(int gameId, int frameNumber, int shotNumber)
+        {
+            // Find the frame based on GameId and FrameNumber
+            var frame = await _conn.Table<BowlingFrame>()
+                                    .Where(f => f.GameId == gameId && f.FrameNumber == frameNumber)
+                                    .FirstOrDefaultAsync();
+
+            // If the frame hasn't been created yet, a shot doesn't exist yet
+            if (frame == null)
+            {
+                return false;
+            }
+
+            // Check the specific shot number
+            switch (shotNumber)
+            {
+                case 1:
+                    return frame.Shot1.HasValue; // Returns true if Shot1 is not null
+                case 2:
+                    return frame.Shot2.HasValue; // Returns true if Shot2 is not null
+                default:
+                    Debug.WriteLine("Shot doesn't exist!");
+                    return false; // Invalid shot number
+            }
+        }
     }
 }
