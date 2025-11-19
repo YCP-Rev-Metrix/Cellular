@@ -30,12 +30,12 @@
             <!-- Display account info -->
             <HorizontalStackLayout HorizontalOptions="Center" Spacing="5">
                 <Label Text="First Name: " FontSize="18"/>
-                <Label Text="{Binding FirstName} " FontSize="18" FontAttributes="Bold"/>
+                <Label Text="{Binding FirstName}" FontSize="18" FontAttributes="Bold"/>
             </HorizontalStackLayout>
 
             <HorizontalStackLayout HorizontalOptions="Center" Spacing="5">
                 <Label Text="Last Name: " FontSize="18"/>
-                <Label Text="{Binding LastName} " FontSize="18" FontAttributes="Bold"/>
+                <Label Text="{Binding LastName}" FontSize="18" FontAttributes="Bold"/>
             </HorizontalStackLayout>
 
             <HorizontalStackLayout HorizontalOptions="Center" Spacing="5">
