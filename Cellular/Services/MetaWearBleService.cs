@@ -341,7 +341,6 @@ namespace Cellular.Services
                     string jsonString = System.Text.Encoding.UTF8.GetString(data);
                     LogDebug($"Received from Watch: {jsonString}");
                     WatchJsonReceived?.Invoke(this, jsonString);
-                    // TODO: Parse and handle JSON
                 }
                 catch (Exception ex)
                 {
