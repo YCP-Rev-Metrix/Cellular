@@ -175,19 +175,15 @@ namespace Cellular.ViewModel
                 currentFrameId = frame.FrameId;
                 if(frame.Shot1 != null)
                 {
-                    Debug.WriteLine($"First shot id: {firstShotId}");
                     firstShotId = (int)(frame.Shot1);
-                    Debug.WriteLine($"First shot id: {firstShotId}");
                 }
             }
             var shot = await _database.Table<Shot>().Where(f => f.ShotId == firstShotId).FirstOrDefaultAsync();
 
             if (shot != null)
             {
-                Debug.WriteLine($"Shot id: {shot.ShotId}");
                 if (shot.LeaveType != null)
                 {
-                    Debug.WriteLine("Shot isnt null for edit shot");
                     pinStates = (short)(shot.LeaveType);
                     shot1PinStates = pinStates;
                     string result = Convert.ToString((ushort)pinStates, 2).PadLeft(16, '0');
@@ -202,7 +198,6 @@ namespace Cellular.ViewModel
         {
             if (frame == null) return;
 
-            Console.WriteLine($"Tapped Frame Number: {frame.FrameNumber}");
             CurrentFrame = frame.FrameNumber;
             CurrentShot = 1;
             LoadEditInfo();
