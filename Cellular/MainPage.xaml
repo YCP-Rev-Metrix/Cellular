@@ -98,7 +98,7 @@
                     IsVisible="True" />
 
             <Button x:Name="BlankPage"
-                Text="BlankPage" 
+                Text="Smart Watch" 
                 SemanticProperties.Hint="takes you to the blank page"
                 Clicked="OnBlankPageClicked"
                 HorizontalOptions="Fill"
