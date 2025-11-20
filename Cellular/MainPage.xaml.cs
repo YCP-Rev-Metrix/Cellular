@@ -113,7 +113,7 @@ namespace Cellular
         }
         private async void OnBlankPageClicked(object sender, EventArgs e)
         {
-            var svc = IPlatformApplication.Current.Services.GetService<IMetaWearService>();
+            var svc = IPlatformApplication.Current.Services.GetService<IWatchBleService>();
             await Navigation.PushAsync(new BlankPage(svc));
         }
 

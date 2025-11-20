@@ -21,6 +21,7 @@ namespace Cellular
             builder.Services.AddSingleton<CellularDatabase>(); // Register CellularDatabase as a Singleton
             builder.Services.AddSingleton<UserRepository>();
             builder.Services.AddSingleton<IMetaWearService, MetaWearBleService>();
+            builder.Services.AddSingleton<IWatchBleService, WatchBleService>();
             
 #if DEBUG
             builder.Logging.AddDebug();

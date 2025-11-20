@@ -31,7 +31,7 @@ namespace Cellular
     {
         private readonly IBluetoothLE _ble = CrossBluetoothLE.Current;
         private readonly IAdapter _adapter = CrossBluetoothLE.Current.Adapter;
-        private readonly IMetaWearService _metaWearService;
+        private readonly IWatchBleService _watchBleService;
 
         private ObservableCollection<BluetoothDevice> _devices;
         private BluetoothDevice? _selectedDevice;
@@ -87,14 +87,14 @@ namespace Cellular
         public bool CanConnect => SelectedDevice != null && !IsConnected && !IsScanning;
         public bool CanDisconnect => IsConnected;
 
-        public BlankPage(IMetaWearService metaWearService)
+        public BlankPage(IWatchBleService watchBleService)
         {
             InitializeComponent();
-            _metaWearService = metaWearService;
+            _watchBleService = watchBleService;
             Devices = BlankPageStore.SavedDevices ?? new ObservableCollection<BluetoothDevice>();
             _selectedDevice = BlankPageStore.SavedSelected;
             _isConnected = BlankPageStore.SavedIsConnected;
-            _metaWearService.WatchJsonReceived += OnWatchJsonReceived;
+            _watchBleService.WatchJsonReceived += OnWatchJsonReceived;
             BindingContext = this;
 
             DeviceListView.SelectionChanged += OnDeviceSelected;
@@ -320,23 +320,12 @@ namespace Cellular
 
                 StatusLabel.Text = "Connecting...";
 
-                bool connected = await _metaWearService.ConnectAsync(SelectedDevice.Device);
+                bool connected = await _watchBleService.ConnectAsync(SelectedDevice.Device);
 
                 if (connected)
                 {
                     IsConnected = true;
                     StatusLabel.Text = $"Connected to {SelectedDevice.Name}";
-
-                    try
-                    {
-                        var info = await _metaWearService.GetDeviceInfoAsync();
-                        DeviceInfoLabel.Text = $"Model: {info.Model}, Firmware: {info.FirmwareVersion}";
-                        BlankPageStore.SavedDeviceInfo = DeviceInfoLabel.Text;
-                    }
-                    catch
-                    {
-                        DeviceInfoLabel.Text = "Connected (info unavailable)";
-                    }
                 }
                 else
                 {
@@ -353,7 +342,7 @@ namespace Cellular
         {
             try
             {
-                await _metaWearService.DisconnectAsync();
+                await _watchBleService.DisconnectAsync();
 
                 IsConnected = false;
                 StatusLabel.Text = "Disconnected";
@@ -368,7 +357,7 @@ namespace Cellular
 
         private async void OnSendToWatchClicked(object sender, EventArgs e)
         {
-            if (!_metaWearService.IsConnected)
+            if (!_watchBleService.IsConnected)
             {
                 await DisplayAlert("BLE", "Not connected", "OK");
                 return;
@@ -376,7 +365,7 @@ namespace Cellular
 
             var json = new { message = "6" };
 
-            bool success = await _metaWearService.SendJsonToWatch(json);
+            bool success = await _watchBleService.SendJsonToWatch(json);
 
             if (!success)
                 await DisplayAlert("BLE", "Failed to send JSON", "OK");
@@ -385,7 +374,6 @@ namespace Cellular
         protected override void OnDisappearing()
         {
             base.OnDisappearing();
-            _metaWearService.DeviceDisconnected -= OnDeviceDisconnected;
 
             // save latest state so it doesnt go away when i leave
             BlankPageStore.SavedDevices = Devices;
