@@ -605,9 +605,32 @@ namespace Cellular
             }
         }
 
-        protected override void OnDisappearing()
+        protected override async void OnDisappearing()
         {
             base.OnDisappearing();
+            
+            // Disconnect from device when leaving the page
+            if (_metaWearService.IsConnected)
+            {
+                try
+                {
+                    // Stop all sensors first
+                    await _metaWearService.StopAccelerometerAsync();
+                    await _metaWearService.StopGyroscopeAsync();
+                    await _metaWearService.StopMagnetometerAsync();
+                    await _metaWearService.StopLightSensorAsync();
+                    
+                    // Then disconnect
+                    await _metaWearService.DisconnectAsync();
+                }
+                catch (Exception ex)
+                {
+                    // Log error but don't block navigation
+                    System.Diagnostics.Debug.WriteLine($"Error disconnecting on page disappear: {ex.Message}");
+                }
+            }
+            
+            // Unsubscribe from events
             _metaWearService.DeviceDisconnected -= OnDeviceDisconnected;
             _metaWearService.AccelerometerDataReceived -= OnAccelerometerDataReceived;
             _metaWearService.GyroscopeDataReceived -= OnGyroscopeDataReceived;
