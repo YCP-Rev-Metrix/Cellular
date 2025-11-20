@@ -33,6 +33,7 @@ namespace Cellular.ViewModel
         public int UserId = Preferences.Get("UserId", 0);
         public bool GameCompleted = false;
         public bool EditMode = false;
+        private string _comment = "";
         public ObservableCollection<string> Players
         {
             get => players;
@@ -146,6 +147,19 @@ namespace Cellular.ViewModel
             }
         }
 
+        public string Comment
+        {
+            get => _comment;
+            set
+            {
+                if (_comment != value)
+                {
+                    _comment = value;
+                    OnPropertyChanged(nameof(Comment));
+                }
+            }
+        }
+
         // Notify property changed
         public event PropertyChangedEventHandler? PropertyChanged;
 
@@ -186,6 +200,7 @@ namespace Cellular.ViewModel
                 {
                     pinStates = (short)(shot.LeaveType);
                     shot1PinStates = pinStates;
+                    Comment = shot.Comment ?? "";
                     string result = Convert.ToString((ushort)pinStates, 2).PadLeft(16, '0');
                     Debug.WriteLine($"{result}");
                 }

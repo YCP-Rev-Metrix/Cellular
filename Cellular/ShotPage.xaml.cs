@@ -1,6 +1,9 @@
 ﻿using Cellular.Data;
 using Cellular.ViewModel;
+using Cellular.Views;
 using CellularCore;
+using CommunityToolkit.Maui;
+using CommunityToolkit.Maui.Extensions;
 using Microsoft.Maui.ApplicationModel.Communication;
 using Microsoft.Maui.Controls;
 using Microsoft.Maui.Storage;
@@ -19,6 +22,7 @@ namespace Cellular
     {
         private readonly GameInterfaceViewModel viewModel;
 
+        private bool _hasAppeared = false;
         public ShotPage()
         {
             InitializeComponent();
@@ -29,11 +33,20 @@ namespace Cellular
 
         protected override void OnAppearing()
         {
-            base.OnAppearing();
-            _ = CheckIfFramesExistForGame();
-            _ = viewModel.LoadUserHand();
-            Debug.WriteLine("Hand: " + viewModel.Hand);
-            Debug.WriteLine("Date: " + viewModel.CurrentDate);
+            if (!_hasAppeared)
+            {
+                _hasAppeared = true;
+                _ = CheckIfFramesExistForGame();
+                _ = viewModel.LoadUserHand();
+                Debug.WriteLine("Hand: " + viewModel.Hand);
+                Debug.WriteLine("Date: " + viewModel.CurrentDate);
+            }
+            else
+            {
+                // If you need to refresh only specific UI elements when returning from a popup,
+                // do it here in a minimal way rather than re-running full initialization.
+                Debug.WriteLine("ShotPage re-appeared (popup closed or focus returned). Skipping full reload.");
+            }
         }
 
         public void BoardChanged(object sender, EventArgs e)
@@ -228,12 +241,40 @@ namespace Cellular
                     }
                 }
             }
-            
+            viewModel.Comment = "";
             await UpdateScore();
             viewModel.OnPropertyChanged(nameof(viewModel.FrameDisplay));
             currentFrame.OnPropertyChanged(nameof(currentFrame.CenterPinColors));
             currentFrame.OnPropertyChanged(nameof(currentFrame.PinColors));
             viewModel.OnPropertyChanged(nameof(viewModel.Frames));
+        }
+
+        private async void OnCommentClicked(Object sender, EventArgs e)
+        {
+            string initial = viewModel.Comment ?? "";
+            var popup = new CommentEditorPopup(initial);
+
+            // Ensure Completion is set if the popup is closed by other means.
+            popup.Closed += (s, args) =>
+            {
+                if (!popup.Completion.Task.IsCompleted)
+                {
+                    popup.Completion.TrySetResult(null);
+                }
+            };
+
+            this.ShowPopup(popup);
+
+            // Await the completion source that the popup sets on save/cancel/close
+            var result = await popup.Completion.Task;
+
+            // Only update viewModel when the user explicitly saved (non-null result)
+            if (result is string text && text != null)
+            {
+                viewModel.Comment = text;
+                viewModel.OnPropertyChanged(nameof(viewModel.Comment));
+                Debug.WriteLine($"Comment saved: {viewModel.Comment}");
+            }
         }
 
         //Check if game is over
@@ -521,7 +562,7 @@ namespace Cellular
                     Side = null,
                     Position = null,
                     Frame = viewModel.CurrentFrame,
-                    Comment = null
+                    Comment = viewModel.Comment
                 };
 
                 Debug.WriteLine($"Saving Shot: Frame {newShot.Frame}, Shot {newShot.ShotNumber}, Pins Down {newShot.Count}");
@@ -578,6 +619,7 @@ namespace Cellular
                             shotId = reloadShotOne.ShotId;
                             reloadShotOne.LeaveType = viewModel.pinStates;
                             reloadShotOne.Count = GetDownedPinsForShot(1);
+                            reloadShotOne.Comment = viewModel.Comment;
                             await shotRepository.UpdateShotAsync(reloadShotOne);
                         }
                     }
@@ -589,7 +631,8 @@ namespace Cellular
                             ShotNumber = 1,
                             Count = GetDownedPinsForShot(1),
                             LeaveType = viewModel.pinStates,
-                            Frame = viewModel.CurrentFrame
+                            Frame = viewModel.CurrentFrame,
+                            Comment = viewModel.Comment
                         };
                         shotId = await shotRepository.AddAsync(newShot);
                         if (reloadFrame != null)
@@ -624,7 +667,8 @@ namespace Cellular
                             ShotNumber = 2,
                             Count = GetDownedPinsForShot(2),
                             LeaveType = viewModel.pinStates,
-                            Frame = viewModel.CurrentFrame
+                            Frame = viewModel.CurrentFrame,
+                            Comment = viewModel.Comment
                         };
                         shotId = await shotRepository.AddAsync(newShot);
                         if (reloadFrame != null)

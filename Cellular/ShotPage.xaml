@@ -212,7 +212,7 @@
                 </StackLayout>
 
                 <StackLayout Grid.Row="2" Grid.Column="1" Orientation="Horizontal" Padding="0, 10" Spacing="10" HorizontalOptions="Center">
-                    <Button Text="Comment" WidthRequest="100" HeightRequest="40" CornerRadius="3" BackgroundColor="LightGray"/>
+                    <Button Text="Comment" WidthRequest="100" HeightRequest="40" CornerRadius="3" BackgroundColor="LightGray" Clicked="OnCommentClicked"/>
                     <Button Text="Next" WidthRequest="100" HeightRequest="40" CornerRadius="3" BackgroundColor="LightGray" Clicked="OnNextClicked"/>
                 </StackLayout>
 
