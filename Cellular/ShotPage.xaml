@@ -152,11 +152,11 @@
                     </StackLayout>
                     <StackLayout>
                         <Label Text="Strike Ball" />
-                        <Picker x:Name="BallPicker1" HeightRequest="30" WidthRequest="{OnIdiom Phone=80, Tablet=100, Desktop=120}" ItemsSource="{Binding Arsenal}" BackgroundColor="Grey"/>
+                        <Picker x:Name="BallPicker1" HeightRequest="30" WidthRequest="{OnIdiom Phone=80, Tablet=100, Desktop=120}" ItemsSource="{Binding Arsenal}" ItemDisplayBinding="{Binding Name}" SelectedItem="{Binding SelectedStrikeBall}" BackgroundColor="Grey"/>
                     </StackLayout>
                     <StackLayout>
                         <Label Text="Spare Ball" />
-                        <Picker x:Name="BallPicker2" HeightRequest="30" WidthRequest="{OnIdiom Phone=80, Tablet=100, Desktop=120}" ItemsSource="{Binding Arsenal}" BackgroundColor="Grey"/>
+                        <Picker x:Name="BallPicker2" HeightRequest="30" WidthRequest="{OnIdiom Phone=80, Tablet=100, Desktop=120}" ItemsSource="{Binding Arsenal}" ItemDisplayBinding="{Binding Name}" SelectedItem="{Binding SelectedSpareBall}" BackgroundColor="Grey"/>
                     </StackLayout>
                 </StackLayout>
 

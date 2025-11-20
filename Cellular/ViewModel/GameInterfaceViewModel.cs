@@ -12,7 +12,7 @@ namespace Cellular.ViewModel
     internal partial class GameInterfaceViewModel : INotifyPropertyChanged
     {
         private ObservableCollection<string> players;
-        private ObservableCollection<string> arsenal;
+        private ObservableCollection<Ball> arsenal;
         private ObservableCollection<ShotPageFrame> frames;
         public event Action AlertEditFrame;
         private readonly SQLiteAsyncConnection _database;
@@ -33,6 +33,10 @@ namespace Cellular.ViewModel
         public int UserId = Preferences.Get("UserId", 0);
         public bool GameCompleted = false;
         public bool EditMode = false;
+        private Ball _selectedStrikeBall;
+        private Ball _selectedSpareBall;
+        private int _strikeBallId = -1;
+        private int _spareBallId = -1;
         private string _comment = "";
         public ObservableCollection<string> Players
         {
@@ -44,7 +48,7 @@ namespace Cellular.ViewModel
             }
         }
 
-        public ObservableCollection<string> Arsenal
+        public ObservableCollection<Ball> Arsenal
         {
             get => arsenal;
             set
@@ -160,6 +164,61 @@ namespace Cellular.ViewModel
             }
         }
 
+        // Selected strike ball (bound to Picker.SelectedItem)
+        public Ball SelectedStrikeBall
+        {
+            get => _selectedStrikeBall;
+            set
+            {
+                if (_selectedStrikeBall != value)
+                {
+                    _selectedStrikeBall = value;
+                    StrikeBallId = _selectedStrikeBall?.BallId ?? -1;
+                    OnPropertyChanged(nameof(SelectedStrikeBall));
+                }
+            }
+        }
+
+        // Selected spare ball (bound to Picker.SelectedItem)
+        public Ball SelectedSpareBall
+        {
+            get => _selectedSpareBall;
+            set
+            {
+                if (_selectedSpareBall != value)
+                {
+                    _selectedSpareBall = value;
+                    SpareBallId = _selectedSpareBall?.BallId ?? -1;
+                    OnPropertyChanged(nameof(SelectedSpareBall));
+                }
+            }
+        }
+
+        public int StrikeBallId
+        {
+            get => _strikeBallId;
+            set
+            {
+                if (_strikeBallId != value)
+                {
+                    _strikeBallId = value;
+                    OnPropertyChanged(nameof(StrikeBallId));
+                }
+            }
+        }
+        public int SpareBallId
+        {
+            get => _spareBallId;
+            set
+            {
+                if (_spareBallId != value)
+                {
+                    _spareBallId = value;
+                    OnPropertyChanged(nameof(SpareBallId));
+                }
+            }
+        }
+
         // Notify property changed
         public event PropertyChangedEventHandler? PropertyChanged;
 
@@ -176,8 +235,17 @@ namespace Cellular.ViewModel
 
         public async void LoadArsenal()
         {
-            var arsenalList = await _database.Table<Ball>().ToListAsync();
-            Arsenal = [.. arsenalList.Select(a => a.Name)];
+            // kept old name in case other callers use it; if not, replace with LoadArsenal
+            if (UserId == 0)
+            {
+                Arsenal = new ObservableCollection<Ball>();
+                return;
+            }
+
+            var arsenalList = await _database.Table<Ball>()
+                                             .Where(b => b.UserId == UserId)
+                                             .ToListAsync();
+            Arsenal = new ObservableCollection<Ball>(arsenalList);
         }
 
         public async void LoadEditInfo()
@@ -200,6 +268,7 @@ namespace Cellular.ViewModel
                 {
                     pinStates = (short)(shot.LeaveType);
                     shot1PinStates = pinStates;
+                    StrikeBallId = (int)shot.Ball;
                     Comment = shot.Comment ?? "";
                     string result = Convert.ToString((ushort)pinStates, 2).PadLeft(16, '0');
                     Debug.WriteLine($"{result}");

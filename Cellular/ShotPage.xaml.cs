@@ -550,13 +550,23 @@ namespace Cellular
             bool shotExists = await frameRepository.DoesShotExistAsync(viewModel.gameId, viewModel.CurrentFrame, shotNumber);
             int shotId = -1;
 
+            int currentBall = -1;
+            if(shotNumber == 1)
+            {
+                currentBall = viewModel.StrikeBallId;
+            }
+            else if(shotNumber == 2)
+            {
+                currentBall = viewModel.secondShotId;
+            }
+
             if (!shotExists)
             {
                 // Create and save new shot
                 var newShot = new Shot
                 {
                     ShotNumber = viewModel.CurrentShot,
-                    Ball = null,
+                    Ball = currentBall,
                     Count = GetDownedPinsForShot(shotNumber),
                     LeaveType = viewModel.pinStates,
                     Side = null,
@@ -617,6 +627,7 @@ namespace Cellular
                         {
                             Debug.WriteLine("Updating shot 1");
                             shotId = reloadShotOne.ShotId;
+                            reloadShotOne.Ball = viewModel.StrikeBallId;
                             reloadShotOne.LeaveType = viewModel.pinStates;
                             reloadShotOne.Count = GetDownedPinsForShot(1);
                             reloadShotOne.Comment = viewModel.Comment;
@@ -629,6 +640,7 @@ namespace Cellular
                         var newShot = new Shot
                         {
                             ShotNumber = 1,
+                            Ball = viewModel.StrikeBallId,
                             Count = GetDownedPinsForShot(1),
                             LeaveType = viewModel.pinStates,
                             Frame = viewModel.CurrentFrame,
@@ -665,6 +677,7 @@ namespace Cellular
                         var newShot = new Shot
                         {
                             ShotNumber = 2,
+                            Ball = viewModel.SpareBallId,
                             Count = GetDownedPinsForShot(2),
                             LeaveType = viewModel.pinStates,
                             Frame = viewModel.CurrentFrame,
