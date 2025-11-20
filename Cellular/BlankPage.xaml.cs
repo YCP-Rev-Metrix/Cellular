@@ -1,31 +1,31 @@
-﻿//using System;
-//using System.Collections.Generic;
-//using System.Collections.ObjectModel;
-//using System.Linq;
-//using System.Threading.Tasks;
-//using Microsoft.Maui.Controls;
-//using Plugin.BLE;
-//using Plugin.BLE.Abstractions.Contracts;
-//using Plugin.BLE.Abstractions.EventArgs;
-//using Cellular.Services;
-//using Microsoft.Extensions.DependencyInjection;
-//using Microsoft.Maui.ApplicationModel;
-//#if ANDROID
-//using Android;
-//using Android.Content.PM;
-//using AndroidX.Core.Content;
-//using AndroidX.Core.App;
-//#endif
+﻿using System;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Linq;
+using System.Threading.Tasks;
+using Microsoft.Maui.Controls;
+using Plugin.BLE;
+using Plugin.BLE.Abstractions.Contracts;
+using Plugin.BLE.Abstractions.EventArgs;
+using Cellular.Services;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Maui.ApplicationModel;
+#if ANDROID
+using Android;
+using Android.Content.PM;
+using AndroidX.Core.Content;
+using AndroidX.Core.App;
+#endif
 
 namespace Cellular
 {
-    //public static class BlankPageStore
-    //    {
-    //        public static ObservableCollection<BluetoothDevice>? SavedDevices;
-    //        public static BluetoothDevice? SavedSelected;
-    //        public static bool SavedIsConnected;
-    //        public static string SavedDeviceInfo = "";
-    //    }
+    public static class BlankPageStore
+        {
+            public static ObservableCollection<BluetoothDeviceWatch>? SavedDevices;
+            public static BluetoothDeviceWatch? SavedSelected;
+            public static bool SavedIsConnected;
+            public static string SavedDeviceInfo = "";
+        }
 
     public partial class BlankPage : ContentPage
     {
@@ -33,13 +33,13 @@ namespace Cellular
         private readonly IAdapter _adapter = CrossBluetoothLE.Current.Adapter;
         private readonly IWatchBleService _watchBleService;
 
-        private ObservableCollection<BluetoothDevice> _devices;
-        private BluetoothDevice? _selectedDevice;
+        private ObservableCollection<BluetoothDeviceWatch> _devices;
+        private BluetoothDeviceWatch? _selectedDevice;
         private bool _isScanning;
         private bool _isConnected;
         private string _watchJson = "No data received yet.";
 
-        public ObservableCollection<BluetoothDevice> Devices
+        public ObservableCollection<BluetoothDeviceWatch> Devices
         {
             get => _devices;
             set
@@ -49,7 +49,7 @@ namespace Cellular
             }
         }
 
-        public BluetoothDevice? SelectedDevice
+        public BluetoothDeviceWatch? SelectedDevice
         {
             get => _selectedDevice;
             set
@@ -91,7 +91,7 @@ namespace Cellular
         {
             InitializeComponent();
             _watchBleService = watchBleService;
-            Devices = BlankPageStore.SavedDevices ?? new ObservableCollection<BluetoothDevice>();
+            Devices = BlankPageStore.SavedDevices ?? new ObservableCollection<BluetoothDeviceWatch>();
             _selectedDevice = BlankPageStore.SavedSelected;
             _isConnected = BlankPageStore.SavedIsConnected;
             _watchBleService.WatchJsonReceived += OnWatchJsonReceived;
@@ -116,7 +116,7 @@ namespace Cellular
 
         private void OnDeviceSelected(object? sender, SelectionChangedEventArgs e)
         {
-            if (DeviceListView.SelectedItem is BluetoothDevice device)
+            if (DeviceListView.SelectedItem is BluetoothDeviceWatch device)
             {
                 SelectedDevice = device;
             }
@@ -279,7 +279,7 @@ namespace Cellular
                 var existing = Devices.FirstOrDefault(d => d.Id == e.Device.Id.ToString());
                 if (existing == null)
                 {
-                    Devices.Add(new BluetoothDevice
+                    Devices.Add(new BluetoothDeviceWatch
                     {
                         Id = e.Device.Id.ToString(),
                         Name = e.Device.Name ?? "Unknown",
@@ -383,7 +383,7 @@ namespace Cellular
         }
     }
 
-    public class BluetoothDevice
+    public class BluetoothDeviceWatch
     {
         public string Id { get; set; } = string.Empty;
         public string Name { get; set; } = string.Empty;

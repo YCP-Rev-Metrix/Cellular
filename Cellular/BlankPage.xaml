@@ -23,7 +23,7 @@
             <Button
                 x:Name="ScanButton"
                 Text="Scan"
-                 
+                Clicked="OnScanClicked"
                 HorizontalOptions="Fill" />
 
             <Label
@@ -83,6 +83,7 @@
             <Button
                 x:Name="ConnectButton"
                 Text="Connect"
+                Clicked="OnConnectClicked"
                 IsEnabled="{Binding CanConnect}"
                 HorizontalOptions="Fill" />
 
@@ -90,14 +91,15 @@
             <Button
                 x:Name="DisconnectButton"
                 Text="Disconnect"
+                Clicked="OnDisconnectClicked"
                 IsEnabled="{Binding CanDisconnect}"
                 HorizontalOptions="Fill" />
 
-            <!-- Send JSON Button (FIXED NAME) -->
+            <!-- Send JSON Button -->
             <Button 
                 x:Name="JsonSendButton"
                 Text="Send Test JSON to Watch"
-                IsEnabled="{Binding CanSend}"
+                Clicked="OnSendToWatchClicked"
                 HorizontalOptions="Fill" />
 
             <!-- Device Info -->
@@ -106,10 +108,11 @@
                 Text=""
                 FontSize="14"
                 TextColor="Blue" />
+
             <Label
                 Text="Watch JSON:"
                 FontSize="16"
-                TextColor="Grey"/>
+                TextColor="Grey" />
 
             <Frame
                 BackgroundColor="#EEEEEE"
@@ -124,6 +127,7 @@
                     FontSize="14" />
 
             </Frame>
+
         </VerticalStackLayout>
     </ScrollView>
 
