@@ -1,4 +1,5 @@
 ﻿using Cellular.Data;
+using Cellular.Services;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.DependencyInjection;
 using Camera.MAUI;

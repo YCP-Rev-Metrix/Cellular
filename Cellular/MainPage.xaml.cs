@@ -114,7 +114,7 @@ namespace Cellular
         private async void OnBlankPageClicked(object sender, EventArgs e)
         {
             var svc = IPlatformApplication.Current.Services.GetService<IMetaWearService>();
-            await Navigation.PushAsync(new BlankPage(svc));
+            await Navigation.PushAsync(new BlankPage());
         }
 
         public async Task SoftRefreshAsync()

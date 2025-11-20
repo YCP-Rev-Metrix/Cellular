@@ -23,7 +23,7 @@
             <Button
                 x:Name="ScanButton"
                 Text="Scan"
-                Clicked="OnScanClicked"
+                 
                 HorizontalOptions="Fill" />
 
             <Label
@@ -83,7 +83,6 @@
             <Button
                 x:Name="ConnectButton"
                 Text="Connect"
-                Clicked="OnConnectClicked"
                 IsEnabled="{Binding CanConnect}"
                 HorizontalOptions="Fill" />
 
@@ -91,7 +90,6 @@
             <Button
                 x:Name="DisconnectButton"
                 Text="Disconnect"
-                Clicked="OnDisconnectClicked"
                 IsEnabled="{Binding CanDisconnect}"
                 HorizontalOptions="Fill" />
 
@@ -99,7 +97,6 @@
             <Button 
                 x:Name="JsonSendButton"
                 Text="Send Test JSON to Watch"
-                Clicked="OnSendToWatchClicked"
                 IsEnabled="{Binding CanSend}"
                 HorizontalOptions="Fill" />
 
