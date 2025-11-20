@@ -81,6 +81,7 @@ namespace Cellular.Services
             }
         }
 
+
         public async Task<bool> ConnectAsync(object device)
         {
             try
@@ -426,7 +427,6 @@ namespace Cellular.Services
                 // Gyroscope: 0x13 (BMI270 on MMS, or BMI160 on other devices)
                 // Light Sensor: 0x14 (LTR-329ALS-01)
                 // Magnetometer: 0x15 (BMM150)
-                // Note: 0x14 and 0x15 are NOT accelerometer/gyroscope - they're light sensor and magnetometer!
                 // Reference: https://mbientlab.com/tutorials/MetaMotionS.html
                 bool isAccelerometer = (moduleId == 0x03);
                 bool isGyroscope = (moduleId == 0x13);
