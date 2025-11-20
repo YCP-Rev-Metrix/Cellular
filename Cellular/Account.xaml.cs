@@ -43,9 +43,9 @@ namespace Cellular
             await Navigation.PushAsync(new EditAccountPage(_userRepository));
         }
 
-        private void OnStatsClicked(object sender, EventArgs e)
+        private async void OnStatsClicked(object sender, EventArgs e)
         {
-            // Implement when stats are figured out
+            await Navigation.PushAsync(new Stats(_userRepository));
         }
     }
 }

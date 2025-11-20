@@ -3,6 +3,7 @@ using Microsoft.Maui.Storage;
 using Cellular.ViewModel;
 using Cellular.Data;
 using System.Diagnostics;
+using Cellular.Services;
 
 namespace Cellular
 {
@@ -43,11 +44,12 @@ namespace Cellular
             user.IsVisible = isLoggedIn;
             arsenal.IsVisible = isLoggedIn;
             bluetooth.IsVisible = isLoggedIn;
+            video.IsVisible = isLoggedIn;
             account.IsVisible = isLoggedIn;
             SessionList.IsVisible = isLoggedIn;
             data.IsVisible = isLoggedIn;
             API.IsVisible = isLoggedIn;
-
+            BlankPage.IsVisible = isLoggedIn;
         }
 
         private async void OnLoginClicked(object sender, EventArgs e)
@@ -90,6 +92,11 @@ namespace Cellular
             await Navigation.PushAsync(new Bluetooth());
         }
 
+        private async void OnVideoClicked(object sender, EventArgs e)
+        {
+            await Navigation.PushAsync(new Video());
+        }
+
         private async void OnAccountClicked(object sender, EventArgs e)
         {
             await Navigation.PushAsync(new AccountPage());
@@ -103,6 +110,11 @@ namespace Cellular
         private async void OnAPIClicked(object sender, EventArgs e)
         {
             await Navigation.PushAsync(new APItestPage());
+        }
+        private async void OnBlankPageClicked(object sender, EventArgs e)
+        {
+            var svc = IPlatformApplication.Current.Services.GetService<IMetaWearService>();
+            await Navigation.PushAsync(new BlankPage(svc));
         }
 
         public async Task SoftRefreshAsync()

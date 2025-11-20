@@ -81,7 +81,6 @@ namespace Cellular.Services
             }
         }
 
-
         public async Task<bool> ConnectAsync(object device)
         {
             try

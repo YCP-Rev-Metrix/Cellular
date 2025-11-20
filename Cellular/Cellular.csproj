@@ -56,13 +56,23 @@
 
 	<ItemGroup>
 		<PackageReference Include="BCrypt.Net-Next" Version="4.0.3" />
-		<PackageReference Include="Microsoft.Maui.Controls" Version="9.0.40" />
+		<PackageReference Include="Camera.MAUI" Version="1.5.1" />
+		<PackageReference Include="Camera.MAUI.ZXing" Version="1.0.0" />
+		<PackageReference Include="CommunityToolkit.Maui" Version="12.2.0" />
+		<PackageReference Include="Microsoft.Maui.Controls" Version="9.0.120" />
 		<PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="9.0.0" />
+		<PackageReference Include="Microsoft.Maui.Controls.Compatibility" Version="9.0.120" />
 		<PackageReference Include="Plugin.BLE" Version="3.2.0" />
 		<PackageReference Include="sqlite-net-pcl" Version="1.9.172" />
 	</ItemGroup>
 
 	<ItemGroup>
+		<Compile Update="BlankPage.xaml.cs">
+		  <DependentUpon>BlankPage.xaml</DependentUpon>
+		</Compile>
+		<Compile Update="Video.xaml.cs">
+		  <DependentUpon>Video.xaml</DependentUpon>
+		</Compile>
 		<Compile Update="EditAccount.xaml.cs">
 			<DependentUpon>EditAccount.xaml</DependentUpon>
 		</Compile>
@@ -114,6 +124,12 @@
 		<MauiXaml Update="BallArsenalRegistrationPage.xaml">
 		  <Generator>MSBuild:Compile</Generator>
 		</MauiXaml>
+		<MauiXaml Update="BlankPage.xaml">
+		  <Generator>MSBuild:Compile</Generator>
+		</MauiXaml>
+		<MauiXaml Update="Video.xaml">
+		  <Generator>MSBuild:Compile</Generator>
+		</MauiXaml>
 		<MauiXaml Update="DataPage.xaml">
 		  <Generator>MSBuild:Compile</Generator>
 		</MauiXaml>
@@ -130,6 +146,10 @@
 
 	<ItemGroup>
 		<None Include=".github\workflows\discord-webhook.yml" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <ProjectReference Include="..\CellularCore\CellularCore.csproj" />
 	</ItemGroup>
 
 	<ItemGroup>

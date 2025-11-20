@@ -69,6 +69,13 @@
                     HorizontalOptions="Fill"
                     IsVisible="True" />
 
+            <Button x:Name="video"
+                Text="Video" 
+                SemanticProperties.Hint="Access video for Ciclopes"
+                Clicked="OnVideoClicked"
+                HorizontalOptions="Fill"
+                IsVisible="True" /> 
+
             <Button x:Name="data"
                     Text="Data" 
                     SemanticProperties.Hint="takes you to the data page"
@@ -89,6 +96,13 @@
                     Clicked="OnAccountClicked"
                     HorizontalOptions="Fill"
                     IsVisible="True" />
+
+            <Button x:Name="BlankPage"
+                Text="Smart Watch" 
+                SemanticProperties.Hint="takes you to the blank page"
+                Clicked="OnBlankPageClicked"
+                HorizontalOptions="Fill"
+                IsVisible="True" />
 
         </VerticalStackLayout>
     </ScrollView>
