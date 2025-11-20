@@ -47,7 +47,7 @@ namespace Cellular
             {
                 _selectedDevice = value;
                 OnPropertyChanged();
-                OnPropertyChanged(nameof(CanConnect));
+                OnPropertyChanged(nameof(CanConnect)); // Notify CanConnect when selection changes
             }
         }
 
@@ -69,16 +69,21 @@ namespace Cellular
             {
                 _isConnected = value;
                 OnPropertyChanged();
+                OnPropertyChanged(nameof(CanConnect)); // Notify CanConnect when connection changes
                 OnPropertyChanged(nameof(CanDisconnect));
                 OnPropertyChanged(nameof(CanStartAccelerometer));
                 OnPropertyChanged(nameof(CanStartGyroscope));
+                OnPropertyChanged(nameof(CanStartMagnetometer));
+                OnPropertyChanged(nameof(CanStartLightSensor));
             }
         }
 
-        public bool CanConnect => SelectedDevice != null && !IsConnected && !IsScanning;
+        public bool CanConnect => SelectedDevice != null && !IsConnected; // Allow connecting while scanning
         public bool CanDisconnect => IsConnected;
         public bool CanStartAccelerometer => IsConnected;
         public bool CanStartGyroscope => IsConnected;
+        public bool CanStartMagnetometer => IsConnected;
+        public bool CanStartLightSensor => IsConnected;
 
         public Bluetooth()
         {
@@ -94,6 +99,8 @@ namespace Cellular
             _metaWearService.DeviceDisconnected += OnDeviceDisconnected;
             _metaWearService.AccelerometerDataReceived += OnAccelerometerDataReceived;
             _metaWearService.GyroscopeDataReceived += OnGyroscopeDataReceived;
+            _metaWearService.MagnetometerDataReceived += OnMagnetometerDataReceived;
+            _metaWearService.LightSensorDataReceived += OnLightSensorDataReceived;
             
             // Handle device selection
             DeviceListView.SelectionChanged += OnDeviceSelected;
@@ -118,8 +125,22 @@ namespace Cellular
             });
         }
 
+        private DateTime _lastAccelerometerUpdate = DateTime.MinValue;
+        private DateTime _lastGyroscopeUpdate = DateTime.MinValue;
+        private const int ACCELEROMETER_UPDATE_THROTTLE_MS = 50; // Update UI max 20 times per second (50ms = 20Hz) to match gyroscope
+        private const int GYROSCOPE_UPDATE_THROTTLE_MS = 50; // Update UI max 20 times per second (50ms = 20Hz)
+
         private void OnAccelerometerDataReceived(object? sender, Services.MetaWearAccelerometerData data)
         {
+            // Throttle UI updates - match gyroscope throttle (50ms = 20Hz) for consistent visual speed
+            var now = DateTime.Now;
+            if ((now - _lastAccelerometerUpdate).TotalMilliseconds < ACCELEROMETER_UPDATE_THROTTLE_MS)
+            {
+                return; // Skip this update to avoid overwhelming the UI thread
+            }
+            
+            _lastAccelerometerUpdate = now;
+            
             MainThread.BeginInvokeOnMainThread(() =>
             {
                 AccelerometerLabel.Text = $"Accel: X={data.X:F2}, Y={data.Y:F2}, Z={data.Z:F2}";
@@ -128,9 +149,57 @@ namespace Cellular
 
         private void OnGyroscopeDataReceived(object? sender, Services.MetaWearGyroscopeData data)
         {
+            // Throttle UI updates to avoid lag - only update every 50ms (20Hz)
+            var now = DateTime.Now;
+            if ((now - _lastGyroscopeUpdate).TotalMilliseconds < GYROSCOPE_UPDATE_THROTTLE_MS)
+            {
+                return; // Skip this update to avoid overwhelming the UI thread
+            }
+            
+            _lastGyroscopeUpdate = now;
+            
             MainThread.BeginInvokeOnMainThread(() =>
             {
                 GyroscopeLabel.Text = $"Gyro: X={data.X:F2}, Y={data.Y:F2}, Z={data.Z:F2}";
+            });
+        }
+
+        private DateTime _lastMagnetometerUpdate = DateTime.MinValue;
+        private DateTime _lastLightSensorUpdate = DateTime.MinValue;
+        private const int MAGNETOMETER_UPDATE_THROTTLE_MS = 50; // Update UI max 20 times per second
+        private const int LIGHT_SENSOR_UPDATE_THROTTLE_MS = 100; // Update UI max 10 times per second
+
+        private void OnMagnetometerDataReceived(object? sender, Services.MetaWearMagnetometerData data)
+        {
+            // Throttle UI updates to avoid lag
+            var now = DateTime.Now;
+            if ((now - _lastMagnetometerUpdate).TotalMilliseconds < MAGNETOMETER_UPDATE_THROTTLE_MS)
+            {
+                return;
+            }
+            
+            _lastMagnetometerUpdate = now;
+            
+            MainThread.BeginInvokeOnMainThread(() =>
+            {
+                MagnetometerLabel.Text = $"Mag: X={data.X:F2}µT, Y={data.Y:F2}µT, Z={data.Z:F2}µT";
+            });
+        }
+
+        private void OnLightSensorDataReceived(object? sender, Services.MetaWearLightSensorData data)
+        {
+            // Throttle UI updates to avoid lag
+            var now = DateTime.Now;
+            if ((now - _lastLightSensorUpdate).TotalMilliseconds < LIGHT_SENSOR_UPDATE_THROTTLE_MS)
+            {
+                return;
+            }
+            
+            _lastLightSensorUpdate = now;
+            
+            MainThread.BeginInvokeOnMainThread(() =>
+            {
+                LightSensorLabel.Text = $"Light: Visible={data.Visible}, IR={data.Infrared}";
             });
         }
 
@@ -365,6 +434,12 @@ namespace Cellular
                 
                 if (connected)
                 {
+                    // Stop scanning if still in progress
+                    if (IsScanning)
+                    {
+                        await StopScanningAsync();
+                    }
+                    
                     IsConnected = true;
                     StatusLabel.Text = $"Connected to {SelectedDevice.Name}";
                     
@@ -404,6 +479,8 @@ namespace Cellular
             {
                 await _metaWearService.StopAccelerometerAsync();
                 await _metaWearService.StopGyroscopeAsync();
+                await _metaWearService.StopMagnetometerAsync();
+                await _metaWearService.StopLightSensorAsync();
                 await _metaWearService.DisconnectAsync();
                 
                 IsConnected = false;
@@ -411,6 +488,8 @@ namespace Cellular
                 DeviceInfoLabel.Text = "";
                 AccelerometerLabel.Text = "";
                 GyroscopeLabel.Text = "";
+                MagnetometerLabel.Text = "";
+                LightSensorLabel.Text = "";
             }
             catch (Exception ex)
             {
@@ -422,7 +501,7 @@ namespace Cellular
         {
             try
             {
-                await _metaWearService.StartAccelerometerAsync(50f, 16f);
+                await _metaWearService.StartAccelerometerAsync(100f, 16f); // Increased to 100Hz to match gyroscope
                 StatusLabel.Text = "Accelerometer started";
             }
             catch (Exception ex)
@@ -472,12 +551,68 @@ namespace Cellular
             }
         }
 
+        private async void OnStartMagnetometerClicked(object sender, EventArgs e)
+        {
+            try
+            {
+                await _metaWearService.StartMagnetometerAsync(25f);
+                StatusLabel.Text = "Magnetometer started";
+            }
+            catch (Exception ex)
+            {
+                await DisplayAlert("Error", ex.Message, "OK");
+            }
+        }
+
+        private async void OnStopMagnetometerClicked(object sender, EventArgs e)
+        {
+            try
+            {
+                await _metaWearService.StopMagnetometerAsync();
+                MagnetometerLabel.Text = "";
+                StatusLabel.Text = "Magnetometer stopped";
+            }
+            catch (Exception ex)
+            {
+                await DisplayAlert("Error", ex.Message, "OK");
+            }
+        }
+
+        private async void OnStartLightSensorClicked(object sender, EventArgs e)
+        {
+            try
+            {
+                await _metaWearService.StartLightSensorAsync(10f);
+                StatusLabel.Text = "Light sensor started";
+            }
+            catch (Exception ex)
+            {
+                await DisplayAlert("Error", ex.Message, "OK");
+            }
+        }
+
+        private async void OnStopLightSensorClicked(object sender, EventArgs e)
+        {
+            try
+            {
+                await _metaWearService.StopLightSensorAsync();
+                LightSensorLabel.Text = "";
+                StatusLabel.Text = "Light sensor stopped";
+            }
+            catch (Exception ex)
+            {
+                await DisplayAlert("Error", ex.Message, "OK");
+            }
+        }
+
         protected override void OnDisappearing()
         {
             base.OnDisappearing();
             _metaWearService.DeviceDisconnected -= OnDeviceDisconnected;
             _metaWearService.AccelerometerDataReceived -= OnAccelerometerDataReceived;
             _metaWearService.GyroscopeDataReceived -= OnGyroscopeDataReceived;
+            _metaWearService.MagnetometerDataReceived -= OnMagnetometerDataReceived;
+            _metaWearService.LightSensorDataReceived -= OnLightSensorDataReceived;
         }
     }
 

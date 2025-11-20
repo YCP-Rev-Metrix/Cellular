@@ -24,6 +24,16 @@ namespace Cellular.Services
         event EventHandler<MetaWearGyroscopeData> GyroscopeDataReceived;
 
         /// <summary>
+        /// Event fired when magnetometer data is received
+        /// </summary>
+        event EventHandler<MetaWearMagnetometerData> MagnetometerDataReceived;
+
+        /// <summary>
+        /// Event fired when light sensor data is received
+        /// </summary>
+        event EventHandler<MetaWearLightSensorData> LightSensorDataReceived;
+
+        /// <summary>
         /// Gets whether the device is connected
         /// </summary>
         bool IsConnected { get; }
@@ -75,6 +85,28 @@ namespace Cellular.Services
         Task<DeviceInfo> GetDeviceInfoAsync();
 
         /// <summary>
+        /// Starts magnetometer data streaming
+        /// </summary>
+        /// <param name="sampleRate">Sample rate in Hz (10-25)</param>
+        Task StartMagnetometerAsync(float sampleRate = 25f);
+
+        /// <summary>
+        /// Stops magnetometer data streaming
+        /// </summary>
+        Task StopMagnetometerAsync();
+
+        /// <summary>
+        /// Starts light sensor data streaming
+        /// </summary>
+        /// <param name="sampleRate">Sample rate in Hz (1-10)</param>
+        Task StartLightSensorAsync(float sampleRate = 10f);
+
+        /// <summary>
+        /// Stops light sensor data streaming
+        /// </summary>
+        Task StopLightSensorAsync();
+
+        /// <summary>
         /// Resets the device
         /// </summary>
         Task ResetAsync();
@@ -99,6 +131,27 @@ namespace Cellular.Services
         public float X { get; set; }
         public float Y { get; set; }
         public float Z { get; set; }
+        public DateTime Timestamp { get; set; }
+    }
+
+    /// <summary>
+    /// MetaWear magnetometer data structure
+    /// </summary>
+    public class MetaWearMagnetometerData
+    {
+        public float X { get; set; }
+        public float Y { get; set; }
+        public float Z { get; set; }
+        public DateTime Timestamp { get; set; }
+    }
+
+    /// <summary>
+    /// MetaWear light sensor data structure
+    /// </summary>
+    public class MetaWearLightSensorData
+    {
+        public float Visible { get; set; }
+        public float Infrared { get; set; }
         public DateTime Timestamp { get; set; }
     }
 
