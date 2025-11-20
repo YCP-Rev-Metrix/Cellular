@@ -1,9 +1,11 @@
 ﻿using System.Collections.ObjectModel;
 using System.ComponentModel;
-using System.Linq; // For LINQ extension methods
+using System.Windows.Input;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using Cellular.Data;
 using SQLite;
+using System.Diagnostics;
 
 namespace Cellular.ViewModel
 {
@@ -12,6 +14,7 @@ namespace Cellular.ViewModel
         private ObservableCollection<string> players;
         private ObservableCollection<string> arsenal;
         private ObservableCollection<ShotPageFrame> frames;
+        public event Action AlertEditFrame;
         private readonly SQLiteAsyncConnection _database;
         public string FrameDisplay => $"Gm {currentGame}-{CurrentFrame} \nShot {CurrentShot}";
         public string CurrentDate { get; set; } = Preferences.Get("Date", "Unknown");
@@ -22,12 +25,14 @@ namespace Cellular.ViewModel
         public int _currentShot = 1;
         public int currentSession { get; set; } = Preferences.Get("SessionNumber", 0);
         public int currentGame { get; set; } = Preferences.Get("GameNumber", 0);
+        public int gameId { get; set; } = Preferences.Get("GameID", 0);
         public int firstShotId = -1;
         public int secondShotId = -1;
         public int currentFrameId = -1;
         public int lastFrameId = -1;
         public int UserId = Preferences.Get("UserId", 0);
         public bool GameCompleted = false;
+        public bool EditMode = false;
         public ObservableCollection<string> Players
         {
             get => players;
@@ -68,6 +73,8 @@ namespace Cellular.ViewModel
             }
         }
 
+        public ICommand FrameTappedCommand { get; private set; }
+
         public GameInterfaceViewModel()
         {
             string dbPath = Path.Combine(FileSystem.AppDataDirectory, "appdata.db");
@@ -89,6 +96,7 @@ namespace Cellular.ViewModel
 
             LoadUsers();
             LoadArsenal();
+            FrameTappedCommand = new Command<ShotPageFrame>(OnFrameTapped);
         }
 
         public string Hand
@@ -158,6 +166,43 @@ namespace Cellular.ViewModel
             Arsenal = [.. arsenalList.Select(a => a.Name)];
         }
 
+        public async void LoadEditInfo()
+        {
+            Debug.WriteLine($"Game ID: {gameId} Current frame: {CurrentFrame}");
+            var frame = await _database.Table<BowlingFrame>().Where(f => f.GameId == gameId && f.FrameNumber == CurrentFrame).FirstOrDefaultAsync();
+            if (frame != null)
+            {
+                currentFrameId = frame.FrameId;
+                if(frame.Shot1 != null)
+                {
+                    firstShotId = (int)(frame.Shot1);
+                }
+            }
+            var shot = await _database.Table<Shot>().Where(f => f.ShotId == firstShotId).FirstOrDefaultAsync();
+
+            if (shot != null)
+            {
+                if (shot.LeaveType != null)
+                {
+                    pinStates = (short)(shot.LeaveType);
+                    shot1PinStates = pinStates;
+                    string result = Convert.ToString((ushort)pinStates, 2).PadLeft(16, '0');
+                    Debug.WriteLine($"{result}");
+                }
+            }
+            AlertEditFrame?.Invoke();
+        }
+
+        //Method used to edit frames/shots
+        private void OnFrameTapped(ShotPageFrame frame)
+        {
+            if (frame == null) return;
+
+            CurrentFrame = frame.FrameNumber;
+            CurrentShot = 1;
+            LoadEditInfo();
+            OnPropertyChanged();
+        }
     }
 
     public class ShotPageFrame : INotifyPropertyChanged

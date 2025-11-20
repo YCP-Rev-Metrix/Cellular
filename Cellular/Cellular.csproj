@@ -67,6 +67,9 @@
 	</ItemGroup>
 
 	<ItemGroup>
+		<Compile Update="BlankPage.xaml.cs">
+		  <DependentUpon>BlankPage.xaml</DependentUpon>
+		</Compile>
 		<Compile Update="Video.xaml.cs">
 		  <DependentUpon>Video.xaml</DependentUpon>
 		</Compile>
@@ -119,6 +122,9 @@
 		  <Generator>MSBuild:Compile</Generator>
 		</MauiXaml>
 		<MauiXaml Update="BallArsenalRegistrationPage.xaml">
+		  <Generator>MSBuild:Compile</Generator>
+		</MauiXaml>
+		<MauiXaml Update="BlankPage.xaml">
 		  <Generator>MSBuild:Compile</Generator>
 		</MauiXaml>
 		<MauiXaml Update="Video.xaml">

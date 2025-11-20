@@ -1,31 +1,31 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Collections.ObjectModel;
-using System.Linq;
-using System.Threading.Tasks;
-using Microsoft.Maui.Controls;
-using Plugin.BLE;
-using Plugin.BLE.Abstractions.Contracts;
-using Plugin.BLE.Abstractions.EventArgs;
-using Cellular.Services;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Maui.ApplicationModel;
-#if ANDROID
-using Android;
-using Android.Content.PM;
-using AndroidX.Core.Content;
-using AndroidX.Core.App;
-#endif
+﻿//using System;
+//using System.Collections.Generic;
+//using System.Collections.ObjectModel;
+//using System.Linq;
+//using System.Threading.Tasks;
+//using Microsoft.Maui.Controls;
+//using Plugin.BLE;
+//using Plugin.BLE.Abstractions.Contracts;
+//using Plugin.BLE.Abstractions.EventArgs;
+//using Cellular.Services;
+//using Microsoft.Extensions.DependencyInjection;
+//using Microsoft.Maui.ApplicationModel;
+//#if ANDROID
+//using Android;
+//using Android.Content.PM;
+//using AndroidX.Core.Content;
+//using AndroidX.Core.App;
+//#endif
 
 namespace Cellular
 {
-    public static class BlankPageStore
-    {
-        public static ObservableCollection<BluetoothDevice>? SavedDevices;
-        public static BluetoothDevice? SavedSelected;
-        public static bool SavedIsConnected;
-        public static string SavedDeviceInfo = "";
-    }
+    //public static class BlankPageStore
+    //    {
+    //        public static ObservableCollection<BluetoothDevice>? SavedDevices;
+    //        public static BluetoothDevice? SavedSelected;
+    //        public static bool SavedIsConnected;
+    //        public static string SavedDeviceInfo = "";
+    //    }
 
     public partial class BlankPage : ContentPage
     {

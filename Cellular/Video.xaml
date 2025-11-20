@@ -15,6 +15,12 @@
                 Aspect="AspectFit"
                 SemanticProperties.Description="RevMetrix Bowling Ball Logo" />
 
+            <Picker x:Name="ResolutionPicker"
+                Title="Select Resolution"
+                Grid.Row="0"
+                BackgroundColor="LightSlateGray"
+                SelectedIndexChanged="ResolutionPicker_SelectedIndexChanged" />
+
             <cv:CameraView
                 x:Name="cameraView"
                 Grid.Row="0"

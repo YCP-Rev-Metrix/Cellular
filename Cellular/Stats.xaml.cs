@@ -18,5 +18,11 @@ namespace Cellular
             InitializeComponent();
         }
 
+        DatePicker datePicker = new DatePicker
+        {
+            MinimumDate = new DateTime(1900, 1, 1),
+            MaximumDate = new DateTime(2050, 1, 1),
+            Date = new DateTime(2018, 6, 21)
+        };
     }
 }
