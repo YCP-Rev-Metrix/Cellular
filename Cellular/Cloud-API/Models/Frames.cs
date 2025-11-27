@@ -1,6 +1,6 @@
 ﻿namespace Cellular.Cloud_API.Models;
 
-public class Frame
+public class Frames
 {
     public int Id { get; set; }
     public int GameId { get; set; }
