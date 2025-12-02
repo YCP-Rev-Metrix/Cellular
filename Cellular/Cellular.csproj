@@ -112,6 +112,9 @@
 		<Compile Update="Bluetooth.xaml.cs">
 			<DependentUpon>Bluetooth.xaml</DependentUpon>
 		</Compile>
+		<Compile Update="SensorGraphPage.xaml.cs">
+			<DependentUpon>SensorGraphPage.xaml</DependentUpon>
+		</Compile>
 		<Compile Update="RegisterPage.xaml.cs">
 			<DependentUpon>RegisterPage.xaml</DependentUpon>
 		</Compile>
@@ -199,6 +202,9 @@
 			<Generator>MSBuild:Compile</Generator>
 		</MauiXaml>
 		<MauiXaml Update="Bluetooth.xaml">
+			<Generator>MSBuild:Compile</Generator>
+		</MauiXaml>
+		<MauiXaml Update="SensorGraphPage.xaml">
 			<Generator>MSBuild:Compile</Generator>
 		</MauiXaml>
 		<MauiXaml Update="RegisterPage.xaml">
