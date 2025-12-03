@@ -350,8 +350,8 @@ namespace Cellular
                 }
                 else if (downedPins == 0)
                 {
-                    // If no pins were knocked down, set ShotOneBox to "_"
-                    currentFrame.ShotOneBox = "_";
+                    // If no pins were knocked down, set ShotOneBox to "-"
+                    currentFrame.ShotOneBox = "-";
                 }
                 else
                 {
@@ -381,7 +381,7 @@ namespace Cellular
                 }
                 else if (newlyDownedPins == 0)
                 {
-                    currentFrame.ShotTwoBox = "_";
+                    currentFrame.ShotTwoBox = "-";
                 }
                 else
                 {
@@ -500,7 +500,7 @@ namespace Cellular
                 }
             }
 
-            currentFrame.UpdateShotBox(viewModel.CurrentShot, "_");
+            currentFrame.UpdateShotBox(viewModel.CurrentShot, "-");
             viewModel.OnPropertyChanged(nameof(viewModel.Frames));
         }
 

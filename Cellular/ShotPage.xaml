@@ -206,7 +206,7 @@
                 <!-- Right Side: Quick Scoring Buttons -->
                 <StackLayout Grid.Row="1" Grid.Column="1" Orientation="Vertical" Padding="0, 10" Spacing="10" HorizontalOptions="End">
                     <Button Text="F" WidthRequest="40" HeightRequest="40" CornerRadius="3" Clicked="OnFoulClicked" BackgroundColor="LightGray"/>
-                    <Button Text="_" WidthRequest="40" HeightRequest="40" CornerRadius="3" Clicked="OnGutterClicked" BackgroundColor="LightGray"/>
+                    <Button Text="-" WidthRequest="40" HeightRequest="40" CornerRadius="3" Clicked="OnGutterClicked" BackgroundColor="LightGray"/>
                     <Button Text="/" WidthRequest="40" HeightRequest="40" CornerRadius="3" Clicked="OnSpareClicked" BackgroundColor="LightGray"/>
                     <Button Text="X" WidthRequest="40" HeightRequest="40" CornerRadius="3" Clicked="OnStrikeClicked" BackgroundColor="LightGray"/>
                 </StackLayout>
