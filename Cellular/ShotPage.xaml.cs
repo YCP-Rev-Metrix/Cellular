@@ -533,6 +533,27 @@ namespace Cellular
             viewModel.OnPropertyChanged(nameof(viewModel.Frames));
         }
 
+        private async Task<int> UpdateGameAsync()
+        {
+            var database = new CellularDatabase();
+            var conn = database.GetConnection();
+            var gameRepository = new GameRepository(conn);
+            await gameRepository.InitAsync();
+            var game = await gameRepository.GetGameById(viewModel.gameId);
+            if (game != null)
+            {
+                game.Score = viewModel.TotalScore;
+                await gameRepository.UpdateGameAsync(game);
+                Debug.WriteLine($"Game {game.GameNumber} score updated to {game.Score}");
+                return game.Score ?? 0;
+            }
+            else
+            {
+                Debug.WriteLine($"UpdateGameAsync: No game found with GameId {viewModel.gameId}");
+                return 0;
+            }
+        }
+
         private async Task<int> SaveShotAsync(int shotNumber)
         {
             var database = new CellularDatabase();
@@ -925,7 +946,8 @@ namespace Cellular
                     }
                 }
             }
-
+            viewModel.TotalScore = totalScore;
+            await UpdateGameAsync();
             viewModel.OnPropertyChanged(nameof(viewModel.Frames));
         }
 

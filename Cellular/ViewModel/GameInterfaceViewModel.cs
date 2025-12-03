@@ -32,6 +32,7 @@ namespace Cellular.ViewModel
         public int lastFrameId = -1;
         public int UserId = Preferences.Get("UserId", 0);
         public bool GameCompleted = false;
+        public int TotalScore = 0;
         public bool EditMode = false;
         private Ball _selectedStrikeBall;
         private Ball _selectedSpareBall;

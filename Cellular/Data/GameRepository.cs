@@ -51,6 +51,13 @@ namespace Cellular.Data
                                   .Where(g => g.SessionId == sessionId && g.GameNumber == gameNumber)
                                   .FirstOrDefaultAsync();
         }
+
+        public async Task<Game?> GetGameById(int gameId)
+        {
+            return await _conn.Table<Game>()
+                                  .Where(g => g.GameId == gameId)
+                                  .FirstOrDefaultAsync();
+        }
     }
 }
 
