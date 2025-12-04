@@ -5,24 +5,27 @@ using Microsoft.Maui.Controls;
 using Microsoft.Maui.Storage;
 using System;
 using System.IO;
+using System.Threading.Tasks;
 
 namespace Cellular
 {
     public partial class Stats : ContentPage
     {
-        private readonly UserRepository _userRepository;
-        private readonly MainViewModel _viewModel;
+        private readonly StatsViewModel _viewModel;
 
-        public Stats(UserRepository userRepository)
+        public Stats()
         {
             InitializeComponent();
+
+            _viewModel = new StatsViewModel();
+            BindingContext = _viewModel;
         }
 
-        DatePicker datePicker = new DatePicker
+        protected override async void OnAppearing()
         {
-            MinimumDate = new DateTime(1900, 1, 1),
-            MaximumDate = new DateTime(2050, 1, 1),
-            Date = new DateTime(2018, 6, 21)
-        };
+            base.OnAppearing();
+            // Load DB-backed collections (sessions, games, balls)
+            await _viewModel.LoadAsync();
+        }   
     }
 }

@@ -45,7 +45,7 @@ namespace Cellular
 
         private async void OnStatsClicked(object sender, EventArgs e)
         {
-            await Navigation.PushAsync(new Stats(_userRepository));
+            await Navigation.PushAsync(new Stats());
         }
     }
 }
