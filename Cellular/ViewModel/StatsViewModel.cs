@@ -10,6 +10,7 @@ using System.Windows.Input;
 using Microsoft.Maui.Controls;
 using System.Collections.Generic;
 using System.Diagnostics;
+using CellularCore; // added to call StatsCalculator
 
 namespace Cellular.ViewModel
 {
@@ -511,6 +512,14 @@ namespace Cellular.ViewModel
 
                 // Log counts so we can see how many items were loaded for this call.
                 Debug.WriteLine($"LoadFilteredDataAsync: sessions={sessionsConsideredCount}, games={Games.Count}, frames={BowlingFrames.Count}, shots={Shots.Count}");
+
+                // Call the StatsCalculator and pass the frames retrieved by the query.
+                // The calculator method returns a double in [0,1]; you said you'll implement the math inside CalculateStrikePercentage.
+                
+                var strikePercentage = CalculateStrikePercentage(BowlingFrames);
+                var sparePercentage = CalculateSparePercentage(BowlingFrames);
+                Debug.WriteLine($"Calculated strike percentage: {strikePercentage:P2}");
+                Debug.WriteLine($"Calculated spare percentage: {sparePercentage:P2}");
             }
         }
 
@@ -543,6 +552,26 @@ namespace Cellular.ViewModel
             }
 
             return false;
+        }
+
+        //Stat calculations
+        public static double CalculateStrikePercentage(IEnumerable<BowlingFrame> frames)
+        {
+            if (frames == null) return 0.0;
+
+            int totalFrames = frames.Count();
+            int strikes = frames.Count(f => f.Result == "Strike");
+            Debug.WriteLine($"Strikes: {strikes}");
+            return StatsCalculator.CalculatePercentage(strikes, totalFrames);
+        }
+
+        public static double CalculateSparePercentage(IEnumerable<BowlingFrame> frames)
+        {
+            if (frames == null) return 0.0;
+
+            int totalFrames = frames.Count();
+            int spares = frames.Count(f => f.Result == "Spare");
+            return StatsCalculator.CalculatePercentage(spares, totalFrames);
         }
 
         // INotifyPropertyChanged

@@ -139,6 +139,10 @@ namespace Cellular
                     viewModel.pinStates |= (short)(0 << 10); // Make sure the bit is saved as a 0 if foul was selected and no longer is
                     foul = false;
                 }
+                if (currentFrame.ShotOneBox == "X")
+                {
+                    viewModel.frameResult = "Strike";
+                }
                 //Save shot to DB
                 viewModel.firstShotId = await SaveShotAsync(1);
 
@@ -205,11 +209,13 @@ namespace Cellular
                 //Save the frame to the database and pass false for strike and true/false for spare
                 if (downedPins == 10)
                 {
+                    viewModel.frameResult = "Spare";
                     await SaveFrameAsync(false, true);
                     Debug.WriteLine("Frame is saved as a spare");
                 }
                 else
                 {
+                    viewModel.frameResult = null;
                     await SaveFrameAsync(false, false);
                     Debug.WriteLine("Frame is saved as neither");
                 }
@@ -226,6 +232,7 @@ namespace Cellular
                 {
                     viewModel.CurrentFrame++;
                     viewModel.CurrentShot = 1;
+                    viewModel.frameResult = null;
                     viewModel.pinStates = 0;
                     viewModel.firstShotId = -1;
                     viewModel.secondShotId = -1;
@@ -607,12 +614,13 @@ namespace Cellular
                     {
                         FrameNumber = viewModel.CurrentFrame,
                         Lane = null,
-                        Result = null,
+                        Result = viewModel.frameResult,
                         GameId = viewModel.gameId,
                         Shot1 = shotNumber == 1 ? shotId : (int?)null,
                         Shot2 = shotNumber == 2 ? shotId : (int?)null
                     };
                     await frameRepository.AddFrame(newFrame);
+                    Debug.WriteLine($"Result3: {viewModel.frameResult}");
 
                     // update viewModel.currentFrameId to the newly inserted frame
                     newFrame.FrameId = (await conn.Table<BowlingFrame>().OrderByDescending(f => f.FrameId).FirstOrDefaultAsync())?.FrameId ?? 0;
@@ -707,8 +715,10 @@ namespace Cellular
                         shotId = await shotRepository.AddAsync(newShot);
                         if (reloadFrame != null)
                         {
+                            reloadFrame.Result = viewModel.frameResult;
                             reloadFrame.Shot2 = shotId;
                             await frameRepository.UpdateFrameAsync(reloadFrame);
+                            Debug.WriteLine($"Result4: {viewModel.frameResult}");
                         }
                     }
                 }
@@ -749,11 +759,11 @@ namespace Cellular
                 {
                     FrameNumber = viewModel.CurrentFrame,
                     Lane = null,
-                    Result = result,
+                    Result = viewModel.frameResult,
                     GameId = Preferences.Get("GameID", 0),
                     Shot1 = viewModel.firstShotId
                 };
-                Debug.WriteLine($"Result is a {result}");
+                Debug.WriteLine($"Result1: {viewModel.frameResult}");
             }
             else
             {
@@ -764,6 +774,8 @@ namespace Cellular
                     {
                         Debug.WriteLine("NOT NULL");
                         newFrame.Shot2 = viewModel.secondShotId;
+                        newFrame.Result = viewModel.frameResult;
+                        Debug.WriteLine($"Result2: {viewModel.frameResult}");
                     }
                 }
             }
@@ -778,6 +790,7 @@ namespace Cellular
                 await frameRepository.UpdateFrameAsync(newFrame);
                 viewModel.lastFrameId = newFrame.FrameId;
                 Debug.WriteLine($"Frame updated {newFrame.Shot1} and {newFrame.Shot2}");
+                Debug.WriteLine($"Frame result for updated frame: {newFrame.Result}");
             }
 
             // Retrieve the inserted frame ID

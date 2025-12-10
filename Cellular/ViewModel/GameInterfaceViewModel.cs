@@ -34,6 +34,7 @@ namespace Cellular.ViewModel
         public bool GameCompleted = false;
         public int TotalScore = 0;
         public bool EditMode = false;
+        public string frameResult = null;
         private Ball _selectedStrikeBall;
         private Ball _selectedSpareBall;
         private int _strikeBallId = -1;
