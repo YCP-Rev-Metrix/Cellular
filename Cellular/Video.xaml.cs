@@ -38,6 +38,15 @@ namespace Cellular
 
             cameraView.CamerasLoaded += CameraView_CamerasLoaded;
             cameraView.SizeChanged += CameraView_SizeChanged;
+            MessagingCenter.Subscribe<object>(this, "WatchStartRecording", async (_) =>
+            {
+                await BeginExternalRecording();
+            });
+
+            MessagingCenter.Subscribe<object>(this, "WatchStopRecording", async (_) =>
+            {
+                await EndExternalRecording();
+            });
         }
 
         private void CameraView_CamerasLoaded(object sender, EventArgs e)
@@ -220,6 +229,106 @@ namespace Cellular
             isCameraStarted = false;
 
             cameraView.StopCameraAsync();
+        }
+        public async Task BeginExternalRecording()
+        {
+            if (!isCameraStarted || isRecording)
+                return;
+
+            await MainThread.InvokeOnMainThreadAsync(async () =>
+            {
+                try
+                {
+                    isRecording = true;
+                    Record.Text = "Stop";
+                    Record.BackgroundColor = Colors.Red;
+
+                    string targetFolder = Path.Combine(FileSystem.AppDataDirectory, "MyVideos");
+                    Directory.CreateDirectory(targetFolder);
+
+                    string fileName = $"rm_{DateTime.Now:yyyyMMdd_HHmmss}.mp4";
+                    currentVideoPath = Path.Combine(targetFolder, fileName);
+
+                    await cameraView.StartRecordingAsync(currentVideoPath);
+                }
+                catch (Exception ex)
+                {
+                    isRecording = false;
+                    Record.Text = "Record";
+                    Record.BackgroundColor = Color.FromArgb("#9880e5");
+                }
+            });
+        }
+        
+        public async Task EndExternalRecording()
+        {
+            if (!isRecording)
+                return;
+
+            await MainThread.InvokeOnMainThreadAsync(async () =>
+            {
+                try
+                {
+                    // Update state and UI
+                    isRecording = false;
+                    Record.Text = "Record";
+                    Record.BackgroundColor = Color.FromArgb("#9880e5");
+
+                    // Stop recording
+                    CameraResult result = await cameraView.StopRecordingAsync();
+
+                    if (result == CameraResult.Success)
+                    {
+                        if (File.Exists(currentVideoPath))
+                        {
+                            try
+                            {
+                                using var videoStream = File.OpenRead(currentVideoPath);
+
+                                string fileName = Path.GetFileName(currentVideoPath);
+                                string initialPath = App.LastSavePath;
+
+                                var saveResult = await FileSaver.Default.SaveAsync(
+                                    initialPath,
+                                    fileName,
+                                    videoStream,
+                                    CancellationToken.None);
+
+                                if (saveResult.IsSuccessful)
+                                {
+                                    App.LastSavePath = Path.GetDirectoryName(saveResult.FilePath);
+                                    await DisplayAlert("Success", $"Video saved to: {saveResult.FilePath}", "OK");
+
+                                    File.Delete(currentVideoPath);
+                                }
+                                else
+                                {
+                                    await DisplayAlert(
+                                        "Error",
+                                        $"Failed to save to gallery: {saveResult.Exception?.Message}",
+                                        "OK");
+                                }
+                            }
+                            catch (Exception saveEx)
+                            {
+                                await DisplayAlert("Error", $"Error preparing to save: {saveEx.Message}", "OK");
+                            }
+                        }
+                        else
+                        {
+                            await DisplayAlert("Error", "Could not find the recorded video file to save.", "OK");
+                        }
+                    }
+                    else
+                    {
+                        await DisplayAlert("Error", "Failed to save the video.", "OK");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    await DisplayAlert("Error", $"Failed to stop recording: {ex.Message}", "OK");
+                }
+            });
         }
     }
 }
