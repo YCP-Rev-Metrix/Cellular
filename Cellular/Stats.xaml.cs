@@ -19,6 +19,9 @@ namespace Cellular
 
             _viewModel = new StatsViewModel();
             BindingContext = _viewModel;
+
+            // Wire up Load Stats button to populate Games/Frames/Shots according to current filters
+            LoadStatsButton.Clicked += OnLoadStatsClicked;
         }
 
         protected override async void OnAppearing()
@@ -26,6 +29,27 @@ namespace Cellular
             base.OnAppearing();
             // Load DB-backed collections (sessions, games, balls)
             await _viewModel.LoadAsync();
-        }   
+        }  
+
+        private void OnClearSessionClicked(object sender, EventArgs e)
+        {
+            // clear in VM (keeps state consistent)
+            _viewModel.ClearSessionSelection();
+        }
+
+        // Click handler for the "Load Stats" button — calls the VM to populate Games/Frames/Shots
+        private async void OnLoadStatsClicked(object sender, EventArgs e)
+        {
+            try
+            {
+                await _viewModel.LoadFilteredDataAsync();
+            }
+            catch (Exception ex)
+            {
+                // Surface unexpected errors for debugging — consider replacing with user-friendly UI alert
+                System.Diagnostics.Debug.WriteLine($"LoadStats error: {ex.Message}");
+                await DisplayAlert("Error", $"Failed to load stats: {ex.Message}", "OK");
+            }
+        }
     }
 }

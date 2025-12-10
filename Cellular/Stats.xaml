@@ -9,86 +9,106 @@
     <ScrollView>
         <VerticalStackLayout
             Padding="30,0"
-            Spacing="25">
+            Spacing="20">
 
             <Image Source="logo.png" HeightRequest="185" Aspect="AspectFit" />
 
-            <Grid HorizontalOptions="Center">
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                </Grid.RowDefinitions>
-
+            <!-- Two columns of 4 pickers -->
+            <Grid HorizontalOptions="Center" ColumnSpacing="20" RowSpacing="10">
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
 
-                <StackLayout Grid.Column="0" Grid.Row="0">
-                    <DatePicker MinimumDate="{Binding MinDate}"
-                                MaximumDate="{Binding MaxDate}"
-                                Date="{Binding SelectedDate}"
-                                x:Name="StartDate"
-                                WidthRequest="100"/>
+                <!-- Four rows for the 8 pickers (2 columns x 4 rows) -->
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" /> <!-- statType -->
+                    <RowDefinition Height="Auto" /> <!-- buttons -->
+                </Grid.RowDefinitions>
 
-                    <!-- Sessions: shows sessions for current user -->
-                    <Picker x:Name="SessionPicker"
-                            Title="Session"
-                            ItemsSource="{Binding Sessions}"
-                            ItemDisplayBinding="{Binding SessionNumber}"
-                            SelectedItem="{Binding SelectedSession}" />
+                <!-- Left column -->
+                <DatePicker Grid.Row="0" Grid.Column="0"
+                            MinimumDate="{Binding MinDate}"
+                            MaximumDate="{Binding MaxDate}"
+                            Date="{Binding SelectedDate}"
+                            x:Name="StartDate"
+                            WidthRequest="140" />
 
-                    <!-- Games: shows games for user or filtered by selected session -->
-                    <Picker x:Name="GamePicker"
-                            Title="Game"
-                            ItemsSource="{Binding Games}"
-                            ItemDisplayBinding="{Binding GameNumber}"
-                            SelectedItem="{Binding SelectedGame}" />
+                <Picker Grid.Row="1" Grid.Column="0"
+                        x:Name="SessionPicker"
+                        Title="Session"
+                        ItemsSource="{Binding Sessions}"
+                        ItemDisplayBinding="{Binding SessionNumber}"
+                        SelectedItem="{Binding SelectedSession}"
+                        WidthRequest="140" />
 
-                    <!-- Lanes: 1-32 -->
-                    <Picker x:Name="LanesPicker"
-                            Title="Lanes"
-                            ItemsSource="{Binding Lanes}"
-                            SelectedItem="{Binding SelectedLane}" />
-                </StackLayout>
+                <Picker Grid.Row="2" Grid.Column="0"
+                        x:Name="GamePicker"
+                        Title="Game"
+                        ItemsSource="{Binding Games}"
+                        ItemDisplayBinding="{Binding GameNumber}"
+                        SelectedItem="{Binding SelectedGame}"
+                        WidthRequest="140" />
 
-                <StackLayout Grid.Column="2" Grid.Row="0">
-                    <DatePicker MinimumDate="{Binding MinDate}"
-                                MaximumDate="{Binding MaxDate}"
-                                Date="{Binding SelectedDate}"
-                                x:Name="EndDate"
-                                WidthRequest="100"/>
+                <Picker Grid.Row="3" Grid.Column="0"
+                        x:Name="LanesPicker"
+                        Title="Lanes"
+                        ItemsSource="{Binding Lanes}"
+                        SelectedItem="{Binding SelectedLane}"
+                        WidthRequest="140" />
 
-                    <Picker x:Name="EventPicker"
-                            Title="Event"
-                            ItemsSource="{Binding Events}"
-                            ItemDisplayBinding="{Binding Name}"
-                            SelectedItem="{Binding SelectedEvent}" />
+                <!-- Right column -->
+                <DatePicker Grid.Row="0" Grid.Column="1"
+                            MinimumDate="{Binding MinDate}"
+                            MaximumDate="{Binding MaxDate}"
+                            Date="{Binding SelectedDate}"
+                            x:Name="EndDate"
+                            WidthRequest="140" />
 
-                    <!-- Balls: only balls for current user -->
-                    <Picker x:Name="BallPicker"
-                            Title="Ball"
-                            ItemsSource="{Binding Balls}"
-                            ItemDisplayBinding="{Binding Name}"
-                            SelectedItem="{Binding SelectedBall}" />
+                <Picker Grid.Row="1" Grid.Column="1"
+                        x:Name="EventPicker"
+                        Title="Event"
+                        ItemsSource="{Binding Events}"
+                        ItemDisplayBinding="{Binding Name}"
+                        SelectedItem="{Binding SelectedEvent}"
+                        WidthRequest="140" />
 
-                    <!-- Frames: 1-10 -->
-                    <Picker x:Name="FramePicker"
-                            Title="Frame"
-                            ItemsSource="{Binding Frames}"
-                            SelectedItem="{Binding SelectedFrame}" />
-                </StackLayout>
+                <Picker Grid.Row="2" Grid.Column="1"
+                        x:Name="BallPicker"
+                        Title="Ball"
+                        ItemsSource="{Binding Balls}"
+                        ItemDisplayBinding="{Binding Name}"
+                        SelectedItem="{Binding SelectedBall}"
+                        WidthRequest="140" />
 
-                <StackLayout Grid.Column="1" Grid.Row="1" VerticalOptions="Center">
+                <Picker Grid.Row="3" Grid.Column="1"
+                        x:Name="FramePicker"
+                        Title="Frame"
+                        ItemsSource="{Binding Frames}"
+                        SelectedItem="{Binding SelectedFrame}"
+                        WidthRequest="140" />
+
+                <!-- StatType centered below the pickers -->
+                <HorizontalStackLayout Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="2"
+                                       HorizontalOptions="Center" Spacing="8" Padding="0,10,0,0">
                     <Picker x:Name="StatTypePicker"
                             Title="Stat Type"
-                            ItemsSource="{Binding StatTypes}"
-                            SelectedItem="{Binding SelectedStatType}" />
-                    <Button x:Name="LoadStatsButton" Text="Load Stats" WidthRequest="100" />
-                </StackLayout>
+                            ItemsSource="{Binding StatTypes}"   
+                            SelectedItem="{Binding SelectedStatType}"
+                            WidthRequest="200" />
+                </HorizontalStackLayout>
+
+                <!-- Load Stats and Clear buttons side-by-side centered -->
+                <HorizontalStackLayout Grid.Row="5" Grid.Column="0" Grid.ColumnSpan="2"
+                                       HorizontalOptions="Center" Spacing="12" Padding="0,10,0,0">
+                    <Button x:Name="LoadStatsButton" Text="Load Stats" WidthRequest="120" />
+                    <Button Text="Clear" WidthRequest="120"
+                            Command="{Binding ClearSessionCommand}" />
+                </HorizontalStackLayout>
             </Grid>
         </VerticalStackLayout>
     </ScrollView>
