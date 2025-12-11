@@ -19,17 +19,17 @@
 
             <BoxView HeightRequest="1" Color="Gray" Opacity="0.5" WidthRequest="200"/>
 
-            <Label Text="{Binding StrikePercent, StringFormat='Strike: {0:N2}%'}"
+            <Label Text="{Binding StrikePercent, StringFormat='Strike: {0:P0}'}"
                    HorizontalOptions="Center" 
                    TextColor="Black"
                    FontSize="16" />
 
-            <Label Text="{Binding SparePercent, StringFormat='Spare: {0:N2}%'}"
+            <Label Text="{Binding SparePercent, StringFormat='Spare: {0:P0}'}"
                    HorizontalOptions="Center" 
                    TextColor="Black"
                    FontSize="16" />
 
-            <Label Text="{Binding OpenPercent, StringFormat='Open: {0:N2}%'}"
+            <Label Text="{Binding OpenPercent, StringFormat='Open: {0:P0}'}"
                    HorizontalOptions="Center" 
                    TextColor="Black"
                    FontSize="16" />
