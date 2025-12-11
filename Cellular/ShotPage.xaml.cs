@@ -215,7 +215,7 @@ namespace Cellular
                 }
                 else
                 {
-                    viewModel.frameResult = null;
+                    viewModel.frameResult = "Open";
                     await SaveFrameAsync(false, false);
                     Debug.WriteLine("Frame is saved as neither");
                 }

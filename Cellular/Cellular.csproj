@@ -70,6 +70,9 @@
 		<Compile Update="BlankPage.xaml.cs">
 		  <DependentUpon>BlankPage.xaml</DependentUpon>
 		</Compile>
+		<Compile Update="Views\StatsPopup.xaml.cs">
+		  <DependentUpon>StatsPopup.xaml</DependentUpon>
+		</Compile>
 		<Compile Update="Views\CommentEditorPopup.xaml.cs">
 		  <DependentUpon>CommentEditorPopup.xaml</DependentUpon>
 		</Compile>
@@ -128,6 +131,9 @@
 		  <Generator>MSBuild:Compile</Generator>
 		</MauiXaml>
 		<MauiXaml Update="BlankPage.xaml">
+		  <Generator>MSBuild:Compile</Generator>
+		</MauiXaml>
+		<MauiXaml Update="Views\StatsPopup.xaml">
 		  <Generator>MSBuild:Compile</Generator>
 		</MauiXaml>
 		<MauiXaml Update="Views\CommentEditorPopup.xaml">

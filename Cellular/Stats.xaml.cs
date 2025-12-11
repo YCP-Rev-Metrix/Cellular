@@ -1,9 +1,11 @@
 ﻿using Camera.MAUI;
 using Cellular.Data;
 using Cellular.ViewModel;
+using CommunityToolkit.Maui.Extensions;
 using Microsoft.Maui.Controls;
 using Microsoft.Maui.Storage;
 using System;
+using System.Diagnostics;
 using System.IO;
 using System.Threading.Tasks;
 
@@ -43,6 +45,11 @@ namespace Cellular
             try
             {
                 await _viewModel.LoadFilteredDataAsync();
+                MainThread.BeginInvokeOnMainThread(() =>
+                {
+                    var popup = new Cellular.Views.StatsPopup(_viewModel);
+                    this.ShowPopup(popup);
+                });
             }
             catch (Exception ex)
             {

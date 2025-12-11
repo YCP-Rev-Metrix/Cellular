@@ -95,6 +95,11 @@ namespace Cellular.ViewModel
         private Ball _selected_ball;
         private string _selectedStatType;
 
+        public double StrikePercent { get; set; }
+        public double SparePercent { get; set; }
+        public double OpenPercent { get; set; }
+        public double GameAverage { get; set; }
+
         // Suppress flag used when repopulating Games to avoid binding recursion/null-write that clears saved id
         private bool _suppressSelectedGameSetter = false;
 
@@ -516,10 +521,14 @@ namespace Cellular.ViewModel
                 // Call the StatsCalculator and pass the frames retrieved by the query.
                 // The calculator method returns a double in [0,1]; you said you'll implement the math inside CalculateStrikePercentage.
                 
-                var strikePercentage = CalculateStrikePercentage(BowlingFrames);
-                var sparePercentage = CalculateSparePercentage(BowlingFrames);
-                Debug.WriteLine($"Calculated strike percentage: {strikePercentage:P2}");
-                Debug.WriteLine($"Calculated spare percentage: {sparePercentage:P2}");
+                StrikePercent = CalculateStrikePercentage(BowlingFrames);
+                SparePercent = CalculateSparePercentage(BowlingFrames);
+                OpenPercent = CalculateOpenPercentage(BowlingFrames);
+                GameAverage = CalculateScoreAverage(Games);
+                //Debug.WriteLine($"Calculated strike percentage: {StrikePercent:N2}");
+                //Debug.WriteLine($"Calculated spare percentage: {SparePercent:N2}");
+                //Debug.WriteLine($"Calculated open percentage: {OpenPercent:N2}");
+                //Debug.WriteLine($"Calculated game average: {GameAverage:N2}");
             }
         }
 
@@ -572,6 +581,25 @@ namespace Cellular.ViewModel
             int totalFrames = frames.Count();
             int spares = frames.Count(f => f.Result == "Spare");
             return StatsCalculator.CalculatePercentage(spares, totalFrames);
+        }
+
+        public static double CalculateOpenPercentage(IEnumerable<BowlingFrame> frames)
+        {
+            if (frames == null) return 0.0;
+
+            int totalFrames = frames.Count();
+            int opens = frames.Count(f => f.Result == "Open");
+            return StatsCalculator.CalculatePercentage(opens, totalFrames);
+        }
+
+        public static double CalculateScoreAverage(IEnumerable<Game> games)
+        {
+            if (games == null) return 0.0;
+
+            // This creates an IEnumerable<int> containing only the scores
+            var scores = games.Select(game => game.Score);
+
+            return StatsCalculator.CalculateAverage(scores);
         }
 
         // INotifyPropertyChanged
