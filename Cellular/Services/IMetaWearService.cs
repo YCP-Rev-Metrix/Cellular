@@ -110,6 +110,11 @@ namespace Cellular.Services
         /// Resets the device
         /// </summary>
         Task ResetAsync();
+
+        /// <summary>
+        /// Probes the device to discover available modules and registers
+        /// </summary>
+        Task ProbeDeviceAsync();
     }
 
     /// <summary>
@@ -151,7 +156,6 @@ namespace Cellular.Services
     public class MetaWearLightSensorData
     {
         public float Visible { get; set; }
-        public float Infrared { get; set; }
         public DateTime Timestamp { get; set; }
     }
 

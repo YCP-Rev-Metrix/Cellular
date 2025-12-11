@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="Cellular.SensorGraphPage"
+             Title="Sensor Data Graph">
+    
+    <ScrollView>
+        <VerticalStackLayout Padding="20" Spacing="20">
+            
+            <Label
+                Text="Sensor Data Graphs"
+                FontSize="24"
+                FontAttributes="Bold"
+                HorizontalOptions="Center" />
+            
+            <!-- Accelerometer Graph -->
+            <Frame BorderColor="Gray" Padding="10">
+                <VerticalStackLayout Spacing="10">
+                    <Label
+                        Text="Accelerometer (X, Y, Z in G)"
+                        FontSize="18"
+                        FontAttributes="Bold" />
+                    <GraphicsView
+                        x:Name="AccelerometerChart"
+                        HeightRequest="200"
+                        BackgroundColor="White" />
+                    <HorizontalStackLayout Spacing="15" HorizontalOptions="Center">
+                        <Label Text="X" TextColor="Red" FontSize="12" />
+                        <Label Text="Y" TextColor="Green" FontSize="12" />
+                        <Label Text="Z" TextColor="Blue" FontSize="12" />
+                    </HorizontalStackLayout>
+                </VerticalStackLayout>
+            </Frame>
+            
+            <!-- Gyroscope Graph -->
+            <Frame BorderColor="Gray" Padding="10">
+                <VerticalStackLayout Spacing="10">
+                    <Label
+                        Text="Gyroscope (X, Y, Z in deg/s)"
+                        FontSize="18"
+                        FontAttributes="Bold" />
+                    <GraphicsView
+                        x:Name="GyroscopeChart"
+                        HeightRequest="200"
+                        BackgroundColor="White" />
+                    <HorizontalStackLayout Spacing="15" HorizontalOptions="Center">
+                        <Label Text="X" TextColor="Red" FontSize="12" />
+                        <Label Text="Y" TextColor="Green" FontSize="12" />
+                        <Label Text="Z" TextColor="Blue" FontSize="12" />
+                    </HorizontalStackLayout>
+                </VerticalStackLayout>
+            </Frame>
+            
+            <!-- Magnetometer Graph -->
+            <Frame BorderColor="Gray" Padding="10">
+                <VerticalStackLayout Spacing="10">
+                    <Label
+                        Text="Magnetometer (X, Y, Z in µT)"
+                        FontSize="18"
+                        FontAttributes="Bold" />
+                    <GraphicsView
+                        x:Name="MagnetometerChart"
+                        HeightRequest="200"
+                        BackgroundColor="White" />
+                    <HorizontalStackLayout Spacing="15" HorizontalOptions="Center">
+                        <Label Text="X" TextColor="Red" FontSize="12" />
+                        <Label Text="Y" TextColor="Green" FontSize="12" />
+                        <Label Text="Z" TextColor="Blue" FontSize="12" />
+                    </HorizontalStackLayout>
+                </VerticalStackLayout>
+            </Frame>
+            
+            <!-- Light Sensor Graph -->
+            <Frame BorderColor="Gray" Padding="10">
+                <VerticalStackLayout Spacing="10">
+                    <Label
+                        Text="Light Sensor (Visible)"
+                        FontSize="18"
+                        FontAttributes="Bold" />
+                    <GraphicsView
+                        x:Name="LightSensorChart"
+                        HeightRequest="200"
+                        BackgroundColor="White" />
+                </VerticalStackLayout>
+            </Frame>
+            
+            <Button
+                Text="Clear Data"
+                Clicked="OnClearDataClicked"
+                HorizontalOptions="Center"
+                Margin="0,10,0,0" />
+            
+        </VerticalStackLayout>
+    </ScrollView>
+    
+</ContentPage>
