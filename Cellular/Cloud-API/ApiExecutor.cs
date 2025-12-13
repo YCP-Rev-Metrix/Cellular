@@ -50,7 +50,7 @@ public class ApiExecutor
                     url += "posts/PostEvents";
                 }
                 break;
-            case EntityType.Frames:
+            case EntityType.Frame:
                 if (OperationType == OperationType.Get)
                 {
                     url += "gets/GetFramesByGameId";

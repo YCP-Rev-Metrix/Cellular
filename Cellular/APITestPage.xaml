@@ -4,6 +4,47 @@
              x:Class="Cellular.APItestPage">
 
     <VerticalStackLayout Padding="20" Spacing="20">
+
+        <!-- Request type multi-select dropdown -->
+        <Label Text="Request types" FontAttributes="Bold" />
+        <Button x:Name="RequestTypeToggle"
+                Text="Select request types"
+                Clicked="OnRequestTypeToggleClicked"
+                HorizontalOptions="Start" />
+        <CollectionView x:Name="RequestTypeCollection"
+                        SelectionMode="Multiple"
+                        IsVisible="False"
+                        SelectionChanged="OnRequestTypeSelectionChanged"
+                        HeightRequest="120">
+            <CollectionView.ItemTemplate>
+                <DataTemplate>
+                    <Grid Padding="8">
+                        <Label Text="{Binding .}" />
+                    </Grid>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+
+        <!-- Object type multi-select dropdown -->
+        <Label Text="Object types" FontAttributes="Bold" />
+        <Button x:Name="ObjectTypeToggle"
+                Text="Select object types"
+                Clicked="OnObjectTypeToggleClicked"
+                HorizontalOptions="Start" />
+        <CollectionView x:Name="ObjectTypeCollection"
+                        SelectionMode="Multiple"
+                        IsVisible="False"
+                        SelectionChanged="OnObjectTypeSelectionChanged"
+                        HeightRequest="160">
+            <CollectionView.ItemTemplate>
+                <DataTemplate>
+                    <Grid Padding="8">
+                        <Label Text="{Binding .}" />
+                    </Grid>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+
         <Label
             x:Name="ResultLabel"
             Text="Press the button to load data"
