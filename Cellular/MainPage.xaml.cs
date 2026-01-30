@@ -3,6 +3,7 @@ using Microsoft.Maui.Storage;
 using Cellular.ViewModel;
 using Cellular.Data;
 using System.Diagnostics;
+using Cellular.Services;
 
 namespace Cellular
 {
@@ -112,7 +113,8 @@ namespace Cellular
         }
         private async void OnBlankPageClicked(object sender, EventArgs e)
         {
-            await Navigation.PushAsync(new BlankPage());
+            var svc = IPlatformApplication.Current.Services.GetService<IWatchBleService>();
+            await Navigation.PushAsync(new BlankPage(svc));
         }
 
         public async Task SoftRefreshAsync()

@@ -43,6 +43,12 @@
                             <DataTemplate x:DataType="local:ShotPageFrame">
                                 <Border Stroke="DarkGray" StrokeThickness="1" Padding="0"
                                     BackgroundColor="White" WidthRequest="80">
+                                    <Border.GestureRecognizers>
+                                        <TapGestureRecognizer 
+                                            NumberOfTapsRequired="1"
+                                            Command="{Binding Source={RelativeSource AncestorType={x:Type local:GameInterfaceViewModel}}, Path=FrameTappedCommand}"
+                                            CommandParameter="{Binding .}" />
+                                    </Border.GestureRecognizers>
                                     <StackLayout VerticalOptions="Center" HorizontalOptions="Center" Padding="0" HeightRequest="135" WidthRequest="80">
                                         <!-- Frame Numbers -->
                                         <StackLayout Background="Gray">
@@ -146,11 +152,11 @@
                     </StackLayout>
                     <StackLayout>
                         <Label Text="Strike Ball" />
-                        <Picker x:Name="BallPicker1" HeightRequest="30" WidthRequest="{OnIdiom Phone=80, Tablet=100, Desktop=120}" ItemsSource="{Binding Arsenal}" BackgroundColor="Grey"/>
+                        <Picker x:Name="BallPicker1" HeightRequest="30" WidthRequest="{OnIdiom Phone=80, Tablet=100, Desktop=120}" ItemsSource="{Binding Arsenal}" ItemDisplayBinding="{Binding Name}" SelectedItem="{Binding SelectedStrikeBall}" BackgroundColor="Grey"/>
                     </StackLayout>
                     <StackLayout>
                         <Label Text="Spare Ball" />
-                        <Picker x:Name="BallPicker2" HeightRequest="30" WidthRequest="{OnIdiom Phone=80, Tablet=100, Desktop=120}" ItemsSource="{Binding Arsenal}" BackgroundColor="Grey"/>
+                        <Picker x:Name="BallPicker2" HeightRequest="30" WidthRequest="{OnIdiom Phone=80, Tablet=100, Desktop=120}" ItemsSource="{Binding Arsenal}" ItemDisplayBinding="{Binding Name}" SelectedItem="{Binding SelectedSpareBall}" BackgroundColor="Grey"/>
                     </StackLayout>
                 </StackLayout>
 
@@ -200,13 +206,13 @@
                 <!-- Right Side: Quick Scoring Buttons -->
                 <StackLayout Grid.Row="1" Grid.Column="1" Orientation="Vertical" Padding="0, 10" Spacing="10" HorizontalOptions="End">
                     <Button Text="F" WidthRequest="40" HeightRequest="40" CornerRadius="3" Clicked="OnFoulClicked" BackgroundColor="LightGray"/>
-                    <Button Text="_" WidthRequest="40" HeightRequest="40" CornerRadius="3" Clicked="OnGutterClicked" BackgroundColor="LightGray"/>
+                    <Button Text="-" WidthRequest="40" HeightRequest="40" CornerRadius="3" Clicked="OnGutterClicked" BackgroundColor="LightGray"/>
                     <Button Text="/" WidthRequest="40" HeightRequest="40" CornerRadius="3" Clicked="OnSpareClicked" BackgroundColor="LightGray"/>
                     <Button Text="X" WidthRequest="40" HeightRequest="40" CornerRadius="3" Clicked="OnStrikeClicked" BackgroundColor="LightGray"/>
                 </StackLayout>
 
                 <StackLayout Grid.Row="2" Grid.Column="1" Orientation="Horizontal" Padding="0, 10" Spacing="10" HorizontalOptions="Center">
-                    <Button Text="Comment" WidthRequest="100" HeightRequest="40" CornerRadius="3" BackgroundColor="LightGray"/>
+                    <Button Text="Comment" WidthRequest="100" HeightRequest="40" CornerRadius="3" BackgroundColor="LightGray" Clicked="OnCommentClicked"/>
                     <Button Text="Next" WidthRequest="100" HeightRequest="40" CornerRadius="3" BackgroundColor="LightGray" Clicked="OnNextClicked"/>
                 </StackLayout>
 

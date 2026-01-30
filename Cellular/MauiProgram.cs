@@ -1,8 +1,10 @@
 ﻿using Cellular.Data;
+using Cellular.Services;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.DependencyInjection;
 using Camera.MAUI;
 using CommunityToolkit.Maui;
+using Cellular.Services;
 
 namespace Cellular
 {
@@ -19,6 +21,9 @@ namespace Cellular
             // Register services with dependency injection (DI)
             builder.Services.AddSingleton<CellularDatabase>(); // Register CellularDatabase as a Singleton
             builder.Services.AddSingleton<UserRepository>();
+            builder.Services.AddSingleton<IMetaWearService, MetaWearBleService>();
+            builder.Services.AddSingleton<IWatchBleService, WatchBleService>();
+            
 #if DEBUG
             builder.Logging.AddDebug();
 #endif

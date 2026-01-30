@@ -62,11 +62,20 @@
 		<PackageReference Include="Microsoft.Maui.Controls" Version="9.0.120" />
 		<PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="9.0.0" />
 		<PackageReference Include="Microsoft.Maui.Controls.Compatibility" Version="9.0.120" />
-		<PackageReference Include="Plugin.BLE" Version="3.1.0" />
+		<PackageReference Include="Plugin.BLE" Version="3.2.0" />
 		<PackageReference Include="sqlite-net-pcl" Version="1.9.172" />
 	</ItemGroup>
 
 	<ItemGroup>
+		<Compile Update="BlankPage.xaml.cs">
+		  <DependentUpon>BlankPage.xaml</DependentUpon>
+		</Compile>
+		<Compile Update="Views\StatsPopup.xaml.cs">
+		  <DependentUpon>StatsPopup.xaml</DependentUpon>
+		</Compile>
+		<Compile Update="Views\CommentEditorPopup.xaml.cs">
+		  <DependentUpon>CommentEditorPopup.xaml</DependentUpon>
+		</Compile>
 		<Compile Update="Video.xaml.cs">
 		  <DependentUpon>Video.xaml</DependentUpon>
 		</Compile>
@@ -106,6 +115,9 @@
 		<Compile Update="Bluetooth.xaml.cs">
 			<DependentUpon>Bluetooth.xaml</DependentUpon>
 		</Compile>
+		<Compile Update="SensorGraphPage.xaml.cs">
+			<DependentUpon>SensorGraphPage.xaml</DependentUpon>
+		</Compile>
 		<Compile Update="RegisterPage.xaml.cs">
 			<DependentUpon>RegisterPage.xaml</DependentUpon>
 		</Compile>
@@ -119,6 +131,15 @@
 		  <Generator>MSBuild:Compile</Generator>
 		</MauiXaml>
 		<MauiXaml Update="BallArsenalRegistrationPage.xaml">
+		  <Generator>MSBuild:Compile</Generator>
+		</MauiXaml>
+		<MauiXaml Update="BlankPage.xaml">
+		  <Generator>MSBuild:Compile</Generator>
+		</MauiXaml>
+		<MauiXaml Update="Views\StatsPopup.xaml">
+		  <Generator>MSBuild:Compile</Generator>
+		</MauiXaml>
+		<MauiXaml Update="Views\CommentEditorPopup.xaml">
 		  <Generator>MSBuild:Compile</Generator>
 		</MauiXaml>
 		<MauiXaml Update="Video.xaml">
@@ -187,6 +208,9 @@
 			<Generator>MSBuild:Compile</Generator>
 		</MauiXaml>
 		<MauiXaml Update="Bluetooth.xaml">
+			<Generator>MSBuild:Compile</Generator>
+		</MauiXaml>
+		<MauiXaml Update="SensorGraphPage.xaml">
 			<Generator>MSBuild:Compile</Generator>
 		</MauiXaml>
 		<MauiXaml Update="RegisterPage.xaml">

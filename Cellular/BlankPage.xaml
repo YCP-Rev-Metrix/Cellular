@@ -7,6 +7,7 @@
         <VerticalStackLayout
             Padding="30,0"
             Spacing="25">
+
             <Image
                 Source="logo.png"
                 HeightRequest="185"
@@ -14,15 +15,118 @@
                 SemanticProperties.Description="RevMetrix Bowling Ball Logo" />
 
             <Label
-                Text="Bluetooth"
+                Text="Smart Watch"
                 Style="{StaticResource Headline}"
                 SemanticProperties.HeadingLevel="Level1" />
 
+            <!-- Scan Button -->
             <Button
-                x:Name="TestButton"
-                Text="Test Button"
-                Clicked="OnButtonClicked"
-                HorizontalOptions="Fill" /> 
+                x:Name="ScanButton"
+                Text="Scan"
+                Clicked="OnScanClicked"
+                HorizontalOptions="Fill" />
+
+            <Label
+                x:Name="StatusLabel"
+                Text="Ready to scan"
+                FontSize="16"
+                TextColor="Gray" />
+
+            <Label
+                Text="Available Devices:"
+                FontSize="18"
+                FontAttributes="Bold" />
+
+            <CollectionView
+                x:Name="DeviceListView"
+                ItemsSource="{Binding Devices}"
+                SelectionMode="Single">
+                <CollectionView.ItemTemplate>
+                    <DataTemplate>
+                        <Grid Padding="10">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+
+                            <Label
+                                Grid.Row="0"
+                                Grid.Column="0"
+                                Text="{Binding Name}"
+                                FontSize="16"
+                                FontAttributes="Bold" />
+
+                            <Label
+                                Grid.Row="1"
+                                Grid.Column="0"
+                                Text="{Binding Id}"
+                                FontSize="12"
+                                TextColor="Gray" />
+
+                            <Label
+                                Grid.Row="0"
+                                Grid.Column="1"
+                                Text="{Binding Rssi, StringFormat='{0} dBm'}"
+                                FontSize="14"
+                                TextColor="Gray"
+                                VerticalOptions="Center" />
+                        </Grid>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+
+            <!-- Connect Button -->
+            <Button
+                x:Name="ConnectButton"
+                Text="Connect"
+                Clicked="OnConnectClicked"
+                IsEnabled="{Binding CanConnect}"
+                HorizontalOptions="Fill" />
+
+            <!-- Disconnect Button -->
+            <Button
+                x:Name="DisconnectButton"
+                Text="Disconnect"
+                Clicked="OnDisconnectClicked"
+                IsEnabled="{Binding CanDisconnect}"
+                HorizontalOptions="Fill" />
+
+            <!-- Send JSON Button -->
+            <Button 
+                x:Name="JsonSendButton"
+                Text="Send Test JSON to Watch"
+                Clicked="OnSendToWatchClicked"
+                HorizontalOptions="Fill" />
+
+            <!-- Device Info -->
+            <Label
+                x:Name="DeviceInfoLabel"
+                Text=""
+                FontSize="14"
+                TextColor="Blue" />
+
+            <Label
+                Text="Watch JSON:"
+                FontSize="16"
+                TextColor="Grey" />
+
+            <Frame
+                BackgroundColor="#EEEEEE"
+                BorderColor="Black"
+                CornerRadius="6"
+                Padding="10">
+
+                <Label
+                    x:Name="WatchJsonLabel"
+                    Text="Waiting for JSON…"
+                    TextColor="Black"
+                    FontSize="14" />
+
+            </Frame>
 
         </VerticalStackLayout>
     </ScrollView>
