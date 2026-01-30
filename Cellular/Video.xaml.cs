@@ -5,6 +5,7 @@ using Microsoft.Maui.Controls;
 using Microsoft.Maui.Storage;
 using System;
 using System.IO;
+using Cellular.Services;
 
 namespace Cellular
 {
@@ -26,6 +27,9 @@ namespace Cellular
         private bool isRecording = false;
         private string currentVideoPath;
 
+        // Sensor data buffering
+        private SensorBufferManager? _sensorBufferManager;
+
         protected override async void OnAppearing()
         {
             base.OnAppearing();
@@ -35,6 +39,15 @@ namespace Cellular
         public Video()
         {
             InitializeComponent();
+
+            // Get MetaWear service from dependency injection
+            var metaWearService = Handler?.MauiContext?.Services.GetService<IMetaWearService>() 
+                ?? new MetaWearBleService();
+
+            // Initialize sensor buffer manager
+            _sensorBufferManager = new SensorBufferManager(metaWearService);
+            _sensorBufferManager.DataSaved += OnSensorDataSaved;
+            _sensorBufferManager.SaveError += OnSensorSaveError;
 
             cameraView.CamerasLoaded += CameraView_CamerasLoaded;
             cameraView.SizeChanged += CameraView_SizeChanged;
@@ -139,6 +152,13 @@ namespace Cellular
                     string fileName = $"rm_{DateTime.Now:yyyyMMdd_HHmmss}.mp4";
                     currentVideoPath = Path.Combine(targetFolder, fileName);
 
+                    // Start sensor data buffering with video filename
+                    if (_sensorBufferManager != null)
+                    {
+                        string baseFileName = Path.GetFileNameWithoutExtension(fileName);
+                        await _sensorBufferManager.StartBufferingAsync(baseFileName);
+                    }
+
                     // Start recording
                     await cameraView.StartRecordingAsync(currentVideoPath);
                 }
@@ -150,12 +170,24 @@ namespace Cellular
                     isRecording = false;
                     Record.Text = "Record";
                     Record.BackgroundColor = Color.FromArgb("#9880e5");
+                    
+                    // Stop buffering if it was started
+                    if (_sensorBufferManager != null)
+                    {
+                        await _sensorBufferManager.StopBufferingAsync();
+                    }
                 }
             }
             else
             {
                 try
                 {
+                    // Stop sensor buffering
+                    if (_sensorBufferManager != null)
+                    {
+                        await _sensorBufferManager.StopBufferingAsync();
+                    }
+
                     // Update state and UI
                     isRecording = false;
                     Record.Text = "Record";
@@ -217,9 +249,39 @@ namespace Cellular
         {
             base.OnDisappearing();
 
+            // Stop buffering if active
+            if (_sensorBufferManager != null)
+            {
+                _ = _sensorBufferManager.StopBufferingAsync();
+                _sensorBufferManager.DataSaved -= OnSensorDataSaved;
+                _sensorBufferManager.SaveError -= OnSensorSaveError;
+                _sensorBufferManager.Dispose();
+                _sensorBufferManager = null;
+            }
+
             isCameraStarted = false;
 
             cameraView.StopCameraAsync();
+        }
+
+        private void OnSensorDataSaved(object? sender, SensorDataSavedEventArgs e)
+        {
+            // Show notification on main thread
+            MainThread.BeginInvokeOnMainThread(async () =>
+            {
+                await DisplayAlert("Sensor Data Saved", 
+                    $"Sensor data saved to:\n{e.FilePath}\n\n{e.DataPointCount} data points captured.", 
+                    "OK");
+            });
+        }
+
+        private void OnSensorSaveError(object? sender, string errorMessage)
+        {
+            // Show error notification on main thread
+            MainThread.BeginInvokeOnMainThread(async () =>
+            {
+                await DisplayAlert("Error", $"Failed to save sensor data: {errorMessage}", "OK");
+            });
         }
     }
 }
