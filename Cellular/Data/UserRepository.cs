@@ -66,5 +66,49 @@ namespace Cellular.Data
             return await _conn.Table<User>().FirstOrDefaultAsync(u => u.UserId == userId);
         }
 
+        /// <summary>
+        /// Updates the SmartDotMac address for a user
+        /// </summary>
+        public async Task UpdateSmartDotMacAsync(int userId, string? macAddress)
+        {
+            var user = await GetUserByIdAsync(userId);
+            if (user != null)
+            {
+                user.SmartDotMac = macAddress;
+                await UpdateUserAsync(user);
+            }
+        }
+
+        /// <summary>
+        /// Gets the SmartDotMac address for a user
+        /// </summary>
+        public async Task<string?> GetSmartDotMacAsync(int userId)
+        {
+            var user = await GetUserByIdAsync(userId);
+            return user?.SmartDotMac;
+        }
+
+        /// <summary>
+        /// Updates the IsConnected status for a user
+        /// </summary>
+        public async Task UpdateIsConnectedAsync(int userId, bool isConnected)
+        {
+            var user = await GetUserByIdAsync(userId);
+            if (user != null)
+            {
+                user.IsConnected = isConnected;
+                await UpdateUserAsync(user);
+            }
+        }
+
+        /// <summary>
+        /// Gets the IsConnected status for a user
+        /// </summary>
+        public async Task<bool> GetIsConnectedAsync(int userId)
+        {
+            var user = await GetUserByIdAsync(userId);
+            return user?.IsConnected ?? false;
+        }
+
     }
 }

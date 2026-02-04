@@ -10,6 +10,8 @@ using Plugin.BLE.Abstractions.EventArgs;
 using Cellular.Services;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Maui.ApplicationModel;
+using Cellular.Data;
+using Microsoft.Maui.Storage;
 #if ANDROID
 using Android;
 using Android.Content.PM;
@@ -23,13 +25,16 @@ namespace Cellular
     {
         private readonly IBluetoothLE _ble = CrossBluetoothLE.Current;
         private readonly IAdapter _adapter = CrossBluetoothLE.Current.Adapter;
-        private readonly IMetaWearService _metaWearService;
+        private IMetaWearService _metaWearService; // Not readonly so we can update to singleton if needed
+        private readonly UserRepository _userRepository;
         
         private ObservableCollection<BluetoothDevice> _devices;
         private BluetoothDevice? _selectedDevice;
         private bool _isScanning;
         private bool _isConnected;
         private bool _isNavigatingToGraphPage = false;
+        private bool _isAutoConnecting = false;
+        private bool _hasAttemptedAutoConnect = false;
         
         // Sensor data storage for graphing
         public List<SensorDataPoint> AccelerometerData { get; private set; } = new();
@@ -97,16 +102,27 @@ namespace Cellular
             InitializeComponent();
             
             // Get MetaWear service from dependency injection
-            _metaWearService = Handler?.MauiContext?.Services.GetService<IMetaWearService>() 
-                ?? new MetaWearBleService();
+            // Try multiple ways to get the singleton instance
+            _metaWearService = Handler?.MauiContext?.Services?.GetService<IMetaWearService>()
+                ?? Application.Current?.Handler?.MauiContext?.Services?.GetService<IMetaWearService>()
+                ?? Microsoft.Maui.Controls.Application.Current?.Handler?.MauiContext?.Services?.GetService<IMetaWearService>()
+                ?? new MetaWearBleService(); // Last resort - but this should not happen with proper DI
+            
+            // Initialize UserRepository
+            _userRepository = new UserRepository(new CellularDatabase().GetConnection());
             
             Devices = new ObservableCollection<BluetoothDevice>();
             
             // Subscribe to MetaWear service events
+            _metaWearService.DeviceDisconnected -= OnDeviceDisconnected; // Remove first to avoid duplicates
             _metaWearService.DeviceDisconnected += OnDeviceDisconnected;
+            _metaWearService.AccelerometerDataReceived -= OnAccelerometerDataReceived;
             _metaWearService.AccelerometerDataReceived += OnAccelerometerDataReceived;
+            _metaWearService.GyroscopeDataReceived -= OnGyroscopeDataReceived;
             _metaWearService.GyroscopeDataReceived += OnGyroscopeDataReceived;
+            _metaWearService.MagnetometerDataReceived -= OnMagnetometerDataReceived;
             _metaWearService.MagnetometerDataReceived += OnMagnetometerDataReceived;
+            _metaWearService.LightSensorDataReceived -= OnLightSensorDataReceived;
             _metaWearService.LightSensorDataReceived += OnLightSensorDataReceived;
             
             // Handle device selection
@@ -118,10 +134,213 @@ namespace Cellular
             BindingContext = this;
         }
 
-        private void OnPageAppearing(object? sender, EventArgs e)
+        private async void OnPageAppearing(object? sender, EventArgs e)
         {
             // Reset the flag when page appears (user might have navigated back)
             _isNavigatingToGraphPage = false;
+
+            // Ensure we have the singleton service instance (Handler is available in OnAppearing)
+            if (Handler?.MauiContext?.Services != null)
+            {
+                var serviceFromDI = Handler.MauiContext.Services.GetService<IMetaWearService>();
+                if (serviceFromDI != null && serviceFromDI != _metaWearService)
+                {
+                    // We got a different instance, update our reference to the singleton
+                    // Unsubscribe from old instance
+                    _metaWearService.DeviceDisconnected -= OnDeviceDisconnected;
+                    _metaWearService.AccelerometerDataReceived -= OnAccelerometerDataReceived;
+                    _metaWearService.GyroscopeDataReceived -= OnGyroscopeDataReceived;
+                    _metaWearService.MagnetometerDataReceived -= OnMagnetometerDataReceived;
+                    _metaWearService.LightSensorDataReceived -= OnLightSensorDataReceived;
+                    
+                    // Update to singleton
+                    _metaWearService = serviceFromDI;
+                    
+                    // Re-subscribe to new instance
+                    _metaWearService.DeviceDisconnected += OnDeviceDisconnected;
+                    _metaWearService.AccelerometerDataReceived += OnAccelerometerDataReceived;
+                    _metaWearService.GyroscopeDataReceived += OnGyroscopeDataReceived;
+                    _metaWearService.MagnetometerDataReceived += OnMagnetometerDataReceived;
+                    _metaWearService.LightSensorDataReceived += OnLightSensorDataReceived;
+                }
+            }
+            
+            // Re-subscribe to events in case page was recreated
+            _metaWearService.DeviceDisconnected -= OnDeviceDisconnected;
+            _metaWearService.DeviceDisconnected += OnDeviceDisconnected;
+            
+            // Update connection status from service (service is singleton, maintains state)
+            bool serviceIsConnected = _metaWearService.IsConnected;
+            if (serviceIsConnected != IsConnected)
+            {
+                IsConnected = serviceIsConnected;
+                if (serviceIsConnected)
+                {
+                    StatusLabel.Text = $"Connected to {_metaWearService.MacAddress}";
+                }
+            }
+
+            // Try to auto-connect to saved SmartDot MAC if user is logged in (only once per page instance)
+            if (!_hasAttemptedAutoConnect && !IsConnected)
+            {
+                _hasAttemptedAutoConnect = true;
+                await TryAutoConnectAsync();
+            }
+        }
+
+        private async Task TryAutoConnectAsync()
+        {
+            // First, check if already connected to the service
+            bool serviceIsConnected = _metaWearService.IsConnected;
+            if (serviceIsConnected)
+            {
+                // Already connected - update UI state
+                IsConnected = true;
+                StatusLabel.Text = $"Already connected to {_metaWearService.MacAddress}";
+                
+                // Update IsConnected status in database
+                await UpdateIsConnectedStatusAsync(true);
+                
+                // Try to get device info
+                try
+                {
+                    var deviceInfo = await _metaWearService.GetDeviceInfoAsync();
+                    DeviceInfoLabel.Text = $"Model: {deviceInfo.Model}, Firmware: {deviceInfo.FirmwareVersion}";
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Error getting device info: {ex.Message}");
+                    DeviceInfoLabel.Text = "Connected (device info unavailable)";
+                }
+                return;
+            }
+            
+            // Check if user is logged in
+            int userId = Preferences.Get("UserId", -1);
+            if (userId == -1 || _isAutoConnecting || IsConnected)
+            {
+                return; // No user logged in, already connecting, or already connected
+            }
+
+            try
+            {
+                // Get saved SmartDot MAC address
+                string? savedMac = await _userRepository.GetSmartDotMacAsync(userId);
+                
+                if (string.IsNullOrEmpty(savedMac))
+                {
+                    return; // No saved MAC address
+                }
+
+                _isAutoConnecting = true;
+                StatusLabel.Text = "Auto-connecting to saved device...";
+
+                // Check if Bluetooth is on
+                if (!_ble.IsOn)
+                {
+                    StatusLabel.Text = "Bluetooth is off - cannot auto-connect";
+                    _isAutoConnecting = false;
+                    return;
+                }
+
+                // Start scanning to find the device
+                Devices.Clear();
+                _adapter.DeviceDiscovered += OnDeviceDiscoveredForAutoConnect;
+                
+                // Scan for a short time to find the device
+                await _adapter.StartScanningForDevicesAsync();
+                
+                // Wait a bit for device discovery
+                await Task.Delay(3000);
+                
+                // Stop scanning
+                _adapter.DeviceDiscovered -= OnDeviceDiscoveredForAutoConnect;
+                await _adapter.StopScanningForDevicesAsync();
+
+                // Find the device with matching MAC address
+                var targetDevice = Devices.FirstOrDefault(d => 
+                    d.Id.Equals(savedMac, StringComparison.OrdinalIgnoreCase) || 
+                    d.Id.Replace(":", "").Equals(savedMac.Replace(":", ""), StringComparison.OrdinalIgnoreCase));
+
+                if (targetDevice?.Device != null)
+                {
+                    // Found the device, connect to it
+                    SelectedDevice = targetDevice;
+                    bool connected = await _metaWearService.ConnectAsync(targetDevice.Device);
+                    
+                    if (connected)
+                    {
+                        IsConnected = true;
+                        StatusLabel.Text = $"Auto-connected to {targetDevice.Name}";
+                        
+                        // Update IsConnected status in database
+                        await UpdateIsConnectedStatusAsync(true);
+                        
+                        // Get device info
+                        try
+                        {
+                            var deviceInfo = await _metaWearService.GetDeviceInfoAsync();
+                            DeviceInfoLabel.Text = $"Model: {deviceInfo.Model}, Firmware: {deviceInfo.FirmwareVersion}";
+                        }
+                        catch (Exception ex)
+                        {
+                            System.Diagnostics.Debug.WriteLine($"Error getting device info: {ex.Message}");
+                            DeviceInfoLabel.Text = "Connected (device info unavailable)";
+                        }
+                    }
+                    else
+                    {
+                        StatusLabel.Text = "Auto-connect failed - device found but connection failed";
+                    }
+                }
+                else
+                {
+                    StatusLabel.Text = "Saved device not found - please scan and connect manually";
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error during auto-connect: {ex.Message}");
+                StatusLabel.Text = "Auto-connect failed";
+            }
+            finally
+            {
+                _isAutoConnecting = false;
+            }
+        }
+
+        private void OnDeviceDiscoveredForAutoConnect(object? sender, DeviceEventArgs e)
+        {
+            if (e.Device == null)
+                return;
+
+            // Filter for MetaWear devices
+            if (string.IsNullOrEmpty(e.Device.Name) || 
+                (!e.Device.Name.Contains("MetaWear", StringComparison.OrdinalIgnoreCase) && 
+                 !e.Device.Name.Contains("MMS", StringComparison.OrdinalIgnoreCase)))
+            {
+                return;
+            }
+
+            MainThread.BeginInvokeOnMainThread(() =>
+            {
+                var existingDevice = Devices.FirstOrDefault(d => d.Id == e.Device.Id.ToString());
+                if (existingDevice == null)
+                {
+                    Devices.Add(new BluetoothDevice
+                    {
+                        Id = e.Device.Id.ToString(),
+                        Name = e.Device.Name ?? "Unknown",
+                        Rssi = e.Device.Rssi,
+                        Device = e.Device
+                    });
+                }
+                else
+                {
+                    existingDevice.Rssi = e.Device.Rssi;
+                    existingDevice.Device = e.Device;
+                }
+            });
         }
 
         private void OnDeviceSelected(object? sender, SelectionChangedEventArgs e)
@@ -134,10 +353,13 @@ namespace Cellular
 
         private void OnDeviceDisconnected(object? sender, string macAddress)
         {
-            MainThread.BeginInvokeOnMainThread(() =>
+            MainThread.BeginInvokeOnMainThread(async () =>
             {
                 IsConnected = false;
                 StatusLabel.Text = "Disconnected";
+                
+                // Update IsConnected status in database
+                await UpdateIsConnectedStatusAsync(false);
             });
         }
 
@@ -541,6 +763,12 @@ namespace Cellular
                     IsConnected = true;
                     StatusLabel.Text = $"Connected to {SelectedDevice.Name}";
                     
+                    // Save the MAC address to user's profile
+                    await SaveSmartDotMacAsync(SelectedDevice.Id);
+                    
+                    // Update IsConnected status in database
+                    await UpdateIsConnectedStatusAsync(true);
+                    
                     // Get device info
                     try
                     {
@@ -588,6 +816,9 @@ namespace Cellular
                 GyroscopeLabel.Text = "";
                 MagnetometerLabel.Text = "";
                 LightSensorLabel.Text = "";
+                
+                // Update IsConnected status in database
+                await UpdateIsConnectedStatusAsync(false);
             }
             catch (Exception ex)
             {
@@ -799,6 +1030,48 @@ namespace Cellular
             
             // Reset the flag
             _isNavigatingToGraphPage = false;
+        }
+
+        /// <summary>
+        /// Saves the SmartDot MAC address to the current user's profile
+        /// </summary>
+        private async Task SaveSmartDotMacAsync(string macAddress)
+        {
+            try
+            {
+                int userId = Preferences.Get("UserId", -1);
+                if (userId != -1)
+                {
+                    await _userRepository.UpdateSmartDotMacAsync(userId, macAddress);
+                    System.Diagnostics.Debug.WriteLine($"Saved SmartDot MAC address: {macAddress} for user {userId}");
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error saving SmartDot MAC: {ex.Message}");
+                // Don't show error to user - this is a background operation
+            }
+        }
+
+        /// <summary>
+        /// Updates the IsConnected status for the current user
+        /// </summary>
+        private async Task UpdateIsConnectedStatusAsync(bool isConnected)
+        {
+            try
+            {
+                int userId = Preferences.Get("UserId", -1);
+                if (userId != -1)
+                {
+                    await _userRepository.UpdateIsConnectedAsync(userId, isConnected);
+                    System.Diagnostics.Debug.WriteLine($"Updated IsConnected status: {isConnected} for user {userId}");
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error updating IsConnected status: {ex.Message}");
+                // Don't show error to user - this is a background operation
+            }
         }
     }
 
