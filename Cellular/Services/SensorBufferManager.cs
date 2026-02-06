@@ -195,15 +195,22 @@ namespace Cellular.Services
                 _continuousSaveEndTime = startTime.AddSeconds(ContinuousSaveDurationSeconds);
                 _allSavedPoints.Clear(); // Clear previous saved points
                 
-                // Add all current buffer points to accumulated list (from trigger point forward)
-                var cutoffTime = DateTime.Now.AddSeconds(-BufferDurationSeconds);
+                // Add ALL current buffer points to accumulated list (the full 3 seconds of buffered data)
+                // The buffer cleanup timer ensures the buffer only contains the last 3 seconds of data
                 var initialPoints = _sensorBuffer
-                    .Where(p => p.Timestamp >= cutoffTime)
                     .OrderBy(p => p.Timestamp)
                     .ToList();
                 
                 _allSavedPoints.AddRange(initialPoints);
-                System.Diagnostics.Debug.WriteLine($"[SensorBuffer] Starting with {initialPoints.Count} initial points from buffer");
+                System.Diagnostics.Debug.WriteLine($"[SensorBuffer] Starting with {initialPoints.Count} initial points from 3-second buffer (full buffer contents)");
+                
+                if (initialPoints.Count > 0)
+                {
+                    var bufferStart = initialPoints.First().Timestamp;
+                    var bufferEnd = initialPoints.Last().Timestamp;
+                    var bufferDuration = (bufferEnd - bufferStart).TotalSeconds;
+                    System.Diagnostics.Debug.WriteLine($"[SensorBuffer] Buffer time range: {bufferStart:HH:mm:ss.fff} to {bufferEnd:HH:mm:ss.fff} (duration: {bufferDuration:F2}s)");
+                }
             }
 
             System.Diagnostics.Debug.WriteLine($"[SensorBuffer] Starting continuous data collection for {ContinuousSaveDurationSeconds} seconds");
