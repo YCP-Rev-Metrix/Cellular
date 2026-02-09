@@ -55,6 +55,13 @@
         IsVisible="False"/>
 
     <ShellContent 
+        x:Name="databaseVisualizer"
+        Title="SQL Database"
+        ContentTemplate="{DataTemplate local:DatabaseVisualizerPage}"
+        Route="databaseVisualizer"
+        IsVisible="False"/>
+
+    <ShellContent 
         x:Name="apiPage"
         Title="API Test Page"
         ContentTemplate="{DataTemplate local:APItestPage}"

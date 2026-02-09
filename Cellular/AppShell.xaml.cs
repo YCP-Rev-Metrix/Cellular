@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Microsoft.Maui.Storage;
 using System.Threading.Tasks;
 using Cellular.ViewModel;
@@ -30,6 +30,7 @@ namespace Cellular
                 sessionList.IsVisible = false;
                 bluetooth.IsVisible = false;
                 dataPage.IsVisible = false;
+                databaseVisualizer.IsVisible = false;
                 apiPage.IsVisible = false;
                 accountPage.IsVisible = false;
                 signout.IsVisible = false;
@@ -42,6 +43,7 @@ namespace Cellular
                 sessionList.IsVisible = true;
                 bluetooth.IsVisible = true;
                 dataPage.IsVisible = true;
+                databaseVisualizer.IsVisible = true;
                 apiPage.IsVisible = true;
                 accountPage.IsVisible = true;
                 signout.IsVisible = true;

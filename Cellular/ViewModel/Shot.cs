@@ -20,5 +20,7 @@ namespace Cellular.ViewModel
         public string? Position { get; set; }
         public int? Frame { get; set; }
         public string? Comment { get; set; }
+        public string? Speed { get; set; }
+        public int Stance { get; set; }
     }
 }

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Microsoft.Maui.Storage;
 using Cellular.ViewModel;
 using Cellular.Data;
@@ -48,6 +48,7 @@ namespace Cellular
             account.IsVisible = isLoggedIn;
             SessionList.IsVisible = isLoggedIn;
             data.IsVisible = isLoggedIn;
+            databaseVisualizer.IsVisible = isLoggedIn;
             API.IsVisible = isLoggedIn;
             BlankPage.IsVisible = isLoggedIn;
         }
@@ -105,6 +106,11 @@ namespace Cellular
         private async void OnDataClicked(object sender, EventArgs e)
         {
             await Navigation.PushAsync(new DataPage());
+        }
+
+        private async void OnDatabaseVisualizerClicked(object sender, EventArgs e)
+        {
+            await Navigation.PushAsync(new DatabaseVisualizerPage());
         }
 
         private async void OnAPIClicked(object sender, EventArgs e)

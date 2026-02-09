@@ -18,6 +18,5 @@ namespace Cellular.ViewModel
         public int? Stats { get; set; }
         public int? TeamRecord { get; set; }
         public int? IndividualRecord { get; set; }
-
     }
 }
