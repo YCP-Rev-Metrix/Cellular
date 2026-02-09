@@ -53,6 +53,7 @@ namespace Cellular.Services
         private DateTime? _prevAccelTimestamp;
         private readonly List<DateTime> _accelerometerJumpTimestamps = new List<DateTime>();
         private bool _hasPrintedFirstJump = false;
+        private readonly List<float> _recentDerivativeMagnitudes = new List<float>(); // Rolling window for averaging
         
         /// <summary>
         /// Structure to store accelerometer derivative information
@@ -70,8 +71,11 @@ namespace Cellular.Services
         
         private const double BufferDurationSeconds = 3.0;
         private const float LightSensorHighThreshold = 40000.0f; // Updated to 40000 as requested
-        private const double ContinuousSaveDurationSeconds = 8.0; // Save for 8 seconds
-        private const float AccelerometerDerivativeJumpThreshold = 5.0f; // G/s threshold for detecting jumps
+        private const double ContinuousSaveDurationSeconds = 4.0; // Save for 4 seconds
+        private const float AccelerometerDerivativeJumpThreshold = 5.0f; // G/s threshold for detecting jumps (fallback when not enough data)
+        private const int DerivativeAveragingWindowSize = 10; // Number of previous derivatives to average
+        private const float DerivativeSpikeMultiplier = 1.8f; // Multiplier above average to consider a spike (lower = more sensitive for bowling release)
+        private const float MinimumSpikeThreshold = 8.0f; // Minimum absolute threshold (G/s) to avoid false positives from small motions
 
         /// <summary>
         /// Event fired when sensor data is saved (initial save - triggers file picker)
@@ -136,6 +140,7 @@ namespace Cellular.Services
                 _prevAccelTimestamp = null;
                 _accelerometerJumpTimestamps.Clear();
                 _accelerometerDerivatives.Clear();
+                _recentDerivativeMagnitudes.Clear();
                 _hasPrintedFirstJump = false;
             }
 
@@ -183,7 +188,7 @@ namespace Cellular.Services
         }
 
         /// <summary>
-        /// Starts continuous data collection for 8 seconds (data will be saved after collection completes)
+        /// Starts continuous data collection for 4 seconds (data will be saved after collection completes)
         /// </summary>
         public void StartContinuousSave()
         {
@@ -218,7 +223,7 @@ namespace Cellular.Services
             // Fire event to notify that continuous save has started
             ContinuousSaveStarted?.Invoke(this, EventArgs.Empty);
 
-            // Start a timer to accumulate data every 500ms during the 8-second period
+            // Start a timer to accumulate data every 500ms during the 4-second period
             _continuousSaveTimer = new Timer(async _ =>
             {
                 if (!_isContinuousSaving || !_isBuffering)
@@ -311,7 +316,7 @@ namespace Cellular.Services
             if (data == null || data.Count == 0)
             {
                 System.Diagnostics.Debug.WriteLine($"[SensorBuffer] No data to save - accumulated list is empty");
-                SaveError?.Invoke(this, "No sensor data collected during the 8-second period");
+                SaveError?.Invoke(this, "No sensor data collected during the 4-second period");
                 return;
             }
 
@@ -546,7 +551,26 @@ namespace Cellular.Services
                             derivativeY * derivativeY + 
                             derivativeZ * derivativeZ);
 
-                        // Store derivative information
+                        // Calculate average of previous derivatives (before adding current)
+                        float averageDerivativeMagnitude = 0f;
+                        bool hasEnoughData = _recentDerivativeMagnitudes.Count >= DerivativeAveragingWindowSize;
+                        
+                        if (hasEnoughData)
+                        {
+                            // Calculate average of previous values only
+                            averageDerivativeMagnitude = _recentDerivativeMagnitudes.Average();
+                        }
+
+                        // Add current to rolling window for future averaging
+                        _recentDerivativeMagnitudes.Add(derivativeMagnitude);
+                        
+                        // Keep only the most recent values in the window
+                        if (_recentDerivativeMagnitudes.Count > DerivativeAveragingWindowSize)
+                        {
+                            _recentDerivativeMagnitudes.RemoveAt(0);
+                        }
+
+                        // Store derivative information (including average)
                         var derivative = new AccelerometerDerivative
                         {
                             Timestamp = data.Timestamp,
@@ -557,19 +581,54 @@ namespace Cellular.Services
                         };
                         _accelerometerDerivatives.Add(derivative);
 
-                        // Check if derivative jumps (exceeds threshold)
-                        if (derivativeMagnitude >= AccelerometerDerivativeJumpThreshold)
+                        // Check if derivative spikes above the average (only if we have enough data points)
+                        bool isSpike = false;
+                        if (hasEnoughData)
                         {
-                            // Save the timestamp when jump is detected
-                            _accelerometerJumpTimestamps.Add(data.Timestamp);
+                            // A spike is when current magnitude is significantly above the average of previous values
+                            // For bowling release detection, we use a lower multiplier (1.8x) for better sensitivity
+                            float spikeThreshold = Math.Max(
+                                averageDerivativeMagnitude * DerivativeSpikeMultiplier,
+                                MinimumSpikeThreshold); // Ensure minimum threshold to avoid false positives
+                            isSpike = derivativeMagnitude >= spikeThreshold;
                             
-                            // Only print the first time the derivative exceeds the threshold
-                            if (!_hasPrintedFirstJump)
+                            if (isSpike)
                             {
-                                _hasPrintedFirstJump = true;
-                                System.Diagnostics.Debug.WriteLine($"[SensorBuffer] FIRST accelerometer derivative jump detected! " +
-                                    $"Magnitude: {derivativeMagnitude:F2} G/s at {data.Timestamp:HH:mm:ss.fff} " +
-                                    $"(dX: {derivativeX:F2}, dY: {derivativeY:F2}, dZ: {derivativeZ:F2} G/s)");
+                                // Save the timestamp when spike is detected
+                                _accelerometerJumpTimestamps.Add(data.Timestamp);
+                                
+                                // Only print the first time a spike is detected
+                                if (!_hasPrintedFirstJump)
+                                {
+                                    _hasPrintedFirstJump = true;
+                                    System.Diagnostics.Debug.WriteLine($"[SensorBuffer] FIRST accelerometer derivative spike detected! " +
+                                        $"Magnitude: {derivativeMagnitude:F2} G/s (avg: {averageDerivativeMagnitude:F2} G/s, threshold: {spikeThreshold:F2} G/s) " +
+                                        $"at {data.Timestamp:HH:mm:ss.fff} " +
+                                        $"(dX: {derivativeX:F2}, dY: {derivativeY:F2}, dZ: {derivativeZ:F2} G/s)");
+                                }
+                                else
+                                {
+                                    System.Diagnostics.Debug.WriteLine($"[SensorBuffer] Derivative spike detected: " +
+                                        $"Magnitude: {derivativeMagnitude:F2} G/s (avg: {averageDerivativeMagnitude:F2} G/s) " +
+                                        $"at {data.Timestamp:HH:mm:ss.fff}");
+                                }
+                            }
+                        }
+                        else
+                        {
+                            // Not enough data points yet, use original threshold method as fallback
+                            if (derivativeMagnitude >= AccelerometerDerivativeJumpThreshold)
+                            {
+                                isSpike = true;
+                                _accelerometerJumpTimestamps.Add(data.Timestamp);
+                                
+                                if (!_hasPrintedFirstJump)
+                                {
+                                    _hasPrintedFirstJump = true;
+                                    System.Diagnostics.Debug.WriteLine($"[SensorBuffer] FIRST accelerometer derivative jump detected (insufficient data for averaging)! " +
+                                        $"Magnitude: {derivativeMagnitude:F2} G/s at {data.Timestamp:HH:mm:ss.fff} " +
+                                        $"(dX: {derivativeX:F2}, dY: {derivativeY:F2}, dZ: {derivativeZ:F2} G/s)");
+                                }
                             }
                         }
                     }

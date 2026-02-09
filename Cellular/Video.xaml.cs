@@ -333,11 +333,11 @@ namespace Cellular
 
         private void OnContinuousSaveStarted(object? sender, EventArgs e)
         {
-            // Show notification when 8-second collection starts
+            // Show notification when 4-second collection starts
             MainThread.BeginInvokeOnMainThread(async () =>
             {
                 await DisplayAlert("Recording Started", 
-                    $"8-second sensor data collection has started!\n\n" +
+                    $"4-second sensor data collection has started!\n\n" +
                     $"Data is being collected now. You will be prompted to save when collection completes.", 
                     "OK");
             });
@@ -395,7 +395,7 @@ namespace Cellular
                             $"File: {Path.GetFileName(saveResult.FilePath)}\n" +
                             $"Location: {Path.GetDirectoryName(saveResult.FilePath)}\n" +
                             $"Data Points: {e.DataPointCount}\n\n" +
-                            $"8 seconds of data have been saved.", 
+                            $"4 seconds of data have been saved.", 
                             "OK");
                     }
                     else
