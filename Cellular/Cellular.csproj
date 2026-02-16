@@ -70,6 +70,18 @@
 		<Compile Update="BlankPage.xaml.cs">
 		  <DependentUpon>BlankPage.xaml</DependentUpon>
 		</Compile>
+		<Compile Update="EventList.xaml.cs">
+		  <DependentUpon>EventList.xaml</DependentUpon>
+		</Compile>
+		<Compile Update="SessionList.xaml.cs">
+		  <DependentUpon>SessionList.xaml</DependentUpon>
+		</Compile>
+		<Compile Update="Views\EventPopup.xaml.cs">
+		  <DependentUpon>EventPopup.xaml</DependentUpon>
+		</Compile>
+		<Compile Update="Views\SessionPopup.xaml.cs">
+		  <DependentUpon>SessionPopup.xaml</DependentUpon>
+		</Compile>
 		<Compile Update="Views\StatsPopup.xaml.cs">
 		  <DependentUpon>StatsPopup.xaml</DependentUpon>
 		</Compile>
@@ -90,15 +102,6 @@
 		</Compile>
 		<Compile Update="EstablishmentPage.xaml.cs">
 		  <DependentUpon>EstablishmentPage.xaml</DependentUpon>
-		</Compile>
-		<Compile Update="EventPage.xaml.cs">
-		  <DependentUpon>EventPage.xaml</DependentUpon>
-		</Compile>
-		<Compile Update="EstablishmentRegistrationPage.xaml.cs">
-		  <DependentUpon>EstablishmentRegistrationPage.xaml</DependentUpon>
-		</Compile>
-		<Compile Update="SessionRegistration.xaml.cs">
-		  <DependentUpon>SessionRegistration.xaml</DependentUpon>
 		</Compile>
 		<Compile Update="ShotPage.xaml.cs">
 			<DependentUpon>ShotPage.xaml</DependentUpon>
@@ -134,6 +137,15 @@
 		  <Generator>MSBuild:Compile</Generator>
 		</MauiXaml>
 		<MauiXaml Update="BlankPage.xaml">
+		  <Generator>MSBuild:Compile</Generator>
+		</MauiXaml>
+		<MauiXaml Update="EventList.xaml">
+		  <Generator>MSBuild:Compile</Generator>
+		</MauiXaml>
+		<MauiXaml Update="Views\EventPopup.xaml">
+		  <Generator>MSBuild:Compile</Generator>
+		</MauiXaml>
+		<MauiXaml Update="Views\SessionPopup.xaml">
 		  <Generator>MSBuild:Compile</Generator>
 		</MauiXaml>
 		<MauiXaml Update="Views\StatsPopup.xaml">
@@ -175,18 +187,6 @@
 
 	<ItemGroup>
 		<MauiXaml Update="EstablishmentPage.xaml">
-		  <Generator>MSBuild:Compile</Generator>
-		</MauiXaml>
-		<MauiXaml Update="EventPage.xaml">
-		  <Generator>MSBuild:Compile</Generator>
-		</MauiXaml>
-		<MauiXaml Update="EstablishmentRegistrationPage.xaml">
-		  <Generator>MSBuild:Compile</Generator>
-		</MauiXaml>
-		<MauiXaml Update="EventRegistrationPage.xaml">
-		  <Generator>MSBuild:Compile</Generator>
-		</MauiXaml>
-		<MauiXaml Update="SessionRegistration.xaml">
 		  <Generator>MSBuild:Compile</Generator>
 		</MauiXaml>
 		<MauiXaml Update="ShotPage.xaml">

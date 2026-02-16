@@ -34,10 +34,10 @@
         IsVisible="False"/>
 
     <ShellContent 
-        x:Name="sessionList"
-        Title="Session List"
-        ContentTemplate="{DataTemplate local:SessionList}"
-        Route="sessionList"
+        x:Name="eventList"
+        Title="Event List"
+        ContentTemplate="{DataTemplate local:EventList}"
+        Route="eventList"
         IsVisible="False"/>
 
     <ShellContent 
@@ -48,10 +48,10 @@
         IsVisible="False"/>
 
     <ShellContent 
-        x:Name="dataPage"
-        Title="Data"
-        ContentTemplate="{DataTemplate local:DataPage}"
-        Route="dataPage"
+        x:Name="establishment"
+        Title="Establishment"
+        ContentTemplate="{DataTemplate local:EstablishmentPage}"
+        Route="establishmentPage"
         IsVisible="False"/>
 
     <ShellContent 

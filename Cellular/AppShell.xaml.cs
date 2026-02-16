@@ -27,9 +27,9 @@ namespace Cellular
                 login.IsVisible = true;
                 register.IsVisible = true;
                 ballArsenal.IsVisible = false;
-                sessionList.IsVisible = false;
+                eventList.IsVisible = false;
                 bluetooth.IsVisible = false;
-                dataPage.IsVisible = false;
+                establishment.IsVisible = false;
                 apiPage.IsVisible = false;
                 accountPage.IsVisible = false;
                 signout.IsVisible = false;
@@ -39,9 +39,9 @@ namespace Cellular
                 login.IsVisible = false;
                 register.IsVisible = false;
                 ballArsenal.IsVisible = true;
-                sessionList.IsVisible = true;
+                eventList.IsVisible = true;
                 bluetooth.IsVisible = true;
-                dataPage.IsVisible = true;
+                establishment.IsVisible = true;
                 apiPage.IsVisible = true;
                 accountPage.IsVisible = true;
                 signout.IsVisible = true;

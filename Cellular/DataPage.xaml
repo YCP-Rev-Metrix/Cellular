@@ -5,6 +5,5 @@
              Title="DataPage">
     <VerticalStackLayout Padding="20" Spacing="20">
         <Button Text="Go to Establishment Page"  Clicked="NavigateToEstablishmentCommand"/>
-        <Button Text="Go to Event Page" Clicked="NavigateToEventCommand"/>
-        </VerticalStackLayout>
+    </VerticalStackLayout>
     </ContentPage>

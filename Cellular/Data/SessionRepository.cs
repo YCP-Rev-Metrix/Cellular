@@ -27,11 +27,14 @@ namespace Cellular.Data
         public async Task AddAsync(Session e)
         {
             await _conn.InsertAsync(e);
-            Console.WriteLine($"Session Id: {e.SessionId}, session #: {e.SessionNumber}");
+            Console.WriteLine($"Session Id: {e.SessionId}, session #: {e.SessionNumber}, DateTime: {e.DateTime}");
         }
 
         public async Task<List<Session>> GetSessionsByUserIdAsync(int userID) 
             => await _conn.Table<Session>().Where(u => u.UserId == userID).ToListAsync();
+
+        public async Task<List<Session>> GetSessionsByUserIdAndEventAsync(int userID, int eventID)
+            => await _conn.Table<Session>().Where(u => u.UserId == userID && u.EventId == eventID).ToListAsync();
 
         // New: get sessions for user constrained by optional start/end dates.
         // Session.DateTime is stored as string (e.g. "MM/dd/yyyy") — try to parse, ignore unparsable entries.
@@ -43,16 +46,11 @@ namespace Cellular.Data
             var filtered = new List<Session>();
             foreach (var s in all)
             {
-                if (string.IsNullOrWhiteSpace(s.DateTime))
+                // s.DateTime is DateTime? (nullable DateTime)
+                if (!s.DateTime.HasValue)
                     continue;
 
-                // attempt to parse; accept common formats
-                if (!DateTime.TryParseExact(s.DateTime, new[] { "MM/dd/yyyy", "M/d/yyyy", "yyyy-MM-dd" }, CultureInfo.InvariantCulture, DateTimeStyles.None, out var parsed))
-                {
-                    // fallback to general parse
-                    if (!DateTime.TryParse(s.DateTime, CultureInfo.InvariantCulture, DateTimeStyles.None, out parsed))
-                        continue;
-                }
+                var parsed = s.DateTime.Value.Date;
 
                 if (start.HasValue && parsed < start.Value.Date) continue;
                 if (end.HasValue && parsed > end.Value.Date) continue;

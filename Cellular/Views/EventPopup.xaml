@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<toolkit:Popup xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+               xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+               xmlns:toolkit="clr-namespace:CommunityToolkit.Maui.Views;assembly=CommunityToolkit.Maui"
+               x:Class="Cellular.Views.EventPopup"
+               CanBeDismissedByTappingOutsideOfPopup="True"
+               BackgroundColor="Gray">
+    <VerticalStackLayout>
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+
+            <StackLayout Orientation="Horizontal" Padding="1" Grid.Row="0">
+                <Label Text="Event Registration" FontSize="24"/>
+            </StackLayout>
+
+            <StackLayout Padding="20" Grid.Row="1">
+                <!-- Bind the Entry to the VM -->
+                <Entry Text="{Binding EventName}" Placeholder="Enter Event Name" />
+
+                <!-- Keep static items but bind SelectedItem to ViewModel -->
+                <Picker Title="Select Event Type"
+                        SelectedItem="{Binding EventType}">
+                    <Picker.Items>
+                        <x:String>Practice</x:String>
+                        <x:String>League</x:String>
+                        <x:String>Tournament</x:String>
+                        <x:String>Anonymous</x:String>
+                    </Picker.Items>
+                </Picker>
+
+                <!-- Bind the Establishment collection and selected item -->
+                <Picker Title="Select Establishment"
+                        ItemsSource="{Binding Establishments}"
+                        ItemDisplayBinding="{Binding Name}"
+                        SelectedItem="{Binding SelectedEstablishment}" />
+
+                <!-- Equal-size buttons using a two-column Grid -->
+                <Grid ColumnSpacing="10" Margin="-10,10,-10,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+
+                    <Button Grid.Column="0"
+                            Text="Cancel"
+                            Command="{Binding CancelEventCommand}"
+                            HorizontalOptions="Fill"
+                            VerticalOptions="Center"
+                            HeightRequest="44" />
+
+                    <Button Grid.Column="1"
+                            Text="Register Event"
+                            Command="{Binding RegisterEventCommand}"
+                            HorizontalOptions="Fill"
+                            VerticalOptions="Center"
+                            HeightRequest="44" />
+                </Grid>
+            </StackLayout>
+        </Grid>
+    </VerticalStackLayout>
+</toolkit:Popup>

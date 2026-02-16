@@ -55,10 +55,10 @@
                     HorizontalOptions="Fill"
                     IsVisible="True" />
 
-            <Button x:Name="SessionList"
-                    Text="Session List" 
-                    SemanticProperties.Hint="Goes to the session list page"
-                    Clicked="OnSessionListClicked"
+            <Button x:Name="EventList"
+                    Text="Event List" 
+                    SemanticProperties.Hint="Goes to the event list page"
+                    Clicked="OnEventListClicked"
                     HorizontalOptions="Fill"
                     IsVisible="True" />
 
@@ -76,10 +76,10 @@
                 HorizontalOptions="Fill"
                 IsVisible="True" /> 
 
-            <Button x:Name="data"
-                    Text="Data" 
-                    SemanticProperties.Hint="takes you to the data page"
-                    Clicked="OnDataClicked"
+            <Button x:Name="establishment"
+                    Text="Establishments" 
+                    SemanticProperties.Hint="takes you to the establishment page"
+                    Clicked="OnEstablishmentClicked"
                     HorizontalOptions="Fill"
                     IsVisible="True" />
 
