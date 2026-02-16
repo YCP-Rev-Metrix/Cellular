@@ -159,9 +159,9 @@ namespace Cellular.Data
                     {
                         UserId = int.TryParse(data[0].Trim(), out int UserId) ? UserId : 0,
                         Name = data[1].Trim(),
-                        SerialNumber = int.TryParse(data[2].Trim(), out int diameter) ? diameter : 0,
-                        Weight = int.TryParse(data[3].Trim(), out int weight) ? weight : 0,
-                        Core = data[4].Trim(),
+                        //SerialNumber = int.TryParse(data[2].Trim(), out int diameter) ? diameter : 0,
+                        Weight = int.TryParse(data[2].Trim(), out int weight) ? weight : 0,
+                        Core = data[3].Trim(),
                     };
 
                     var existingUser = await _database.Table<Ball>().FirstOrDefaultAsync(u => u.Name == ball.Name);

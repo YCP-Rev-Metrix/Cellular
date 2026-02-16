@@ -59,7 +59,7 @@ public partial class BallArsenalRegistrationPage : ContentPage
         {
             UserId = Preferences.Get("UserId", 0),
             Name = ballName,
-            SerialNumber = serial,
+            //SerialNumber = serial,
             Weight = weight,
             Core = ballCore
         };
