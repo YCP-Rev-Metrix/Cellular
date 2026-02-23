@@ -106,9 +106,6 @@
 		<Compile Update="ShotPage.xaml.cs">
 			<DependentUpon>ShotPage.xaml</DependentUpon>
 		</Compile>
-		<Compile Update="SessionSetup.xaml.cs">
-			<DependentUpon>SessionSetup.xaml</DependentUpon>
-		</Compile>
 		<Compile Update="GameSetup.xaml.cs">
 			<DependentUpon>GameSetup.xaml</DependentUpon>
 		</Compile>
@@ -190,9 +187,6 @@
 		  <Generator>MSBuild:Compile</Generator>
 		</MauiXaml>
 		<MauiXaml Update="ShotPage.xaml">
-			<Generator>MSBuild:Compile</Generator>
-		</MauiXaml>
-		<MauiXaml Update="SessionSetup.xaml">
 			<Generator>MSBuild:Compile</Generator>
 		</MauiXaml>
 		<MauiXaml Update="GameSetup.xaml">

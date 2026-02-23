@@ -1,61 +1,67 @@
-using Cellular.Data;
+using Cellular.Cloud_API.Endpoints;
 using Cellular.ViewModel;
 using Microsoft.Maui.Controls;
-using System.Collections.ObjectModel;
+using Microsoft.Maui.Storage;
+using System;
 using System.Diagnostics;
-using System.Threading.Tasks;
 
 namespace Cellular
 {
     public partial class BallArsenal : ContentPage
     {
-        private readonly BallRepository _ballRepository;
-        public ObservableCollection<Ball> Balls { get; set; }
-        private int userId;
+        private readonly BallArsenalViewModel _viewModel;
 
         public BallArsenal()
         {
             InitializeComponent();
-            _ballRepository = new BallRepository(new CellularDatabase().GetConnection());
-            Balls = new ObservableCollection<Ball>();
-            BallsListView.BindingContext = this;
-            LoadBalls();
-            BallsListView.ItemsSource = Balls;
-            
+
+            _viewModel = new BallArsenalViewModel();
+            BindingContext = _viewModel;
+
+            BallsListView.BindingContext = _viewModel;
+            BallsListView.ItemsSource = _viewModel.Balls;
+
+            // forward UI selection into the VM (if XAML doesn't bind SelectedItem)
+            BallsListView.SelectionChanged += OnBallsListViewSelectionChanged;
+
+            // react when the VM reports SelectedIndex change
+            _viewModel.SelectedIndexChanged += OnViewModelSelectedIndexChanged;
         }
-        protected override void OnAppearing()
+
+        protected override async void OnAppearing()
         {
             base.OnAppearing();
 
-            // Prevent duplicate entries by resetting the list
-            BallsListView.ItemsSource = null;
+            // refresh via VM
+            await _viewModel.LoadBallsAsync();
 
-            // Load the event list again
-            LoadBalls();
-            BallsListView.ItemsSource = Balls;
-        }
-        private async void LoadBalls()
-        {
-            userId = Preferences.Get("UserId", 0);
-            Debug.WriteLine("This is USer ID"+ userId);
-            //Debug.WriteLine("This is strighat form the pref" + Preferences.Get("UserId", 0));
-            if (userId == 0)
-            {
-                return;
-            }
-            var ballsFromDb = await _ballRepository.GetBallsByUserIdAsync(userId);
-            Balls.Clear();
-            foreach (var ball in ballsFromDb)
-            {
-                Debug.WriteLine("This is ball name" + ball.Name);
-                Balls.Add(ball);
-            }
+            // Ensure the ItemsSource is set (defensive)
+            BallsListView.ItemsSource = _viewModel.Balls;
         }
 
         async private void OnAddBallBtnClicked(object sender, EventArgs e)
         {
-            // Navigate to the event registration page
+            // Navigation stays in the view
             await Navigation.PushAsync(new BallArsenalRegistrationPage());
+        }
+
+        // forward selected item from the ListView to the VM
+        private void OnBallsListViewSelectionChanged(object? sender, SelectionChangedEventArgs e)
+        {
+            if (e.CurrentSelection != null && e.CurrentSelection.Count > 0 && e.CurrentSelection[0] is Ball selected)
+            {
+                _viewModel.SelectedBall = selected;
+            }
+            else
+            {
+                _viewModel.SelectedBall = null;
+            }
+        }
+
+        // react to VM selection changes
+        private void OnViewModelSelectedIndexChanged(object? sender, EventArgs e)
+        {
+            
         }
     }
 }
