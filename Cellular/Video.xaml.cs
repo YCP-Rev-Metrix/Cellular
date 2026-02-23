@@ -1,4 +1,4 @@
-﻿using Camera.MAUI;
+using Camera.MAUI;
 using CommunityToolkit.Maui;
 using CommunityToolkit.Maui.Storage;
 using Microsoft.Maui.Controls;
@@ -63,9 +63,10 @@ namespace Cellular
             _metaWearService.DeviceDisconnected -= OnDeviceDisconnected; // Remove first to avoid duplicates
             _metaWearService.DeviceDisconnected += OnDeviceDisconnected;
             
-            // Check actual connection status and update icon immediately
+            // Check actual connection status and update icon and record button
             // The service is a singleton, so it maintains connection state
             UpdateConnectionStatusIcon();
+            await UpdateRecordButtonStateAsync();
         }
         
         public Video()
@@ -416,13 +417,14 @@ namespace Cellular
 
         private void OnDeviceDisconnected(object? sender, string macAddress)
         {
-            // Update icon when device disconnects
+            // Update icon and record button when device disconnects
             MainThread.BeginInvokeOnMainThread(async () =>
             {
                 // Update IsConnected status in database
                 await UpdateIsConnectedStatusAsync(false);
                 
                 UpdateConnectionStatusIcon();
+                await UpdateRecordButtonStateAsync();
             });
         }
 
@@ -530,10 +532,11 @@ namespace Cellular
                 // Update IsConnected status in database
                 await UpdateIsConnectedStatusAsync(false);
                 
-                // Update icon
+                // Update icon and record button
                 UpdateConnectionStatusIcon();
+                await UpdateRecordButtonStateAsync();
                 
-                await DisplayAlert("Disconnected", "Successfully disconnected from MMS device.", "OK");
+                await DisplayAlert("Disconnected", "Successfully disconnected from SmartDot device.", "OK");
             }
             catch (Exception ex)
             {
@@ -590,7 +593,9 @@ namespace Cellular
                 {
                     if (e.Device != null && 
                         (e.Device.Name?.Contains("MetaWear", StringComparison.OrdinalIgnoreCase) == true ||
-                         e.Device.Name?.Contains("MMS", StringComparison.OrdinalIgnoreCase) == true))
+                         e.Device.Name?.Contains("MMS", StringComparison.OrdinalIgnoreCase) == true ||
+                         e.Device.Name?.Contains("MMC", StringComparison.OrdinalIgnoreCase) == true ||
+                         e.Device.Name?.Contains("MetaMotion", StringComparison.OrdinalIgnoreCase) == true))
                     {
                         string deviceId = e.Device.Id.ToString();
                         // Compare MAC addresses (handle different formats)
@@ -627,6 +632,7 @@ namespace Cellular
                         await UpdateIsConnectedStatusAsync(true);
                         
                         UpdateConnectionStatusIcon();
+                        await UpdateRecordButtonStateAsync();
                         await DisplayAlert("Connected", $"Successfully connected to your SmartDot device.", "OK");
                     }
                     else
@@ -653,6 +659,36 @@ namespace Cellular
             {
                 UpdateConnectionStatusIcon();
                 await DisplayAlert("Error", $"Failed to auto-connect: {ex.Message}", "OK");
+            }
+        }
+
+        /// <summary>
+        /// Updates the Record button enabled state based on SmartDot connection status
+        /// </summary>
+        private async Task UpdateRecordButtonStateAsync()
+        {
+            try
+            {
+                int userId = Preferences.Get("UserId", -1);
+                bool connected = false;
+                if (userId != -1)
+                {
+                    connected = await _userRepository.GetIsConnectedAsync(userId);
+                }
+
+                MainThread.BeginInvokeOnMainThread(() =>
+                {
+                    Record.IsEnabled = connected;
+                    // Only update color if not currently recording
+                    if (!isRecording)
+                    {
+                        Record.BackgroundColor = connected ? Color.FromArgb("#9880e5") : Colors.Gray;
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error updating record button state: {ex.Message}");
             }
         }
 

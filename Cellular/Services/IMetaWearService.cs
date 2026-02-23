@@ -169,6 +169,7 @@ namespace Cellular.Services
         public string FirmwareVersion { get; set; }
         public string HardwareVersion { get; set; }
         public string Manufacturer { get; set; }
+        public int? BatteryPercentage { get; set; }
     }
 }
 

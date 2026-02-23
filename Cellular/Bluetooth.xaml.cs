@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
@@ -205,12 +205,12 @@ namespace Cellular
                 try
                 {
                     var deviceInfo = await _metaWearService.GetDeviceInfoAsync();
-                    DeviceInfoLabel.Text = $"Model: {deviceInfo.Model}, Firmware: {deviceInfo.FirmwareVersion}";
+                    ShowDeviceInfo(deviceInfo);
                 }
                 catch (Exception ex)
                 {
                     System.Diagnostics.Debug.WriteLine($"Error getting device info: {ex.Message}");
-                    DeviceInfoLabel.Text = "Connected (device info unavailable)";
+                    ClearDeviceInfo();
                 }
                 return;
             }
@@ -280,12 +280,12 @@ namespace Cellular
                         try
                         {
                             var deviceInfo = await _metaWearService.GetDeviceInfoAsync();
-                            DeviceInfoLabel.Text = $"Model: {deviceInfo.Model}, Firmware: {deviceInfo.FirmwareVersion}";
+                            ShowDeviceInfo(deviceInfo);
                         }
                         catch (Exception ex)
                         {
                             System.Diagnostics.Debug.WriteLine($"Error getting device info: {ex.Message}");
-                            DeviceInfoLabel.Text = "Connected (device info unavailable)";
+                            ClearDeviceInfo();
                         }
                     }
                     else
@@ -314,10 +314,12 @@ namespace Cellular
             if (e.Device == null)
                 return;
 
-            // Filter for MetaWear devices
+            // Filter for MetaWear devices (MMS and MMC)
             if (string.IsNullOrEmpty(e.Device.Name) || 
                 (!e.Device.Name.Contains("MetaWear", StringComparison.OrdinalIgnoreCase) && 
-                 !e.Device.Name.Contains("MMS", StringComparison.OrdinalIgnoreCase)))
+                 !e.Device.Name.Contains("MMS", StringComparison.OrdinalIgnoreCase) &&
+                 !e.Device.Name.Contains("MMC", StringComparison.OrdinalIgnoreCase) &&
+                 !e.Device.Name.Contains("MetaMotion", StringComparison.OrdinalIgnoreCase)))
             {
                 return;
             }
@@ -693,10 +695,12 @@ namespace Cellular
             if (e.Device == null)
                 return;
 
-            // Filter for MetaWear devices (MMS typically has "MetaWear" in the name)
+            // Filter for MetaWear devices (MMS and MMC)
             if (string.IsNullOrEmpty(e.Device.Name) || 
                 (!e.Device.Name.Contains("MetaWear", StringComparison.OrdinalIgnoreCase) && 
-                 !e.Device.Name.Contains("MMS", StringComparison.OrdinalIgnoreCase)))
+                 !e.Device.Name.Contains("MMS", StringComparison.OrdinalIgnoreCase) &&
+                 !e.Device.Name.Contains("MMC", StringComparison.OrdinalIgnoreCase) &&
+                 !e.Device.Name.Contains("MetaMotion", StringComparison.OrdinalIgnoreCase)))
             {
                 return;
             }
@@ -773,12 +777,12 @@ namespace Cellular
                     try
                     {
                         var deviceInfo = await _metaWearService.GetDeviceInfoAsync();
-                        DeviceInfoLabel.Text = $"Model: {deviceInfo.Model}, Firmware: {deviceInfo.FirmwareVersion}";
+                        ShowDeviceInfo(deviceInfo);
                     }
                     catch (Exception ex)
                     {
                         System.Diagnostics.Debug.WriteLine($"Error getting device info: {ex.Message}");
-                        DeviceInfoLabel.Text = "Connected (device info unavailable)";
+                        ClearDeviceInfo();
                     }
                 }
                 else
@@ -811,7 +815,7 @@ namespace Cellular
                 
                 IsConnected = false;
                 StatusLabel.Text = "Disconnected";
-                DeviceInfoLabel.Text = "";
+                ClearDeviceInfo();
                 AccelerometerLabel.Text = "";
                 GyroscopeLabel.Text = "";
                 MagnetometerLabel.Text = "";
@@ -1030,6 +1034,28 @@ namespace Cellular
             
             // Reset the flag
             _isNavigatingToGraphPage = false;
+        }
+
+        private void ShowDeviceInfo(Services.DeviceInfo info)
+        {
+            DeviceInfoFrame.IsVisible = true;
+            DeviceModelLabel.Text = info.Model ?? "-";
+            DeviceSerialLabel.Text = info.SerialNumber ?? "-";
+            DeviceHardwareLabel.Text = info.HardwareVersion ?? "-";
+            DeviceBatteryLabel.Text = info.BatteryPercentage.HasValue ? $"{info.BatteryPercentage.Value}%" : "N/A";
+            DeviceFirmwareLabel.Text = info.FirmwareVersion ?? "-";
+            DeviceFirmwareStatusLabel.Text = "Up to date";
+        }
+
+        private void ClearDeviceInfo()
+        {
+            DeviceInfoFrame.IsVisible = false;
+            DeviceModelLabel.Text = "-";
+            DeviceSerialLabel.Text = "-";
+            DeviceHardwareLabel.Text = "-";
+            DeviceBatteryLabel.Text = "-";
+            DeviceFirmwareLabel.Text = "-";
+            DeviceFirmwareStatusLabel.Text = "-";
         }
 
         /// <summary>

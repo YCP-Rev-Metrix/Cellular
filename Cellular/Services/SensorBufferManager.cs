@@ -76,6 +76,7 @@ namespace Cellular.Services
         private const int DerivativeAveragingWindowSize = 10; // Number of previous derivatives to average
         private const float DerivativeSpikeMultiplier = 1.8f; // Multiplier above average to consider a spike (lower = more sensitive for bowling release)
         private const float MinimumSpikeThreshold = 8.0f; // Minimum absolute threshold (G/s) to avoid false positives from small motions
+        private const double MinDeltaTimeSeconds = 0.018; // Minimum delta time (18ms) to clamp derivatives - accelerometer runs at 50Hz (~20ms)
 
         /// <summary>
         /// Event fired when sensor data is saved (initial save - triggers file picker)
@@ -339,10 +340,51 @@ namespace Cellular.Services
                 string fileName = $"sensor_{DateTime.Now:yyyyMMdd_HHmmss}.json";
                 string tempFilePath = Path.Combine(tempFolder, fileName);
 
-                // Create a wrapper object that includes sensor data, derivatives, and jump timestamps
+                // Split data into pre-buffer (3s) and continuous collection (4s) sections
+                DateTime? boundaryTime;
+                lock (_bufferLock)
+                {
+                    boundaryTime = _continuousSaveStartTime;
+                }
+
+                var bufferData = boundaryTime.HasValue
+                    ? data.Where(p => p.Timestamp < boundaryTime.Value).ToList()
+                    : new List<SensorDataPoint>();
+                var continuousData = boundaryTime.HasValue
+                    ? data.Where(p => p.Timestamp >= boundaryTime.Value).ToList()
+                    : data;
+
+                System.Diagnostics.Debug.WriteLine($"[SensorBuffer] === DATA BOUNDARY ===");
+                System.Diagnostics.Debug.WriteLine($"[SensorBuffer] 3-second pre-buffer: {bufferData.Count} points");
+                if (bufferData.Count > 0)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[SensorBuffer]   Range: {bufferData.First().Timestamp:HH:mm:ss.fff} to {bufferData.Last().Timestamp:HH:mm:ss.fff}");
+                }
+                System.Diagnostics.Debug.WriteLine($"[SensorBuffer] --- Boundary at {boundaryTime:HH:mm:ss.fff} ---");
+                System.Diagnostics.Debug.WriteLine($"[SensorBuffer] 4-second continuous: {continuousData.Count} points");
+                if (continuousData.Count > 0)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[SensorBuffer]   Range: {continuousData.First().Timestamp:HH:mm:ss.fff} to {continuousData.Last().Timestamp:HH:mm:ss.fff}");
+                }
+                System.Diagnostics.Debug.WriteLine($"[SensorBuffer] ====================");
+
+                // BufferData -- the 3-second pre-buffer points
+                // BufferDataPointCount -- how many points came from the buffer
+                // BoundaryTimestamp -- the exact moment the 4-second collection started
+                // ContinuousData -- the 4-second live collection points
+                // ContinuousDataPointCount -- how many points came from continuous collection
+                // AccelerometerDerivatives -- an array of derivative objects for each accelerometer axis
+                // AccelerometerJumpTimestamps -- an array of timestamps when the accelerometer jumped
+                // JumpCount -- how many jumps were detected
+                // TotalDerivativeCalculations -- how many derivative calculations were performed
+                // Create a wrapper object that includes sensor data split by section, derivatives, and jump timestamps
                 var saveData = new
                 {
-                    SensorData = data,
+                    BufferData = bufferData,
+                    BufferDataPointCount = bufferData.Count,
+                    BoundaryTimestamp = boundaryTime,
+                    ContinuousData = continuousData,
+                    ContinuousDataPointCount = continuousData.Count,
                     AccelerometerDerivatives = derivatives,
                     AccelerometerJumpTimestamps = jumpTimestamps,
                     JumpCount = jumpTimestamps.Count,
@@ -540,10 +582,14 @@ namespace Cellular.Services
                     
                     if (deltaTime > 0) // Avoid division by zero
                     {
+                        // Clamp delta time to minimum expected interval (50Hz = 20ms)
+                        // This prevents inflated derivatives when BLE batching delivers timestamps closer together
+                        double clampedDeltaTime = Math.Max(deltaTime, MinDeltaTimeSeconds);
+
                         // Calculate derivative (rate of change) for each axis (G/s)
-                        float derivativeX = (data.X - _prevAccelX.Value) / (float)deltaTime;
-                        float derivativeY = (data.Y - _prevAccelY.Value) / (float)deltaTime;
-                        float derivativeZ = (data.Z - _prevAccelZ.Value) / (float)deltaTime;
+                        float derivativeX = (data.X - _prevAccelX.Value) / (float)clampedDeltaTime;
+                        float derivativeY = (data.Y - _prevAccelY.Value) / (float)clampedDeltaTime;
+                        float derivativeZ = (data.Z - _prevAccelZ.Value) / (float)clampedDeltaTime;
 
                         // Calculate magnitude of derivative vector
                         float derivativeMagnitude = (float)Math.Sqrt(

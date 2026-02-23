@@ -11,7 +11,7 @@
             Stroke="LightGray">
         <VerticalStackLayout Spacing="15" WidthRequest="300">
 
-            <Label Text="MMS Connection" 
+            <Label Text="SmartDot Connection" 
                    FontSize="22" 
                    TextColor="Black"
                    FontAttributes="Bold" 

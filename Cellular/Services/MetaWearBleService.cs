@@ -37,6 +37,31 @@ namespace Cellular.Services
         private static readonly Guid HardwareRevisionCharacteristicUuid = Guid.Parse("00002a27-0000-1000-8000-00805f9b34fb");
         private static readonly Guid ManufacturerNameCharacteristicUuid = Guid.Parse("00002a29-0000-1000-8000-00805f9b34fb");
 
+        // Battery Service (standard BLE)
+        private static readonly Guid BatteryServiceUuid = Guid.Parse("0000180f-0000-1000-8000-00805f9b34fb");
+        private static readonly Guid BatteryLevelCharacteristicUuid = Guid.Parse("00002a19-0000-1000-8000-00805f9b34fb");
+
+        // -------------------------------------------------------------------------
+        // MetaWear C++ SDK-aligned constants (mbientlab/MetaWear-SDK-Cpp)
+        // Module IDs from core/module.h (MblMwModule)
+        // -------------------------------------------------------------------------
+        private const byte MW_MODULE_ACCELEROMETER = 3;
+        private const byte MW_MODULE_GYRO = 19;
+        private const byte MW_MODULE_AMBIENT_LIGHT = 20;
+        private const byte MW_MODULE_MAGNETOMETER = 21;
+
+        // Accelerometer LSB/g from sensor/cpp/accelerometer_bosch.cpp (BMI160_FSR_SCALE, BMI270_FSR_SCALE)
+        private const float ACC_SCALE_2G = 16384f;
+        private const float ACC_SCALE_4G = 8192f;
+        private const float ACC_SCALE_8G = 4096f;
+        private const float ACC_SCALE_16G = 2048f;
+
+        // Gyroscope LSB/(°/s) from sensor/cpp/gyro_bosch.cpp FSR_SCALE[5]; index 0 = 2000dps
+        private const float GYRO_SCALE_2000DPS = 16.4f;
+
+        // Magnetometer LSB/µT from impl/cpp/datainterpreter.cpp BMM150_SCALE
+        private const float BMM150_SCALE = 16f;
+
         private readonly IBluetoothLE _bluetoothLE;
         private readonly IAdapter _adapter;
         private IDevice? _device;
@@ -53,6 +78,29 @@ namespace Cellular.Services
         private DateTime _lastAccelerometerLogTime = DateTime.MinValue; // Track last log time for accelerometer
         private DateTime _lastMagnetometerLogTime = DateTime.MinValue; // Track last log time for magnetometer
         private bool _isDebugLogging = false; // Guard to prevent re-entrancy in DebugLog
+        private const int GattWriteTimeoutMs = 3000;
+        // Current accelerometer LSB/g (set from range in Start; auto-corrected for MMS 2g in parser)
+        private float _accelLsbPerG = ACC_SCALE_16G;
+
+        /// <summary>
+        /// Writes a command to the MetaWear command characteristic using WriteWithoutResponse.
+        /// MetaWear does not ACK command writes; using WithResponse causes "prior command is not finished" on Android.
+        /// </summary>
+        private async Task WriteCommandAsync(byte[] data)
+        {
+            if (_commandCharacteristic == null)
+                throw new InvalidOperationException("Command characteristic is null");
+            _commandCharacteristic.WriteType = Plugin.BLE.Abstractions.CharacteristicWriteType.WithoutResponse;
+            var writeTask = _commandCharacteristic.WriteAsync(data);
+            var timeoutTask = Task.Delay(GattWriteTimeoutMs);
+            var completed = await Task.WhenAny(writeTask, timeoutTask);
+            if (completed == timeoutTask)
+            {
+                DebugLog($"[GATT] Write timed out after {GattWriteTimeoutMs}ms");
+                throw new TimeoutException("GATT write timed out");
+            }
+            await writeTask;
+        }
 
         /// <summary>
         /// Helper method to conditionally log debug messages based on EnableDebugLogging flag
@@ -202,7 +250,10 @@ namespace Cellular.Services
                     _isDeviceConnected = false;
                     return false;
                 }
-                
+
+                // MetaWear does not ACK command writes; WithoutResponse avoids "prior command is not finished" (MMS/MMC).
+                _commandCharacteristic.WriteType = Plugin.BLE.Abstractions.CharacteristicWriteType.WithoutResponse;
+
                 if (_notificationCharacteristic == null)
                 {
                     DebugLog($"MetaWear notification characteristic not found.");
@@ -236,8 +287,163 @@ namespace Cellular.Services
                 
                 DebugLog("Notifications enabled successfully");
 
-                // Stop any active sensors from previous sessions (light sensor, magnetometer, etc.)
-                await StopAllSensorsAsync();
+                // Stop any active sensors from previous sessions
+                // Stop light sensor (module 0x14) - it's often active by default
+                try
+                {
+                    DebugLog("[Connection] Stopping light sensor (module 0x14)...");
+                    byte[] stopLightSensor = new byte[] { 0x14, 0x01 };
+                    await WriteCommandAsync(stopLightSensor);
+                    await Task.Delay(100);
+                    
+                    byte[] stopLightSensorProducer = new byte[] { 0x14, 0x03 };
+                    await WriteCommandAsync(stopLightSensorProducer);
+                    await Task.Delay(100);
+                    DebugLog("[Connection] Light sensor stop commands sent");
+                }
+                catch (Exception ex)
+                {
+                    DebugLog($"[Connection] Error stopping light sensor: {ex.Message}");
+                }
+
+                // Stop magnetometer (module 0x15)
+                try
+                {
+                    DebugLog("[Connection] Stopping magnetometer (module 0x15)...");
+                    try
+                    {
+                        byte[] stopProducerCommand = new byte[] { 0x15, 0x05 };
+                        await WriteCommandAsync(stopProducerCommand);
+                        await Task.Delay(50);
+                    }
+                    catch { }
+                    
+                    try
+                    {
+                        byte[] stopProducerCommand2 = new byte[] { 0x15, 0x06 };
+                        await WriteCommandAsync(stopProducerCommand2);
+                        await Task.Delay(50);
+                    }
+                    catch { }
+                    
+                    try
+                    {
+                        byte[] removeRouteCommand = new byte[] { 0x12, 0x02, 0x03 };
+                        await WriteCommandAsync(removeRouteCommand);
+                        await Task.Delay(50);
+                    }
+                    catch { }
+                    
+                    try
+                    {
+                        byte[] disableModule = new byte[] { 0x15, 0x01, 0x00 };
+                        await WriteCommandAsync(disableModule);
+                        await Task.Delay(50);
+                    }
+                    catch { }
+                    
+                    try
+                    {
+                        byte[] stopCommand1 = new byte[] { 0x15, 0x01 };
+                        await WriteCommandAsync(stopCommand1);
+                        await Task.Delay(50);
+                    }
+                    catch { }
+                    
+                    _magnetometerActive = false;
+                    DebugLog("[Connection] Magnetometer stop commands sent");
+                }
+                catch (Exception ex)
+                {
+                    DebugLog($"[Connection] Error stopping magnetometer: {ex.Message}");
+                    _magnetometerActive = false;
+                }
+
+                // Stop accelerometer (module 0x03)
+                try
+                {
+                    DebugLog("[Connection] Stopping accelerometer (module 0x03)...");
+                    byte[] disableProducer = new byte[] { 0x03, 0x04, 0x00 };
+                    await WriteCommandAsync(disableProducer);
+                    await Task.Delay(50);
+                    
+                    byte[] disableModule = new byte[] { 0x03, 0x01, 0x00 };
+                    await WriteCommandAsync(disableModule);
+                    await Task.Delay(50);
+                    
+                    try
+                    {
+                        byte[] removeRouteCommand12 = new byte[] { 0x12, 0x02, 0x01 };
+                        await WriteCommandAsync(removeRouteCommand12);
+                        await Task.Delay(50);
+                    }
+                    catch { }
+                    
+                    try
+                    {
+                        byte[] removeRouteCommand11 = new byte[] { 0x11, 0x02, 0x01 };
+                        await WriteCommandAsync(removeRouteCommand11);
+                        await Task.Delay(50);
+                    }
+                    catch { }
+                    
+                    byte[] fallbackStopCommand = new byte[] { 0x03, 0x05 };
+                    await WriteCommandAsync(fallbackStopCommand);
+                    await Task.Delay(50);
+                    
+                    _accelerometerActive = false;
+                    DebugLog("[Connection] Accelerometer stop commands sent");
+                }
+                catch (Exception ex)
+                {
+                    DebugLog($"[Connection] Error stopping accelerometer: {ex.Message}");
+                    _accelerometerActive = false;
+                }
+
+                // Stop gyroscope (module 0x13)
+                try
+                {
+                    DebugLog("[Connection] Stopping gyroscope (module 0x13)...");
+                    byte[] stopProducerCommand = new byte[] { 0x13, 0x05 };
+                    await WriteCommandAsync(stopProducerCommand);
+                    await Task.Delay(50);
+                    
+                    byte[] stopCommand1 = new byte[] { 0x13, 0x01 };
+                    await WriteCommandAsync(stopCommand1);
+                    await Task.Delay(50);
+                    
+                    byte[] disableProducer13 = new byte[] { 0x13, 0x04, 0x00 };
+                    await WriteCommandAsync(disableProducer13);
+                    await Task.Delay(50);
+                    
+                    byte[] disableModule13 = new byte[] { 0x13, 0x01, 0x00 };
+                    await WriteCommandAsync(disableModule13);
+                    await Task.Delay(50);
+                    
+                    try
+                    {
+                        byte[] removeRouteCommand = new byte[] { 0x12, 0x02, 0x02 };
+                        await WriteCommandAsync(removeRouteCommand);
+                        await Task.Delay(50);
+                    }
+                    catch { }
+                    
+                    try
+                    {
+                        byte[] removeRouteCommand11 = new byte[] { 0x11, 0x02, 0x02 };
+                        await WriteCommandAsync(removeRouteCommand11);
+                        await Task.Delay(50);
+                    }
+                    catch { }
+                    
+                    _gyroscopeActive = false;
+                    DebugLog("[Connection] Gyroscope stop commands sent");
+                }
+                catch (Exception ex)
+                {
+                    DebugLog($"[Connection] Error stopping gyroscope: {ex.Message}");
+                    _gyroscopeActive = false;
+                }
 
                 DebugLog("MetaWear device connected successfully!");
 
@@ -310,220 +516,6 @@ namespace Cellular.Services
             }
         }
 
-        /// <summary>
-        /// Stops all sensors (light sensor, magnetometer, accelerometer, gyroscope) that might be active from previous sessions.
-        /// Called immediately after connection to ensure a clean state.
-        /// </summary>
-        private async Task StopAllSensorsAsync()
-        {
-            // Note: We check _commandCharacteristic directly since _isDeviceConnected hasn't been set yet
-            if (_commandCharacteristic == null || _device == null)
-            {
-                DebugLog("[Connection] Cannot stop sensors - command characteristic or device not available");
-                return;
-            }
-
-            try
-            {
-                DebugLog("[Connection] Stopping all sensors from previous sessions...");
-
-                // Stop light sensor (module 0x14) - it's often active by default
-                try
-                {
-                    DebugLog("[Connection] Stopping light sensor (module 0x14)...");
-                    // Stop command: [module_id, register_0x01]
-                    byte[] stopLightSensor = new byte[] { 0x14, 0x01 };
-                    await _commandCharacteristic.WriteAsync(stopLightSensor);
-                    await Task.Delay(100); // Wait for command to process
-                    
-                    // Also try stopping the data producer if it's using register 0x03
-                    byte[] stopLightSensorProducer = new byte[] { 0x14, 0x03 };
-                    await _commandCharacteristic.WriteAsync(stopLightSensorProducer);
-                    await Task.Delay(100);
-                    DebugLog("[Connection] Light sensor stop commands sent");
-                }
-                catch (Exception ex)
-                {
-                    DebugLog($"[Connection] Error stopping light sensor: {ex.Message}");
-                }
-
-                // Stop magnetometer (always attempt, even if flag is false - device might have it enabled from previous session)
-                try
-                {
-                    DebugLog("[Connection] Stopping magnetometer (module 0x15)...");
-                    // Use the same stop sequence as StopMagnetometerAsync but don't check _magnetometerActive flag
-                    // Step 1: Disable data producers (try both 0x05 and 0x06)
-                    try
-                    {
-                        byte[] stopProducerCommand = new byte[] { 0x15, 0x05 }; // Stop data producer (register 0x05)
-                        await _commandCharacteristic.WriteAsync(stopProducerCommand);
-                        await Task.Delay(50);
-                    }
-                    catch { }
-                    
-                    try
-                    {
-                        byte[] stopProducerCommand2 = new byte[] { 0x15, 0x06 }; // Stop data producer (register 0x06)
-                        await _commandCharacteristic.WriteAsync(stopProducerCommand2);
-                        await Task.Delay(50);
-                    }
-                    catch { }
-                    
-                    // Step 2: Remove route using Route Manager
-                    try
-                    {
-                        byte[] removeRouteCommand = new byte[] { 0x12, 0x02, 0x03 }; // Route Manager, remove route 0x03
-                        await _commandCharacteristic.WriteAsync(removeRouteCommand);
-                        await Task.Delay(50);
-                    }
-                    catch { }
-                    
-                    // Step 3: Disable the module
-                    try
-                    {
-                        byte[] disableModule = new byte[] { 0x15, 0x01, 0x00 }; // Module 0x15, Register 0x01, Disable
-                        await _commandCharacteristic.WriteAsync(disableModule);
-                        await Task.Delay(50);
-                    }
-                    catch { }
-                    
-                    // Step 4: General stop command (fallback)
-                    try
-                    {
-                        byte[] stopCommand1 = new byte[] { 0x15, 0x01 }; // General stop
-                        await _commandCharacteristic.WriteAsync(stopCommand1);
-                        await Task.Delay(50);
-                    }
-                    catch { }
-                    
-                    _magnetometerActive = false; // Ensure flag is false
-                    DebugLog("[Connection] Magnetometer stop commands sent");
-                }
-                catch (Exception ex)
-                {
-                    DebugLog($"[Connection] Error stopping magnetometer: {ex.Message}");
-                    _magnetometerActive = false; // Ensure flag is false even on error
-                }
-
-                // Stop accelerometer (always attempt, even if flag is false - device might have it enabled from previous session)
-                try
-                {
-                    DebugLog("[Connection] Stopping accelerometer (module 0x03)...");
-                    // Use the same stop sequence as StopAccelerometerAsync but don't check _accelerometerActive flag
-                    // Step 1: Disable the data producer
-                    byte[] disableProducer = new byte[] { 0x03, 0x04, 0x00 }; // Module 0x03, Register 0x04, Disable
-                    await _commandCharacteristic.WriteAsync(disableProducer);
-                    await Task.Delay(50);
-                    
-                    // Step 2: Disable the module
-                    byte[] disableModule = new byte[] { 0x03, 0x01, 0x00 }; // Module 0x03, Register 0x01, Disable
-                    await _commandCharacteristic.WriteAsync(disableModule);
-                    await Task.Delay(50);
-                    
-                    // Step 3: Remove route using Route Manager (try both 0x12 and 0x11)
-                    try
-                    {
-                        byte[] removeRouteCommand12 = new byte[] { 0x12, 0x02, 0x01 }; // Route Manager 0x12, remove route 0x01
-                        await _commandCharacteristic.WriteAsync(removeRouteCommand12);
-                        await Task.Delay(50);
-                    }
-                    catch { }
-                    
-                    try
-                    {
-                        byte[] removeRouteCommand11 = new byte[] { 0x11, 0x02, 0x01 }; // Route Manager 0x11, remove route 0x01
-                        await _commandCharacteristic.WriteAsync(removeRouteCommand11);
-                        await Task.Delay(50);
-                    }
-                    catch { }
-                    
-                    // Fallback: General stop command
-                    byte[] fallbackStopCommand = new byte[] { 0x03, 0x05 }; // Stop acceleration data producer
-                    await _commandCharacteristic.WriteAsync(fallbackStopCommand);
-                    await Task.Delay(50);
-                    
-                    _accelerometerActive = false; // Ensure flag is false
-                    DebugLog("[Connection] Accelerometer stop commands sent");
-                }
-                catch (Exception ex)
-                {
-                    DebugLog($"[Connection] Error stopping accelerometer: {ex.Message}");
-                    _accelerometerActive = false; // Ensure flag is false even on error
-                }
-
-                // Stop gyroscope (always attempt, even if flag is false - device might have it enabled from previous session)
-                try
-                {
-                    DebugLog("[Connection] Stopping gyroscope (module 0x13)...");
-                    // Use similar stop sequence as StopGyroscopeAsync but don't check _gyroscopeActive flag
-                    byte[] stopProducerCommand = new byte[] { 0x13, 0x05 }; // Stop angular velocity data producer
-                    await _commandCharacteristic.WriteAsync(stopProducerCommand);
-                    await Task.Delay(50);
-                    
-                    byte[] stopCommand1 = new byte[] { 0x13, 0x01 }; // General stop
-                    await _commandCharacteristic.WriteAsync(stopCommand1);
-                    await Task.Delay(50);
-                    
-                    // Disable producer (phyphox pattern reverse)
-                    byte[] disableProducer = new byte[] { 0x13, 0x04, 0x00 }; // Module 0x13, Register 0x04, Disable
-                    await _commandCharacteristic.WriteAsync(disableProducer);
-                    await Task.Delay(50);
-                    
-                    // Disable module
-                    byte[] disableModule = new byte[] { 0x13, 0x01, 0x00 }; // Module 0x13, Register 0x01, Disable
-                    await _commandCharacteristic.WriteAsync(disableModule);
-                    await Task.Delay(50);
-                    
-                    // Remove route using Route Manager
-                    try
-                    {
-                        byte[] removeRouteCommand = new byte[] { 0x12, 0x02, 0x02 }; // Route Manager, remove route 0x02
-                        await _commandCharacteristic.WriteAsync(removeRouteCommand);
-                        await Task.Delay(50);
-                    }
-                    catch { }
-                    
-                    try
-                    {
-                        byte[] removeRouteCommand11 = new byte[] { 0x11, 0x02, 0x02 }; // Route Manager 0x11, remove route 0x02
-                        await _commandCharacteristic.WriteAsync(removeRouteCommand11);
-                        await Task.Delay(50);
-                    }
-                    catch { }
-                    
-                    _gyroscopeActive = false; // Ensure flag is false
-                    DebugLog("[Connection] Gyroscope stop commands sent");
-                }
-                catch (Exception ex)
-                {
-                    DebugLog($"[Connection] Error stopping gyroscope: {ex.Message}");
-                    _gyroscopeActive = false; // Ensure flag is false even on error
-                }
-
-                // Magnetometer is already stopped above (always attempted regardless of flag)
-
-                // Stop light sensor if active
-                if (_lightSensorActive)
-                {
-                    try
-                    {
-                        await StopLightSensorAsync();
-                    }
-                    catch (Exception ex)
-                    {
-                        DebugLog($"[Connection] Error stopping light sensor: {ex.Message}");
-                    }
-                }
-
-                DebugLog("[Connection] All sensors stopped");
-            }
-            catch (Exception ex)
-            {
-                DebugLog($"[Connection] Error in StopAllSensorsAsync: {ex.Message}");
-                // Don't throw - connection should still succeed even if we can't stop sensors
-            }
-        }
-
         private void OnNotificationReceived(object? sender, Plugin.BLE.Abstractions.EventArgs.CharacteristicUpdatedEventArgs e)
         {
             try
@@ -542,7 +534,7 @@ namespace Cellular.Services
                 byte registerId = data[1];
 
                 // Log ALL notifications for accelerometer, gyroscope, magnetometer, and light sensor to debug
-                if (moduleId == 0x03 || moduleId == 0x13 || moduleId == 0x14 || moduleId == 0x15)
+                if (moduleId == MW_MODULE_ACCELEROMETER || moduleId == MW_MODULE_GYRO || moduleId == MW_MODULE_AMBIENT_LIGHT || moduleId == MW_MODULE_MAGNETOMETER)
                 {
                     DebugLog($"[Notification] Module: 0x{moduleId:X2}, Reg: 0x{registerId:X2}, Len: {data.Length}, Raw: [{string.Join(", ", data.Select(b => $"0x{b:X2}"))}]");
                 }
@@ -556,16 +548,11 @@ namespace Cellular.Services
                     }
                 }
 
-                // MetaWear module IDs (correct mapping for MetaMotionS - MMS):
-                // Accelerometer: 0x03 (BMI270 on MMS, or BMA255 on other devices)
-                // Gyroscope: 0x13 (BMI270 on MMS, or BMI160 on other devices)
-                // Light Sensor: 0x14 (LTR-329ALS-01)
-                // Magnetometer: 0x15 (BMM150)
-                // Reference: https://mbientlab.com/tutorials/MetaMotionS.html
-                bool isAccelerometer = (moduleId == 0x03);
-                bool isGyroscope = (moduleId == 0x13);
-                bool isLightSensor = (moduleId == 0x14);
-                bool isMagnetometer = (moduleId == 0x15);
+                // Module IDs from C++ SDK core/module.h (MBL_MW_MODULE_*)
+                bool isAccelerometer = (moduleId == MW_MODULE_ACCELEROMETER);
+                bool isGyroscope = (moduleId == MW_MODULE_GYRO);
+                bool isLightSensor = (moduleId == MW_MODULE_AMBIENT_LIGHT);
+                bool isMagnetometer = (moduleId == MW_MODULE_MAGNETOMETER);
                 
                 if (isAccelerometer)
                 {
@@ -587,24 +574,14 @@ namespace Cellular.Services
                 {
                     if (_gyroscopeActive)
                     {
-                        // Parse without logging every packet (too verbose at 100Hz)
                         ParseGyroscopeData(data);
                     }
-                    // Silently ignore if not active
                 }
                 else if (isMagnetometer)
                 {
-                    // Always log magnetometer notifications for debugging (even if not active) to verify we're receiving data
-                    DebugLog($"[Magnetometer] DEBUG: Received magnetometer notification! Module: 0x{data[0]:X2}, Reg: 0x{data[1]:X2}, Len: {data.Length}, Active: {_magnetometerActive}");
-                    DebugLog($"[Magnetometer] DEBUG: Raw data: [{string.Join(", ", data.Select(b => $"0x{b:X2}"))}]");
-                    
                     if (_magnetometerActive)
                     {
                         ParseMagnetometerData(data);
-                    }
-                    else
-                    {
-                        DebugLog($"[Magnetometer] DEBUG: Magnetometer not active, ignoring data");
                     }
                 }
                 else if (isLightSensor)
@@ -635,11 +612,8 @@ namespace Cellular.Services
         {
             try
             {
-                // MetaWear accelerometer data format can vary:
-                // Format 1 (8 bytes): [module_id, register_id, x_low, x_high, y_low, y_high, z_low, z_high]
-                // Format 2 (6 bytes): [module_id, register_id, x_low, x_high, y_low, y_high] (might be 2-axis or compressed)
-                // Format 3 (other): Device-specific formats
-                
+                // C++ SDK: convert_to_bosch_acceleration; payload = CartesianShort { int16_t x, y, z } (6 bytes LE).
+                // BLE packet: [module_id, register_id, x_lo, x_hi, y_lo, y_hi, z_lo, z_hi]; register 4 = DATA_INTERRUPT.
                 byte moduleId = data[0];
                 short x, y, z;
                 
@@ -665,12 +639,19 @@ namespace Cellular.Services
                     return;
                 }
 
-                // Convert to G using phyphox scaling factor
-                // Phyphox documentation: +/-2^15 range corresponds to +/-16G, factor = 1/2048
-                // Reference: https://phyphox.org/wiki/index.php?title=MbientLab_MetaWear_(MetaMotionR)
-                float xG = x / 2048.0f;
-                float yG = y / 2048.0f;
-                float zG = z / 2048.0f;
+                // Convert to G using Bosch LSB/g for configured range (MetaMotionS/BMI270 may use 2g = 16384 LSB/g)
+                // Bosch: 2g=16384, 4g=8192, 8g=4096, 16g=2048. Auto-detect MMS 2g if magnitude > 2.5.
+                float xG = x / _accelLsbPerG;
+                float yG = y / _accelLsbPerG;
+                float zG = z / _accelLsbPerG;
+                float magSq = xG * xG + yG * yG + zG * zG;
+                if (magSq > 6.25f) // magnitude > 2.5g → device likely at 2g range (MMS/BMI270)
+                {
+                    _accelLsbPerG = ACC_SCALE_2G;
+                    xG = x / _accelLsbPerG;
+                    yG = y / _accelLsbPerG;
+                    zG = z / _accelLsbPerG;
+                }
 
                 // Log raw data every 1 second to reduce lag
                 DateTime now = DateTime.Now;
@@ -699,10 +680,8 @@ namespace Cellular.Services
         {
             try
             {
-                // MetaWear gyroscope data format:
-                // Format 1 (8 bytes): [module_id, register_id, x_low, x_high, y_low, y_high, z_low, z_high]
-                // Format 2 (other): Device-specific formats
-                
+                // C++ SDK: convert_to_bosch_rotation; payload = CartesianShort { int16_t x, y, z } (6 bytes LE).
+                // BLE packet: [module_id, register_id, ...]; BMI160 DATA=5, BMI270 DATA=4 (gyro_bosch_register.h).
                 byte moduleId = data[0];
                 short x, y, z;
                 
@@ -720,11 +699,10 @@ namespace Cellular.Services
                     return;
                 }
 
-                // Convert to degrees/sec (assuming 2000 dps range, adjust based on actual configuration)
-                // MetaWear BMI160 typically uses 16 LSB/(°/s) for ±2000 dps range
-                float xDps = x / 16.0f;
-                float yDps = y / 16.0f;
-                float zDps = z / 16.0f;
+                // Convert to °/s (C++ SDK gyro_bosch.cpp: FSR_SCALE[MBL_MW_GYRO_BOSCH_RANGE_2000dps] = 16.4f)
+                float xDps = x / GYRO_SCALE_2000DPS;
+                float yDps = y / GYRO_SCALE_2000DPS;
+                float zDps = z / GYRO_SCALE_2000DPS;
 
                 // Reduced logging - only log occasionally (every 2 seconds) to avoid performance issues
                 if ((DateTime.Now.Millisecond % 2000) < 10)
@@ -755,7 +733,9 @@ namespace Cellular.Services
             try
             {
                 DebugLog($"[Accelerometer] Starting accelerometer - SampleRate: {sampleRate}Hz, Range: {range}G");
-                
+                // Set LSB/g from range (C++ SDK: BMI160_FSR_SCALE / BMI270_FSR_SCALE)
+                _accelLsbPerG = range switch { <= 2f => ACC_SCALE_2G, <= 4f => ACC_SCALE_4G, <= 8f => ACC_SCALE_8G, _ => ACC_SCALE_16G };
+
                 // Stop accelerometer first if already running
                 if (_accelerometerActive)
                 {
@@ -770,11 +750,11 @@ namespace Cellular.Services
                     DebugLog($"[Accelerometer] Stopping light sensor (module 0x14) to prevent interference...");
                     // Try stopping by disabling data route (register 0x02 or 0x04 might disable routes)
                     byte[] stopLightSensor = new byte[] { 0x14, 0x02 }; // Module 0x14, Stop/disable routes
-                    await _commandCharacteristic.WriteAsync(stopLightSensor);
+                    await WriteCommandAsync(stopLightSensor);
                     await Task.Delay(50);
                     // Also try register 0x01 (stop)
                     byte[] stopLightSensor2 = new byte[] { 0x14, 0x01 };
-                    await _commandCharacteristic.WriteAsync(stopLightSensor2);
+                    await WriteCommandAsync(stopLightSensor2);
                     await Task.Delay(50);
                 }
                 catch (Exception ex)
@@ -782,60 +762,34 @@ namespace Cellular.Services
                     DebugLog($"[Accelerometer] Error stopping light sensor: {ex.Message}");
                 }
 
-                // MetaWear command to configure and enable accelerometer
-                // Module ID: 0x03 (Accelerometer - BMI270 on MMS, BMA255 on other devices)
-                // Reference: https://mbientlab.com/tutorials/MetaMotionS.html
-                
-                // Step 1: Configure the accelerometer using phyphox pattern
-                // Phyphox pattern: 0x03, 0x04, 0x28, 0x0C (for 100Hz, 16G)
-                // Format: [module, register, config_byte1, config_byte2]
-                // For 100Hz (ODR=0) and 16G (Range=3), phyphox uses: 0x03, 0x04, 0x28, 0x0C
-                byte[] configCommand = new byte[]
-                {
-                    0x03, 0x04, 0x28, 0x0C  // Module 0x03, Register 0x04, Config: 0x280C (100Hz, 16G per phyphox)
-                };
-                
-                DebugLog($"[Accelerometer] Sending config command (phyphox pattern): [{string.Join(", ", configCommand.Select(b => $"0x{b:X2}"))}]");
-                
-                // Write configuration first
-                await _commandCharacteristic.WriteAsync(configCommand);
-                await Task.Delay(100); // Allow configuration to take effect
-                
-                // Step 2: Setup route using phyphox pattern (Route Manager module 0x11, not 0x12)
-                // Based on phyphox documentation: https://phyphox.org/wiki/index.php?title=MbientLab_MetaWear_(MetaMotionR)
-                try
-                {
-                    DebugLog($"[Accelerometer] Setting up route using phyphox pattern...");
-                    // Route manager setup: 0x11, 0x09, 0x06, 0x00, 0x06, 0x00, 0x00, 0x00, 0x58, 0x02
-                    byte[] routeManagerSetup = new byte[] { 0x11, 0x09, 0x06, 0x00, 0x06, 0x00, 0x00, 0x00, 0x58, 0x02 };
-                    DebugLog($"[Accelerometer] Route manager setup: [{string.Join(", ", routeManagerSetup.Select(b => $"0x{b:X2}"))}]");
-                    await _commandCharacteristic.WriteAsync(routeManagerSetup);
-                    await Task.Delay(200);
-                }
-                catch (Exception routeEx)
-                {
-                    DebugLog($"[Accelerometer] Error setting up route manager: {routeEx.Message}");
-                    throw;
-                }
-                
-                // Step 4: Enable the accelerometer data producer using phyphox pattern
-                // Phyphox pattern: 0x03, 0x04, 0x01 (module 0x03, register 0x04, enable)
-                // Then: 0x03, 0x02, 0x01, 0x00 (module 0x03, register 0x02, route ID 0x0100)
-                // Then: 0x03, 0x01, 0x01 (module 0x03, register 0x01, enable module)
-                byte[] enableProducer = new byte[] { 0x03, 0x04, 0x01 };
-                DebugLog($"[Accelerometer] Enabling producer (phyphox pattern): [{string.Join(", ", enableProducer.Select(b => $"0x{b:X2}"))}]");
-                await _commandCharacteristic.WriteAsync(enableProducer);
+                // Exact phyphox accelerometer sequence:
+                // 0303280c  → Config on register 0x03
+                // 030401    → Enable data producer on register 0x04
+                // 03020100  → Subscribe on register 0x02
+                // 030101    → Enable module on register 0x01
+
+                // Step 1: Configure accelerometer - register 0x03 (phyphox: 0303280c)
+                byte[] configCommand = new byte[] { 0x03, 0x03, 0x28, 0x0C };
+                DebugLog($"[Accelerometer] Config (register 0x03): [{string.Join(", ", configCommand.Select(b => $"0x{b:X2}"))}]");
+                await WriteCommandAsync(configCommand);
                 await Task.Delay(100);
-                
+
+                // Step 2: Enable data producer - register 0x04 (phyphox: 030401)
+                byte[] enableProducer = new byte[] { 0x03, 0x04, 0x01 };
+                DebugLog($"[Accelerometer] Enable producer (register 0x04): [{string.Join(", ", enableProducer.Select(b => $"0x{b:X2}"))}]");
+                await WriteCommandAsync(enableProducer);
+                await Task.Delay(100);
+
+                // Step 3: Subscribe to data - register 0x02 (phyphox: 03020100)
                 byte[] setRoute = new byte[] { 0x03, 0x02, 0x01, 0x00 };
-                DebugLog($"[Accelerometer] Setting route ID: [{string.Join(", ", setRoute.Select(b => $"0x{b:X2}"))}]");
-                await _commandCharacteristic.WriteAsync(setRoute);
+                DebugLog($"[Accelerometer] Subscribe (register 0x02): [{string.Join(", ", setRoute.Select(b => $"0x{b:X2}"))}]");
+                await WriteCommandAsync(setRoute);
                 await Task.Delay(100);
                 
                 // Enable module: 0x03, 0x01, 0x01
                 byte[] enableModule = new byte[] { 0x03, 0x01, 0x01 };
                 DebugLog($"[Accelerometer] Enabling module: [{string.Join(", ", enableModule.Select(b => $"0x{b:X2}"))}]");
-                await _commandCharacteristic.WriteAsync(enableModule);
+                await WriteCommandAsync(enableModule);
                 await Task.Delay(200);
                 
                 _accelerometerActive = true;
@@ -871,7 +825,7 @@ namespace Cellular.Services
                 {
                     byte[] disableProducer = new byte[] { 0x03, 0x04, 0x00 }; // Disable producer
                     DebugLog($"[Accelerometer] Disabling producer: [{string.Join(", ", disableProducer.Select(b => $"0x{b:X2}"))}]");
-                    await _commandCharacteristic.WriteAsync(disableProducer);
+                    await WriteCommandAsync(disableProducer);
                     await Task.Delay(100);
                 }
                 catch (Exception ex1)
@@ -884,7 +838,7 @@ namespace Cellular.Services
                 {
                     byte[] disableModule = new byte[] { 0x03, 0x01, 0x00 }; // Disable module
                     DebugLog($"[Accelerometer] Disabling module: [{string.Join(", ", disableModule.Select(b => $"0x{b:X2}"))}]");
-                    await _commandCharacteristic.WriteAsync(disableModule);
+                    await WriteCommandAsync(disableModule);
                     await Task.Delay(100);
                 }
                 catch (Exception ex2)
@@ -898,7 +852,7 @@ namespace Cellular.Services
                     // Try Route Manager 0x12 first (standard)
                     byte[] removeRouteCommand = new byte[] { 0x12, 0x02, 0x01 }; // Route Manager, remove route 0x01
                     DebugLog($"[Accelerometer] Removing route (0x12): [{string.Join(", ", removeRouteCommand.Select(b => $"0x{b:X2}"))}]");
-                    await _commandCharacteristic.WriteAsync(removeRouteCommand);
+                    await WriteCommandAsync(removeRouteCommand);
                     await Task.Delay(100);
                 }
                 catch (Exception ex3)
@@ -909,7 +863,7 @@ namespace Cellular.Services
                     {
                         byte[] removeRouteCommand2 = new byte[] { 0x11, 0x02, 0x01 }; // Route Manager 0x11, remove route 0x01
                         DebugLog($"[Accelerometer] Removing route (0x11): [{string.Join(", ", removeRouteCommand2.Select(b => $"0x{b:X2}"))}]");
-                        await _commandCharacteristic.WriteAsync(removeRouteCommand2);
+                        await WriteCommandAsync(removeRouteCommand2);
                         await Task.Delay(100);
                     }
                     catch (Exception ex4)
@@ -923,7 +877,7 @@ namespace Cellular.Services
                 {
                     byte[] stopCommand = new byte[] { 0x03, 0x05 }; // Stop command (register 0x05)
                     DebugLog($"[Accelerometer] Sending stop command (0x05): [{string.Join(", ", stopCommand.Select(b => $"0x{b:X2}"))}]");
-                    await _commandCharacteristic.WriteAsync(stopCommand);
+                    await WriteCommandAsync(stopCommand);
                     await Task.Delay(50);
                 }
                 catch (Exception ex5)
@@ -950,25 +904,21 @@ namespace Cellular.Services
             {
                 DebugLog($"[Gyroscope] Starting gyroscope - SampleRate: {sampleRate}Hz, Range: {range} dps");
                 
-                // Stop gyroscope first if already running
                 if (_gyroscopeActive)
                 {
                     DebugLog($"[Gyroscope] Stopping existing gyroscope first...");
                     await StopGyroscopeAsync();
-                    await Task.Delay(100); // Small delay between stop and start
+                    await Task.Delay(100);
                 }
                 
-                // Stop magnetometer (0x15) if it's interfering - magnetometer might be sending data
                 try
                 {
                     DebugLog($"[Gyroscope] Stopping magnetometer (module 0x15) to prevent interference...");
-                    // Try stopping by disabling data route (register 0x02 or 0x04 might disable routes)
-                    byte[] stopMagnetometer = new byte[] { 0x15, 0x02 }; // Module 0x15, Stop/disable routes
-                    await _commandCharacteristic.WriteAsync(stopMagnetometer);
+                    byte[] stopMagnetometer = new byte[] { 0x15, 0x02 };
+                    await WriteCommandAsync(stopMagnetometer);
                     await Task.Delay(50);
-                    // Also try register 0x01 (stop)
                     byte[] stopMagnetometer2 = new byte[] { 0x15, 0x01 };
-                    await _commandCharacteristic.WriteAsync(stopMagnetometer2);
+                    await WriteCommandAsync(stopMagnetometer2);
                     await Task.Delay(50);
                 }
                 catch (Exception ex)
@@ -976,60 +926,41 @@ namespace Cellular.Services
                     DebugLog($"[Gyroscope] Error stopping magnetometer: {ex.Message}");
                 }
 
-                // MetaWear command to configure and enable gyroscope
-                // Module ID: 0x13 (Gyroscope - BMI270 on MMS, BMI160 on other devices)
-                // Reference: https://mbientlab.com/tutorials/MetaMotionS.html
-                
-                // Step 1: Configure the gyroscope using phyphox pattern
-                // Phyphox pattern: 0x13, 0x04, 0x28, 0x0C (for 100Hz, 2000dps)
-                // Format: [module, register, config_byte1, config_byte2]
-                // Similar to accelerometer pattern - use 4-byte format
                 byte[] configCommand = new byte[]
                 {
-                    0x13, 0x04, 0x28, 0x0C  // Module 0x13, Register 0x04, Config: 0x280C (100Hz, 2000dps per phyphox pattern)
+                    0x13, 0x04, 0x28, 0x0C
                 };
                 
                 DebugLog($"[Gyroscope] Sending config command (phyphox pattern): [{string.Join(", ", configCommand.Select(b => $"0x{b:X2}"))}]");
+                await WriteCommandAsync(configCommand);
+                await Task.Delay(100);
                 
-                // Write configuration first
-                await _commandCharacteristic.WriteAsync(configCommand);
-                await Task.Delay(100); // Allow configuration to take effect
-                
-                // Step 2: Setup route using phyphox pattern (Route Manager module 0x11, not 0x12)
-                // Based on phyphox accelerometer pattern, apply similar pattern for gyroscope
                 try
                 {
                     DebugLog($"[Gyroscope] Setting up route using phyphox pattern...");
-                    // Route manager setup: 0x11, 0x09, 0x06, 0x00, 0x06, 0x00, 0x00, 0x00, 0x58, 0x02
                     byte[] routeManagerSetup = new byte[] { 0x11, 0x09, 0x06, 0x00, 0x06, 0x00, 0x00, 0x00, 0x58, 0x02 };
                     DebugLog($"[Gyroscope] Route manager setup: [{string.Join(", ", routeManagerSetup.Select(b => $"0x{b:X2}"))}]");
-                    await _commandCharacteristic.WriteAsync(routeManagerSetup);
+                    await WriteCommandAsync(routeManagerSetup);
                     await Task.Delay(200);
                 }
                 catch (Exception routeEx)
                 {
                     DebugLog($"[Gyroscope] Error setting up route manager: {routeEx.Message}");
-                    // Continue anyway
                 }
                 
-                // Step 3: Enable the gyroscope data producer using phyphox pattern
-                // Similar to accelerometer: 0x13, 0x04, 0x01 (module 0x13, register 0x04, enable)
-                // Then: 0x13, 0x02, 0x01, 0x00 (module 0x13, register 0x02, route ID 0x0100)
-                // Then: 0x13, 0x01, 0x01 (module 0x13, register 0x01, enable module)
                 byte[] enableProducer = new byte[] { 0x13, 0x04, 0x01 };
                 DebugLog($"[Gyroscope] Enabling producer (phyphox pattern): [{string.Join(", ", enableProducer.Select(b => $"0x{b:X2}"))}]");
-                await _commandCharacteristic.WriteAsync(enableProducer);
+                await WriteCommandAsync(enableProducer);
                 await Task.Delay(100);
                 
                 byte[] setRoute = new byte[] { 0x13, 0x02, 0x01, 0x00 };
                 DebugLog($"[Gyroscope] Setting route ID: [{string.Join(", ", setRoute.Select(b => $"0x{b:X2}"))}]");
-                await _commandCharacteristic.WriteAsync(setRoute);
+                await WriteCommandAsync(setRoute);
                 await Task.Delay(100);
                 
-                // Enable module: 0x13, 0x01, 0x01
                 byte[] enableModule = new byte[] { 0x13, 0x01, 0x01 };
                 DebugLog($"[Gyroscope] Enabling module: [{string.Join(", ", enableModule.Select(b => $"0x{b:X2}"))}]");
-                await _commandCharacteristic.WriteAsync(enableModule);
+                await WriteCommandAsync(enableModule);
                 await Task.Delay(200);
                 
                 _gyroscopeActive = true;
@@ -1056,25 +987,21 @@ namespace Cellular.Services
             {
                 DebugLog($"[Gyroscope] Stopping gyroscope...");
                 
-                // Stop gyroscope - try multiple methods
-                // Method 1: Stop data producer (register 0x05 - same as start)
-                byte[] stopProducerCommand = new byte[] { 0x13, 0x05 }; // Stop angular velocity data producer
+                byte[] stopProducerCommand = new byte[] { 0x13, 0x05 };
                 DebugLog($"[Gyroscope] Sending stop producer command (0x05): [{string.Join(", ", stopProducerCommand.Select(b => $"0x{b:X2}"))}]");
-                await _commandCharacteristic.WriteAsync(stopProducerCommand);
+                await WriteCommandAsync(stopProducerCommand);
                 await Task.Delay(50);
                 
-                // Method 2: Stop command (register 0x01) - general stop
                 byte[] stopCommand1 = new byte[] { 0x13, 0x01 };
                 DebugLog($"[Gyroscope] Sending stop command (0x01): [{string.Join(", ", stopCommand1.Select(b => $"0x{b:X2}"))}]");
-                await _commandCharacteristic.WriteAsync(stopCommand1);
+                await WriteCommandAsync(stopCommand1);
                 await Task.Delay(50);
                 
-                // Method 3: Remove route using Route Manager (module 0x12, register 0x02)
                 try
                 {
-                    byte[] removeRouteCommand = new byte[] { 0x12, 0x02, 0x02 }; // Route Manager, remove route 0x02
+                    byte[] removeRouteCommand = new byte[] { 0x12, 0x02, 0x02 };
                     DebugLog($"[Gyroscope] Removing route: [{string.Join(", ", removeRouteCommand.Select(b => $"0x{b:X2}"))}]");
-                    await _commandCharacteristic.WriteAsync(removeRouteCommand);
+                    await WriteCommandAsync(removeRouteCommand);
                     await Task.Delay(50);
                 }
                 catch (Exception ex2)
@@ -1088,7 +1015,7 @@ namespace Cellular.Services
             catch (Exception ex)
             {
                 DebugLog($"[Gyroscope] Error stopping gyroscope: {ex.Message}");
-                _gyroscopeActive = false; // Reset flag even if write fails
+                _gyroscopeActive = false;
             }
         }
 
@@ -1118,13 +1045,17 @@ namespace Cellular.Services
                 var hardwareVersion = await ReadStringCharacteristic(characteristics, HardwareRevisionCharacteristicUuid);
                 var manufacturer = await ReadStringCharacteristic(characteristics, ManufacturerNameCharacteristicUuid);
 
+                // Read battery level from Battery Service
+                int? batteryLevel = await ReadBatteryLevelAsync();
+
                 _cachedDeviceInfo = new DeviceInfo
                 {
                     Model = modelNumber ?? "Unknown",
                     SerialNumber = serialNumber ?? "Unknown",
                     FirmwareVersion = firmwareVersion ?? "Unknown",
                     HardwareVersion = hardwareVersion ?? "Unknown",
-                    Manufacturer = manufacturer ?? "MbientLab"
+                    Manufacturer = manufacturer ?? "MbientLab",
+                    BatteryPercentage = batteryLevel
                 };
 
                 return _cachedDeviceInfo;
@@ -1172,6 +1103,44 @@ namespace Cellular.Services
             }
         }
 
+        private async Task<int?> ReadBatteryLevelAsync()
+        {
+            try
+            {
+                if (_device == null || !IsConnected)
+                    return null;
+
+                var services = await _device.GetServicesAsync();
+                var batteryService = services.FirstOrDefault(s => s.Id == BatteryServiceUuid);
+                if (batteryService == null)
+                {
+                    DebugLog("Battery service not found on device");
+                    return null;
+                }
+
+                var characteristics = await batteryService.GetCharacteristicsAsync();
+                var batteryChar = characteristics.FirstOrDefault(c => c.Id == BatteryLevelCharacteristicUuid);
+                if (batteryChar == null || !batteryChar.CanRead)
+                {
+                    DebugLog("Battery level characteristic not found or not readable");
+                    return null;
+                }
+
+                var (data, resultCode) = await batteryChar.ReadAsync();
+                if (resultCode != 0 || data == null || data.Length == 0)
+                    return null;
+
+                int level = data[0];
+                DebugLog($"Battery level: {level}%");
+                return level;
+            }
+            catch (Exception ex)
+            {
+                DebugLog($"Error reading battery level: {ex.Message}");
+                return null;
+            }
+        }
+
         private void ParseMagnetometerData(byte[] data)
         {
             try
@@ -1199,10 +1168,10 @@ namespace Cellular.Services
                 short y = BitConverter.ToInt16(data, dataOffset + 2);
                 short z = BitConverter.ToInt16(data, dataOffset + 4);
 
-                // Convert to microtesla (µT) - BMM150 typically uses 16 LSB/µT for ±1300µT range
-                float xUt = x / 16.0f;
-                float yUt = y / 16.0f;
-                float zUt = z / 16.0f;
+                // Convert to µT (C++ SDK datainterpreter.cpp: BMM150_SCALE = 16.f)
+                float xUt = x / BMM150_SCALE;
+                float yUt = y / BMM150_SCALE;
+                float zUt = z / BMM150_SCALE;
 
                 // Log raw data every 1 second to reduce lag (similar to accelerometer)
                 DateTime now = DateTime.Now;
@@ -1269,30 +1238,20 @@ namespace Cellular.Services
             {
                 DebugLog($"[Magnetometer] Starting magnetometer - SampleRate: {sampleRate}Hz");
                 
-                // Stop magnetometer first if already running (use full stop method for proper cleanup)
                 if (_magnetometerActive)
                 {
                     DebugLog($"[Magnetometer] Stopping existing magnetometer first...");
                     await StopMagnetometerAsync();
-                    await Task.Delay(150); // Give it time to fully stop
+                    await Task.Delay(150);
                 }
 
-                // For BMM150 magnetometer (module 0x15):
-                // Based on MetaWear documentation, BMM150 uses:
-                // - Register 0x03: Preset configuration
-                // - Register 0x04: ODR configuration  
-                // - Register 0x05: Magnetic field data producer (without timestamp)
-                // - Register 0x06: Magnetic field data producer (with timestamp)
-                // We'll use 0x05 for the data producer
-                
                 // Step 1: Set preset mode (Regular preset = 1)
-                // Register 0x03: Preset configuration (0 = Low power, 1 = Regular, 2 = Enhanced, 3 = High accuracy)
                 try
                 {
-                    byte[] presetCommand = new byte[] { 0x15, 0x03, 0x01 }; // Module 0x15, Register 0x03, Preset=1 (Regular)
+                    byte[] presetCommand = new byte[] { 0x15, 0x03, 0x01 };
                     DebugLog($"[Magnetometer] Setting preset mode (Regular): [{string.Join(", ", presetCommand.Select(b => $"0x{b:X2}"))}]");
-                    await _commandCharacteristic.WriteAsync(presetCommand);
-                    await Task.Delay(100); // Increased delay for preset to take effect
+                    await WriteCommandAsync(presetCommand);
+                    await Task.Delay(100);
                 }
                 catch (Exception presetEx)
                 {
@@ -1300,8 +1259,6 @@ namespace Cellular.Services
                 }
 
                 // Step 2: Configure the magnetometer ODR
-                // Register 0x04: Configuration (ODR setting)
-                // ODR: 0 = 10Hz, 1 = 2Hz, 2 = 6Hz, 3 = 8Hz, 4 = 15Hz, 5 = 20Hz, 6 = 25Hz, 7 = 30Hz
                 byte odr = sampleRate switch
                 {
                     <= 10f => 0,
@@ -1313,62 +1270,60 @@ namespace Cellular.Services
 
                 byte[] configCommand = new byte[]
                 {
-                    0x15, 0x04, // Module ID: 0x15 (Magnetometer - BMM150), Register ID: 0x04 (Configuration)
-                    odr // ODR setting
+                    0x15, 0x04,
+                    odr
                 };
                 
                 DebugLog($"[Magnetometer] Sending config command: [{string.Join(", ", configCommand.Select(b => $"0x{b:X2}"))}] (ODR={odr})");
-                await _commandCharacteristic.WriteAsync(configCommand);
-                await Task.Delay(150); // Increased delay for BMM150 configuration
+                await WriteCommandAsync(configCommand);
+                await Task.Delay(150);
 
-                // Step 3: Create route using Route Manager (BEFORE enabling module - matches light sensor pattern)
-                // This order seems more reliable based on light sensor working pattern
+                // Step 3: Create route using Route Manager
                 try
                 {
                     DebugLog($"[Magnetometer] Creating route using Route Manager...");
                     byte[] createRouteCommand = new byte[]
                     {
-                        0x12, 0x03,  // Route Manager (module 0x12, register 0x03 - create route)
-                        0x15, 0x05,  // Producer: magnetometer (0x15), data producer (0x05 for BMM150 magnetic field data)
-                        0x03,        // Route ID: 0x03
-                        0x01,        // Endpoint type: 0x01 = stream (notifications)
-                        0x00         // Endpoint ID: 0x00 = default
+                        0x12, 0x03,
+                        0x15, 0x05,
+                        0x03,
+                        0x01,
+                        0x00
                     };
                     
                     DebugLog($"[Magnetometer] Creating route: [{string.Join(", ", createRouteCommand.Select(b => $"0x{b:X2}"))}]");
-                    await _commandCharacteristic.WriteAsync(createRouteCommand);
-                    await Task.Delay(200); // Increased delay for route creation
+                    await WriteCommandAsync(createRouteCommand);
+                    await Task.Delay(200);
                 }
                 catch (Exception routeEx)
                 {
                     DebugLog($"[Magnetometer] Error creating route: {routeEx.Message}");
-                    throw; // Don't continue if route creation fails
+                    throw;
                 }
 
-                // Step 4: Enable the magnetometer module (after creating route - matches light sensor pattern)
+                // Step 4: Enable the magnetometer module
                 try
                 {
-                    byte[] enableModule = new byte[] { 0x15, 0x01, 0x01 }; // Module 0x15, Register 0x01, Enable
+                    byte[] enableModule = new byte[] { 0x15, 0x01, 0x01 };
                     DebugLog($"[Magnetometer] Enabling magnetometer module: [{string.Join(", ", enableModule.Select(b => $"0x{b:X2}"))}]");
-                    await _commandCharacteristic.WriteAsync(enableModule);
-                    await Task.Delay(100); // Delay for module to initialize
+                    await WriteCommandAsync(enableModule);
+                    await Task.Delay(100);
                 }
                 catch (Exception enableEx)
                 {
                     DebugLog($"[Magnetometer] Error enabling module: {enableEx.Message}");
-                    throw; // Don't continue if module enable fails
+                    throw;
                 }
 
                 // Step 5: Enable the magnetometer data producer
-                // Use register 0x05 (magnetic field data without timestamp) - this is the standard for BMM150
                 byte[] enableProducer = new byte[]
                 {
-                    0x15, 0x05, 0x03  // Module ID: 0x15 (Magnetometer), Register ID: 0x05 (Data producer), Route ID: 0x03
+                    0x15, 0x05, 0x03
                 };
 
                 DebugLog($"[Magnetometer] Enabling magnetometer data producer (0x05): [{string.Join(", ", enableProducer.Select(b => $"0x{b:X2}"))}]");
-                await _commandCharacteristic.WriteAsync(enableProducer);
-                await Task.Delay(150); // Delay to ensure producer is enabled
+                await WriteCommandAsync(enableProducer);
+                await Task.Delay(150);
 
                 _magnetometerActive = true;
                 DebugLog($"[Magnetometer] Magnetometer started successfully");
@@ -1393,13 +1348,11 @@ namespace Cellular.Services
             {
                 DebugLog($"[Magnetometer] Stopping magnetometer...");
                 
-                // Stop magnetometer - try multiple methods in reverse order of start
-                // Step 1: Disable data producers (try both 0x05 and 0x06)
                 try
                 {
-                    byte[] stopProducerCommand = new byte[] { 0x15, 0x05 }; // Stop data producer (register 0x05)
+                    byte[] stopProducerCommand = new byte[] { 0x15, 0x05 };
                     DebugLog($"[Magnetometer] Sending stop producer command (0x05): [{string.Join(", ", stopProducerCommand.Select(b => $"0x{b:X2}"))}]");
-                    await _commandCharacteristic.WriteAsync(stopProducerCommand);
+                    await WriteCommandAsync(stopProducerCommand);
                     await Task.Delay(50);
                 }
                 catch (Exception ex1)
@@ -1409,9 +1362,9 @@ namespace Cellular.Services
                 
                 try
                 {
-                    byte[] stopProducerCommand2 = new byte[] { 0x15, 0x06 }; // Stop data producer (register 0x06)
+                    byte[] stopProducerCommand2 = new byte[] { 0x15, 0x06 };
                     DebugLog($"[Magnetometer] Sending stop producer command (0x06): [{string.Join(", ", stopProducerCommand2.Select(b => $"0x{b:X2}"))}]");
-                    await _commandCharacteristic.WriteAsync(stopProducerCommand2);
+                    await WriteCommandAsync(stopProducerCommand2);
                     await Task.Delay(50);
                 }
                 catch (Exception ex1b)
@@ -1419,12 +1372,11 @@ namespace Cellular.Services
                     DebugLog($"[Magnetometer] Error stopping producer (0x06): {ex1b.Message}");
                 }
                 
-                // Step 2: Remove route using Route Manager
                 try
                 {
-                    byte[] removeRouteCommand = new byte[] { 0x12, 0x02, 0x03 }; // Route Manager, remove route 0x03
+                    byte[] removeRouteCommand = new byte[] { 0x12, 0x02, 0x03 };
                     DebugLog($"[Magnetometer] Removing route: [{string.Join(", ", removeRouteCommand.Select(b => $"0x{b:X2}"))}]");
-                    await _commandCharacteristic.WriteAsync(removeRouteCommand);
+                    await WriteCommandAsync(removeRouteCommand);
                     await Task.Delay(50);
                 }
                 catch (Exception ex2)
@@ -1432,12 +1384,11 @@ namespace Cellular.Services
                     DebugLog($"[Magnetometer] Error removing route: {ex2.Message}");
                 }
                 
-                // Step 3: Disable the module (reverse of enable)
                 try
                 {
-                    byte[] disableModule = new byte[] { 0x15, 0x01, 0x00 }; // Module 0x15, Register 0x01, Disable
+                    byte[] disableModule = new byte[] { 0x15, 0x01, 0x00 };
                     DebugLog($"[Magnetometer] Disabling module: [{string.Join(", ", disableModule.Select(b => $"0x{b:X2}"))}]");
-                    await _commandCharacteristic.WriteAsync(disableModule);
+                    await WriteCommandAsync(disableModule);
                     await Task.Delay(50);
                 }
                 catch (Exception ex3)
@@ -1445,12 +1396,11 @@ namespace Cellular.Services
                     DebugLog($"[Magnetometer] Error disabling module: {ex3.Message}");
                 }
                 
-                // Step 4: General stop command (fallback)
                 try
                 {
-                    byte[] stopCommand1 = new byte[] { 0x15, 0x01 }; // General stop
+                    byte[] stopCommand1 = new byte[] { 0x15, 0x01 };
                     DebugLog($"[Magnetometer] Sending general stop command (0x01): [{string.Join(", ", stopCommand1.Select(b => $"0x{b:X2}"))}]");
-                    await _commandCharacteristic.WriteAsync(stopCommand1);
+                    await WriteCommandAsync(stopCommand1);
                     await Task.Delay(50);
                 }
                 catch (Exception ex4)
@@ -1496,7 +1446,7 @@ namespace Cellular.Services
                 };
                 
                 DebugLog($"[LightSensor] Sending config command: [{string.Join(", ", configCommand.Select(b => $"0x{b:X2}"))}]");
-                await _commandCharacteristic.WriteAsync(configCommand);
+                await WriteCommandAsync(configCommand);
                 await Task.Delay(50);
 
                 // Step 2: Create route using Route Manager
@@ -1513,7 +1463,7 @@ namespace Cellular.Services
                     };
                     
                     DebugLog($"[LightSensor] Creating route: [{string.Join(", ", createRouteCommand.Select(b => $"0x{b:X2}"))}]");
-                    await _commandCharacteristic.WriteAsync(createRouteCommand);
+                    await WriteCommandAsync(createRouteCommand);
                     await Task.Delay(150);
                 }
                 catch (Exception routeEx)
@@ -1526,7 +1476,7 @@ namespace Cellular.Services
                 {
                     byte[] enableModule = new byte[] { 0x14, 0x01, 0x01 }; // Module 0x14, Register 0x01, Enable
                     DebugLog($"[LightSensor] Enabling light sensor module: [{string.Join(", ", enableModule.Select(b => $"0x{b:X2}"))}]");
-                    await _commandCharacteristic.WriteAsync(enableModule);
+                    await WriteCommandAsync(enableModule);
                     await Task.Delay(50);
                 }
                 catch (Exception enableEx)
@@ -1541,7 +1491,7 @@ namespace Cellular.Services
                 };
 
                 DebugLog($"[LightSensor] Enabling light sensor data producer: [{string.Join(", ", enableProducer.Select(b => $"0x{b:X2}"))}]");
-                await _commandCharacteristic.WriteAsync(enableProducer);
+                await WriteCommandAsync(enableProducer);
                 await Task.Delay(100);
 
                 _lightSensorActive = true;
@@ -1570,12 +1520,12 @@ namespace Cellular.Services
                 // Stop light sensor - try multiple methods
                 byte[] stopProducerCommand = new byte[] { 0x14, 0x03 }; // Stop data producer
                 DebugLog($"[LightSensor] Sending stop producer command (0x03): [{string.Join(", ", stopProducerCommand.Select(b => $"0x{b:X2}"))}]");
-                await _commandCharacteristic.WriteAsync(stopProducerCommand);
+                await WriteCommandAsync(stopProducerCommand);
                 await Task.Delay(50);
                 
                 byte[] stopCommand1 = new byte[] { 0x14, 0x01 }; // General stop
                 DebugLog($"[LightSensor] Sending stop command (0x01): [{string.Join(", ", stopCommand1.Select(b => $"0x{b:X2}"))}]");
-                await _commandCharacteristic.WriteAsync(stopCommand1);
+                await WriteCommandAsync(stopCommand1);
                 await Task.Delay(50);
                 
                 // Remove route using Route Manager
@@ -1583,7 +1533,7 @@ namespace Cellular.Services
                 {
                     byte[] removeRouteCommand = new byte[] { 0x12, 0x02, 0x04 }; // Route Manager, remove route 0x04
                     DebugLog($"[LightSensor] Removing route: [{string.Join(", ", removeRouteCommand.Select(b => $"0x{b:X2}"))}]");
-                    await _commandCharacteristic.WriteAsync(removeRouteCommand);
+                    await WriteCommandAsync(removeRouteCommand);
                     await Task.Delay(50);
                 }
                 catch (Exception ex2)
@@ -1610,7 +1560,7 @@ namespace Cellular.Services
             {
                 // MetaWear reset command 
                 byte[] resetCommand = new byte[] { 0x0F, 0x0A }; // System module, Reset command
-                await _commandCharacteristic.WriteAsync(resetCommand);
+                await WriteCommandAsync(resetCommand);
             }
             catch (Exception ex)
             {
@@ -1635,31 +1585,31 @@ namespace Cellular.Services
                 
                 // First, reset using phyphox pattern
                 DebugLog("[Probe] Step 1: Reset sequence (phyphox pattern)...");
-                await _commandCharacteristic.WriteAsync(new byte[] { 0x0B, 0x84 });
+                await WriteCommandAsync(new byte[] { 0x0B, 0x84 });
                 await Task.Delay(100);
-                await _commandCharacteristic.WriteAsync(new byte[] { 0x0F, 0x08 });
+                await WriteCommandAsync(new byte[] { 0x0F, 0x08 });
                 await Task.Delay(100);
-                await _commandCharacteristic.WriteAsync(new byte[] { 0xFE, 0x05 });
+                await WriteCommandAsync(new byte[] { 0xFE, 0x05 });
                 await Task.Delay(200);
 
                 // Try phyphox accelerometer setup sequence exactly as documented
                 DebugLog("[Probe] Step 2: Phyphox accelerometer setup sequence...");
-                await _commandCharacteristic.WriteAsync(new byte[] { 0x0B, 0x84 });
+                await WriteCommandAsync(new byte[] { 0x0B, 0x84 });
                 await Task.Delay(100);
                 // Route manager setup: 0x11, 0x09, 0x06, 0x00, 0x06, 0x00, 0x00, 0x00, 0x58, 0x02
-                await _commandCharacteristic.WriteAsync(new byte[] { 0x11, 0x09, 0x06, 0x00, 0x06, 0x00, 0x00, 0x00, 0x58, 0x02 });
+                await WriteCommandAsync(new byte[] { 0x11, 0x09, 0x06, 0x00, 0x06, 0x00, 0x00, 0x00, 0x58, 0x02 });
                 await Task.Delay(200);
                 // Config: 0x03, 0x04, 0x28, 0x0C (ODR=0=100Hz, Range=3=16G)
-                await _commandCharacteristic.WriteAsync(new byte[] { 0x03, 0x04, 0x28, 0x0C });
+                await WriteCommandAsync(new byte[] { 0x03, 0x04, 0x28, 0x0C });
                 await Task.Delay(100);
                 // Enable producer: 0x03, 0x04, 0x01 (module 0x03, register 0x04, enable)
-                await _commandCharacteristic.WriteAsync(new byte[] { 0x03, 0x04, 0x01 });
+                await WriteCommandAsync(new byte[] { 0x03, 0x04, 0x01 });
                 await Task.Delay(100);
                 // Set route: 0x03, 0x02, 0x01, 0x00 (module 0x03, register 0x02, route ID 0x0100)
-                await _commandCharacteristic.WriteAsync(new byte[] { 0x03, 0x02, 0x01, 0x00 });
+                await WriteCommandAsync(new byte[] { 0x03, 0x02, 0x01, 0x00 });
                 await Task.Delay(100);
                 // Enable module: 0x03, 0x01, 0x01
-                await _commandCharacteristic.WriteAsync(new byte[] { 0x03, 0x01, 0x01 });
+                await WriteCommandAsync(new byte[] { 0x03, 0x01, 0x01 });
                 await Task.Delay(200);
 
                 DebugLog("[Probe] Accelerometer setup complete!");
