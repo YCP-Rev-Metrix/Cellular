@@ -1,6 +1,10 @@
-﻿using System;
+﻿using Cellular.ViewModel;
+using Cellular.Views;
+using CommunityToolkit.Maui;
+using CommunityToolkit.Maui.Extensions;
+using Microsoft.Maui.Controls.Shapes;
 using Microsoft.Maui.Storage;
-using Cellular.ViewModel;
+using System;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 
@@ -10,12 +14,20 @@ namespace Cellular
     {
         private readonly SessionListViewModel viewModel;
         private Dictionary<string, StackLayout> sessionGames;
-        public SessionList()
+
+        public SessionList(int eventId, string eventName)
         {
             InitializeComponent();
             viewModel = new SessionListViewModel();
             BindingContext = viewModel;
             sessionGames = new Dictionary<string, StackLayout>();
+
+            // set into ViewModel so XAML binding can show it
+            viewModel.SelectedEventId = eventId;
+            viewModel.SelectedEventName = eventName;
+
+            Debug.WriteLine($"SessionList opened for EventId={eventId}, EventName={eventName}");
+
             LoadDataAsync();
         }
 
@@ -63,12 +75,10 @@ namespace Cellular
                     {
                         Debug.WriteLine("Added game to session list");
                         Button gamebutton = new Button { Text = "Game " + game.GameNumber.ToString() };
-                        gamebutton.Clicked += (sender, e) => OnGameClicked(sender, e, game.GameId, game?.GameNumber ?? 0, session?.DateTime ?? null);
+                        gamebutton.Clicked += (sender, e) => OnGameClicked(sender, e, game.GameId, game?.GameNumber ?? 0, session?.DateTime?.ToString() ?? string.Empty);
                         Debug.WriteLine($"Date: {session?.DateTime ?? null}");
                         sessiongames.Children.Add(gamebutton);
                     }
-
-                    
                 }
                 Button AddGameButton = new Button { Text = "Add Game" };
                 AddGameButton.Clicked += (sender,e) => AddGame(sender,e,session.SessionId);
@@ -86,7 +96,14 @@ namespace Cellular
         }
         private async void AddSession(object sender, EventArgs e)
         {
-            await viewModel.AddSession();
+            await this.ShowPopupAsync(new SessionPopup(), new PopupOptions
+            {
+                Shape = new RoundRectangle
+                {
+                    CornerRadius = new CornerRadius(20),
+                    StrokeThickness = 0
+                }
+            });
             LoadDataAsync();
         }
         private async void OnSessionClicked(object sender, EventArgs e, int sessionId, int sessionNumber)

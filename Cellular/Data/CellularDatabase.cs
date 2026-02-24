@@ -159,9 +159,9 @@ namespace Cellular.Data
                     {
                         UserId = int.TryParse(data[0].Trim(), out int UserId) ? UserId : 0,
                         Name = data[1].Trim(),
-                        SerialNumber = int.TryParse(data[2].Trim(), out int diameter) ? diameter : 0,
-                        Weight = int.TryParse(data[3].Trim(), out int weight) ? weight : 0,
-                        Core = data[4].Trim(),
+                        //SerialNumber = int.TryParse(data[2].Trim(), out int diameter) ? diameter : 0,
+                        Weight = int.TryParse(data[2].Trim(), out int weight) ? weight : 0,
+                        Core = data[3].Trim(),
                     };
 
                     var existingUser = await _database.Table<Ball>().FirstOrDefaultAsync(u => u.Name == ball.Name);
@@ -256,12 +256,18 @@ namespace Cellular.Data
 
                     if (data == null || data.Length < 9) continue; // Ensure valid data
 
+                    DateTime? parsedDateTime = null;
+                    if (DateTime.TryParse(data[1].Trim(), out DateTime tempDateTime))
+                    {
+                        parsedDateTime = tempDateTime;
+                    }
+
                     var session = new Session
                     {
                         SessionId = int.TryParse(data[0].Trim(), out int sessionId) ? sessionId : 0,
                         UserId = int.TryParse(data[0].Trim(), out int userId) ? userId : 0,
                         Establishment = int.TryParse(data[0].Trim(), out int establishment) ? establishment : (int?)null,
-                        DateTime = data[1].Trim(),
+                        DateTime = parsedDateTime,
                         TeamOpponent = data[2].Trim(),
                         IndividualOpponent = data[3].Trim(),
                         Score = int.TryParse(data[4].Trim(), out int score) ? score : (int?)null,

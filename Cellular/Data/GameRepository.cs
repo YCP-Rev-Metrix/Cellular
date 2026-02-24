@@ -9,10 +9,14 @@ using System.Threading.Tasks;
 
 namespace Cellular.Data
 {
-    public class GameRepository(SQLiteAsyncConnection conn)
+    public class GameRepository
     {
-        private readonly SQLiteAsyncConnection _conn = conn ?? throw new ArgumentNullException(nameof(conn));
+        private readonly SQLiteAsyncConnection _conn;
 
+        public GameRepository(SQLiteAsyncConnection conn)
+        {
+            _conn = conn ?? throw new ArgumentNullException(nameof(conn));
+        }
 
         // Initialize the database and create the table asynchronously
         public async Task InitAsync()
@@ -29,6 +33,7 @@ namespace Cellular.Data
         {
             return await _conn.Table<Game>().Where(g => g.SessionId == sessionId).ToListAsync();
         }
+
         public async Task<List<Game>> GetGamesByUserIdAsync(int userId)
         {
             var games = await _conn.Table<Game>().ToListAsync();
@@ -51,8 +56,31 @@ namespace Cellular.Data
                                   .Where(g => g.SessionId == sessionId && g.GameNumber == gameNumber)
                                   .FirstOrDefaultAsync();
         }
+
+        public async Task<Game?> GetGameById(int gameId)
+        {
+            return await _conn.Table<Game>()
+                                  .Where(g => g.GameId == gameId)
+                                  .FirstOrDefaultAsync();
+        }
+
+        // New: return games in a session that have at least one BowlingFrame with the given frameNumber.
+        public async Task<List<Game>> GetGamesBySessionAndFrameNumberAsync(int sessionId, int frameNumber)
+        {
+            // get frames that match the requested frameNumber
+            var frames = await _conn.Table<BowlingFrame>()
+                                    .Where(f => f.FrameNumber == frameNumber && f.GameId != null)
+                                    .ToListAsync();
+
+            var gameIds = frames.Select(f => f.GameId!.Value).Distinct().ToList();
+            if (!gameIds.Any())
+                return new List<Game>();
+
+            var games = await _conn.Table<Game>()
+                                   .Where(g => g.SessionId == sessionId && gameIds.Contains(g.GameId))
+                                   .ToListAsync();
+
+            return games;
+        }
     }
 }
-
-
-  

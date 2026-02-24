@@ -1,4 +1,5 @@
-﻿using SQLite;
+﻿using Microsoft.Maui.Graphics.Text;
+using SQLite;
 namespace Cellular.ViewModel;
 
 
@@ -9,9 +10,7 @@ public class Ball
     public int BallId { get; set; }
     public int UserId { get; set; }
     public string Name { get; set; }
-    public int SerialNumber { get; set; }
     public int Weight { get;set; }
     public string Core { get; set; }
-
-
+    public string ColorString { get; set; }
 }

@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<toolkit:Popup xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+               xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+               xmlns:toolkit="clr-namespace:CommunityToolkit.Maui.Views;assembly=CommunityToolkit.Maui"
+               x:Class="Cellular.Views.SessionPopup"
+               xmlns:vm="clr-namespace:Cellular.ViewModel"
+               CanBeDismissedByTappingOutsideOfPopup="True"
+               BackgroundColor="Gray">
+    <VerticalStackLayout>
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+
+            <StackLayout Orientation="Horizontal" Padding="10" Grid.Row="0">
+                <Label Text="Session Registration" FontSize="24" HorizontalOptions="StartAndExpand" 
+                       TextColor ="Black"/>
+            </StackLayout>
+
+            <StackLayout Padding="20" Grid.Row="1">
+                <DatePicker Grid.Row="0" Grid.Column="0"
+                    Date="{Binding SessionDate}"
+                    x:Name="DateT"
+                    TextColor="Black"/>
+
+                <TimePicker Time="{Binding SelectedTime}"
+                            TextColor="Black"/>
+
+                <Button Text="Create Session"
+                        Clicked="OnCreateSessionClicked"/>
+            </StackLayout>
+        </Grid>
+    </VerticalStackLayout>
+</toolkit:Popup>

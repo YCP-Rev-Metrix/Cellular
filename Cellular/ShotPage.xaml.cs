@@ -1,6 +1,9 @@
 ﻿using Cellular.Data;
 using Cellular.ViewModel;
+using Cellular.Views;
 using CellularCore;
+using CommunityToolkit.Maui;
+using CommunityToolkit.Maui.Extensions;
 using Microsoft.Maui.ApplicationModel.Communication;
 using Microsoft.Maui.Controls;
 using Microsoft.Maui.Storage;
@@ -19,6 +22,7 @@ namespace Cellular
     {
         private readonly GameInterfaceViewModel viewModel;
 
+        private bool _hasAppeared = false;
         public ShotPage()
         {
             InitializeComponent();
@@ -29,11 +33,20 @@ namespace Cellular
 
         protected override void OnAppearing()
         {
-            base.OnAppearing();
-            _ = CheckIfFramesExistForGame();
-            _ = viewModel.LoadUserHand();
-            Debug.WriteLine("Hand: " + viewModel.Hand);
-            Debug.WriteLine("Date: " + viewModel.CurrentDate);
+            if (!_hasAppeared)
+            {
+                _hasAppeared = true;
+                _ = CheckIfFramesExistForGame();
+                _ = viewModel.LoadUserHand();
+                Debug.WriteLine("Hand: " + viewModel.Hand);
+                Debug.WriteLine("Date: " + viewModel.CurrentDate);
+            }
+            else
+            {
+                // If you need to refresh only specific UI elements when returning from a popup,
+                // do it here in a minimal way rather than re-running full initialization.
+                Debug.WriteLine("ShotPage re-appeared (popup closed or focus returned). Skipping full reload.");
+            }
         }
 
         public void BoardChanged(object sender, EventArgs e)
@@ -126,6 +139,10 @@ namespace Cellular
                     viewModel.pinStates |= (short)(0 << 10); // Make sure the bit is saved as a 0 if foul was selected and no longer is
                     foul = false;
                 }
+                if (currentFrame.ShotOneBox == "X")
+                {
+                    viewModel.frameResult = "Strike";
+                }
                 //Save shot to DB
                 viewModel.firstShotId = await SaveShotAsync(1);
 
@@ -192,11 +209,13 @@ namespace Cellular
                 //Save the frame to the database and pass false for strike and true/false for spare
                 if (downedPins == 10)
                 {
+                    viewModel.frameResult = "Spare";
                     await SaveFrameAsync(false, true);
                     Debug.WriteLine("Frame is saved as a spare");
                 }
                 else
                 {
+                    viewModel.frameResult = "Open";
                     await SaveFrameAsync(false, false);
                     Debug.WriteLine("Frame is saved as neither");
                 }
@@ -213,6 +232,7 @@ namespace Cellular
                 {
                     viewModel.CurrentFrame++;
                     viewModel.CurrentShot = 1;
+                    viewModel.frameResult = null;
                     viewModel.pinStates = 0;
                     viewModel.firstShotId = -1;
                     viewModel.secondShotId = -1;
@@ -228,12 +248,40 @@ namespace Cellular
                     }
                 }
             }
-            
+            viewModel.Comment = "";
             await UpdateScore();
             viewModel.OnPropertyChanged(nameof(viewModel.FrameDisplay));
             currentFrame.OnPropertyChanged(nameof(currentFrame.CenterPinColors));
             currentFrame.OnPropertyChanged(nameof(currentFrame.PinColors));
             viewModel.OnPropertyChanged(nameof(viewModel.Frames));
+        }
+
+        private async void OnCommentClicked(Object sender, EventArgs e)
+        {
+            string initial = viewModel.Comment ?? "";
+            var popup = new CommentEditorPopup(initial);
+
+            // Ensure Completion is set if the popup is closed by other means.
+            popup.Closed += (s, args) =>
+            {
+                if (!popup.Completion.Task.IsCompleted)
+                {
+                    popup.Completion.TrySetResult(null);
+                }
+            };
+
+            this.ShowPopup(popup);
+
+            // Await the completion source that the popup sets on save/cancel/close
+            var result = await popup.Completion.Task;
+
+            // Only update viewModel when the user explicitly saved (non-null result)
+            if (result is string text && text != null)
+            {
+                viewModel.Comment = text;
+                viewModel.OnPropertyChanged(nameof(viewModel.Comment));
+                Debug.WriteLine($"Comment saved: {viewModel.Comment}");
+            }
         }
 
         //Check if game is over
@@ -309,8 +357,8 @@ namespace Cellular
                 }
                 else if (downedPins == 0)
                 {
-                    // If no pins were knocked down, set ShotOneBox to "_"
-                    currentFrame.ShotOneBox = "_";
+                    // If no pins were knocked down, set ShotOneBox to "-"
+                    currentFrame.ShotOneBox = "-";
                 }
                 else
                 {
@@ -340,7 +388,7 @@ namespace Cellular
                 }
                 else if (newlyDownedPins == 0)
                 {
-                    currentFrame.ShotTwoBox = "_";
+                    currentFrame.ShotTwoBox = "-";
                 }
                 else
                 {
@@ -459,7 +507,7 @@ namespace Cellular
                 }
             }
 
-            currentFrame.UpdateShotBox(viewModel.CurrentShot, "_");
+            currentFrame.UpdateShotBox(viewModel.CurrentShot, "-");
             viewModel.OnPropertyChanged(nameof(viewModel.Frames));
         }
 
@@ -492,6 +540,27 @@ namespace Cellular
             viewModel.OnPropertyChanged(nameof(viewModel.Frames));
         }
 
+        private async Task<int> UpdateGameAsync()
+        {
+            var database = new CellularDatabase();
+            var conn = database.GetConnection();
+            var gameRepository = new GameRepository(conn);
+            await gameRepository.InitAsync();
+            var game = await gameRepository.GetGameById(viewModel.gameId);
+            if (game != null)
+            {
+                game.Score = viewModel.TotalScore;
+                await gameRepository.UpdateGameAsync(game);
+                Debug.WriteLine($"Game {game.GameNumber} score updated to {game.Score}");
+                return game.Score ?? 0;
+            }
+            else
+            {
+                Debug.WriteLine($"UpdateGameAsync: No game found with GameId {viewModel.gameId}");
+                return 0;
+            }
+        }
+
         private async Task<int> SaveShotAsync(int shotNumber)
         {
             var database = new CellularDatabase();
@@ -509,19 +578,29 @@ namespace Cellular
             bool shotExists = await frameRepository.DoesShotExistAsync(viewModel.gameId, viewModel.CurrentFrame, shotNumber);
             int shotId = -1;
 
+            int currentBall = -1;
+            if(shotNumber == 1)
+            {
+                currentBall = viewModel.StrikeBallId;
+            }
+            else if(shotNumber == 2)
+            {
+                currentBall = viewModel.secondShotId;
+            }
+
             if (!shotExists)
             {
                 // Create and save new shot
                 var newShot = new Shot
                 {
                     ShotNumber = viewModel.CurrentShot,
-                    Ball = null,
+                    Ball = currentBall,
                     Count = GetDownedPinsForShot(shotNumber),
                     LeaveType = viewModel.pinStates,
                     Side = null,
                     Position = null,
                     Frame = viewModel.CurrentFrame,
-                    Comment = null
+                    Comment = viewModel.Comment
                 };
 
                 Debug.WriteLine($"Saving Shot: Frame {newShot.Frame}, Shot {newShot.ShotNumber}, Pins Down {newShot.Count}");
@@ -535,12 +614,13 @@ namespace Cellular
                     {
                         FrameNumber = viewModel.CurrentFrame,
                         Lane = null,
-                        Result = null,
+                        Result = viewModel.frameResult,
                         GameId = viewModel.gameId,
                         Shot1 = shotNumber == 1 ? shotId : (int?)null,
                         Shot2 = shotNumber == 2 ? shotId : (int?)null
                     };
                     await frameRepository.AddFrame(newFrame);
+                    Debug.WriteLine($"Result3: {viewModel.frameResult}");
 
                     // update viewModel.currentFrameId to the newly inserted frame
                     newFrame.FrameId = (await conn.Table<BowlingFrame>().OrderByDescending(f => f.FrameId).FirstOrDefaultAsync())?.FrameId ?? 0;
@@ -576,8 +656,10 @@ namespace Cellular
                         {
                             Debug.WriteLine("Updating shot 1");
                             shotId = reloadShotOne.ShotId;
+                            reloadShotOne.Ball = viewModel.StrikeBallId;
                             reloadShotOne.LeaveType = viewModel.pinStates;
                             reloadShotOne.Count = GetDownedPinsForShot(1);
+                            reloadShotOne.Comment = viewModel.Comment;
                             await shotRepository.UpdateShotAsync(reloadShotOne);
                         }
                     }
@@ -587,9 +669,11 @@ namespace Cellular
                         var newShot = new Shot
                         {
                             ShotNumber = 1,
+                            Ball = viewModel.StrikeBallId,
                             Count = GetDownedPinsForShot(1),
                             LeaveType = viewModel.pinStates,
-                            Frame = viewModel.CurrentFrame
+                            Frame = viewModel.CurrentFrame,
+                            Comment = viewModel.Comment
                         };
                         shotId = await shotRepository.AddAsync(newShot);
                         if (reloadFrame != null)
@@ -622,15 +706,19 @@ namespace Cellular
                         var newShot = new Shot
                         {
                             ShotNumber = 2,
+                            Ball = viewModel.SpareBallId,
                             Count = GetDownedPinsForShot(2),
                             LeaveType = viewModel.pinStates,
-                            Frame = viewModel.CurrentFrame
+                            Frame = viewModel.CurrentFrame,
+                            Comment = viewModel.Comment
                         };
                         shotId = await shotRepository.AddAsync(newShot);
                         if (reloadFrame != null)
                         {
+                            reloadFrame.Result = viewModel.frameResult;
                             reloadFrame.Shot2 = shotId;
                             await frameRepository.UpdateFrameAsync(reloadFrame);
+                            Debug.WriteLine($"Result4: {viewModel.frameResult}");
                         }
                     }
                 }
@@ -671,11 +759,11 @@ namespace Cellular
                 {
                     FrameNumber = viewModel.CurrentFrame,
                     Lane = null,
-                    Result = result,
+                    Result = viewModel.frameResult,
                     GameId = Preferences.Get("GameID", 0),
                     Shot1 = viewModel.firstShotId
                 };
-                Debug.WriteLine($"Result is a {result}");
+                Debug.WriteLine($"Result1: {viewModel.frameResult}");
             }
             else
             {
@@ -686,6 +774,8 @@ namespace Cellular
                     {
                         Debug.WriteLine("NOT NULL");
                         newFrame.Shot2 = viewModel.secondShotId;
+                        newFrame.Result = viewModel.frameResult;
+                        Debug.WriteLine($"Result2: {viewModel.frameResult}");
                     }
                 }
             }
@@ -700,6 +790,7 @@ namespace Cellular
                 await frameRepository.UpdateFrameAsync(newFrame);
                 viewModel.lastFrameId = newFrame.FrameId;
                 Debug.WriteLine($"Frame updated {newFrame.Shot1} and {newFrame.Shot2}");
+                Debug.WriteLine($"Frame result for updated frame: {newFrame.Result}");
             }
 
             // Retrieve the inserted frame ID
@@ -868,7 +959,8 @@ namespace Cellular
                     }
                 }
             }
-
+            viewModel.TotalScore = totalScore;
+            await UpdateGameAsync();
             viewModel.OnPropertyChanged(nameof(viewModel.Frames));
         }
 

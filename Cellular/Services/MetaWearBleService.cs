@@ -15,6 +15,13 @@ namespace Cellular.Services
     /// </summary>
     public class MetaWearBleService : IMetaWearService
     {
+        // ============================================================================
+        // DEBUG CONTROL: Set this to false to disable all debug logging
+        // ============================================================================
+        private const bool EnableDebugLogging = false;
+        public static bool IsDebugLoggingEnabled => EnableDebugLogging;
+        // ============================================================================
+
         // MetaWear GATT Service UUIDs
         private static readonly Guid MetaWearServiceUuid = Guid.Parse("326A9000-85CB-9195-D9DD-464CFBBAE75A");
         private static readonly Guid MetaWearCommandCharacteristicUuid = Guid.Parse("326A9001-85CB-9195-D9DD-464CFBBAE75A");
@@ -43,6 +50,29 @@ namespace Cellular.Services
         private bool _lightSensorActive;
         private bool _isDeviceConnected; // Track connection state manually (cross-platform)
         private bool _notificationHandlerAttached; // Track if notification handler is attached
+        private DateTime _lastAccelerometerLogTime = DateTime.MinValue; // Track last log time for accelerometer
+        private DateTime _lastMagnetometerLogTime = DateTime.MinValue; // Track last log time for magnetometer
+        private bool _isDebugLogging = false; // Guard to prevent re-entrancy in DebugLog
+
+        /// <summary>
+        /// Helper method to conditionally log debug messages based on EnableDebugLogging flag
+        /// Includes re-entrancy guard to prevent stack overflow
+        /// </summary>
+        private void DebugLog(string message)
+        {
+            if (!EnableDebugLogging || _isDebugLogging)
+                return;
+            
+            try
+            {
+                _isDebugLogging = true;
+                System.Diagnostics.Debug.WriteLine(message);
+            }
+            finally
+            {
+                _isDebugLogging = false;
+            }
+        }
 
         public event EventHandler<string> DeviceDisconnected;
         public event EventHandler<MetaWearAccelerometerData> AccelerometerDataReceived;
@@ -92,12 +122,12 @@ namespace Cellular.Services
                     return await ConnectToDeviceAsync();
                 }
                 
-                System.Diagnostics.Debug.WriteLine($"Invalid device object type: {device?.GetType()}");
+                DebugLog($"Invalid device object type: {device?.GetType()}");
                 return false;
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error connecting to MetaWear device: {ex.Message}");
+                DebugLog($"Error connecting to MetaWear device: {ex.Message}");
                 return false;
             }
         }
@@ -109,52 +139,52 @@ namespace Cellular.Services
 
             try
             {
-                System.Diagnostics.Debug.WriteLine($"Connecting to device: {_device.Name} ({_device.Id})");
+                DebugLog($"Connecting to device: {_device.Name} ({_device.Id})");
                 
                 // Connect to device 
                 // Plugin.BLE handles platform differences automatically
                 // Don't rely on DeviceState enum - just connect and verify by accessing services
                 await _adapter.ConnectToDeviceAsync(_device);
                 
-                System.Diagnostics.Debug.WriteLine("Device connected, waiting for services to stabilize...");
+                DebugLog("Device connected, waiting for services to stabilize...");
                 
                 // Wait a bit for connection to stabilize 
                 await Task.Delay(1000); // Increased delay for service discovery
 
                 // Discover services - this will fail if not connected
-                System.Diagnostics.Debug.WriteLine("Discovering services...");
+                DebugLog("Discovering services...");
                 var services = await _device.GetServicesAsync();
                 
-                System.Diagnostics.Debug.WriteLine($"Found {services.Count()} service(s)");
+                DebugLog($"Found {services.Count()} service(s)");
                 
                 // Log all available services for debugging
                 foreach (var service in services)
                 {
-                    System.Diagnostics.Debug.WriteLine($"  - Service UUID: {service.Id}");
+                    DebugLog($"  - Service UUID: {service.Id}");
                 }
                 
                 _metaWearService = services.FirstOrDefault(s => s.Id == MetaWearServiceUuid);
 
                 if (_metaWearService == null)
                 {
-                    System.Diagnostics.Debug.WriteLine($"MetaWear service not found. Expected UUID: {MetaWearServiceUuid}");
-                    System.Diagnostics.Debug.WriteLine("Available services listed above. MetaWear MMS may use different UUIDs.");
+                    DebugLog($"MetaWear service not found. Expected UUID: {MetaWearServiceUuid}");
+                    DebugLog("Available services listed above. MetaWear MMS may use different UUIDs.");
                     _isDeviceConnected = false;
                     return false;
                 }
 
-                System.Diagnostics.Debug.WriteLine($"MetaWear service found: {_metaWearService.Id}");
+                DebugLog($"MetaWear service found: {_metaWearService.Id}");
 
                 // Get characteristics 
-                System.Diagnostics.Debug.WriteLine("Discovering characteristics...");
+                DebugLog("Discovering characteristics...");
                 var characteristics = await _metaWearService.GetCharacteristicsAsync();
                 
-                System.Diagnostics.Debug.WriteLine($"Found {characteristics.Count()} characteristic(s)");
+                DebugLog($"Found {characteristics.Count()} characteristic(s)");
                 
                 // Log all available characteristics for debugging
                 foreach (var characteristic in characteristics)
                 {
-                    System.Diagnostics.Debug.WriteLine($"  - Characteristic UUID: {characteristic.Id}");
+                    DebugLog($"  - Characteristic UUID: {characteristic.Id}");
                 }
                 
                 _commandCharacteristic = characteristics.FirstOrDefault(c => c.Id == MetaWearCommandCharacteristicUuid);
@@ -166,34 +196,34 @@ namespace Cellular.Services
 
                 if (_commandCharacteristic == null)
                 {
-                    System.Diagnostics.Debug.WriteLine($"MetaWear command characteristic not found.");
-                    System.Diagnostics.Debug.WriteLine($"  Expected Command UUID: {MetaWearCommandCharacteristicUuid}");
-                    System.Diagnostics.Debug.WriteLine("Available characteristics listed above.");
+                    DebugLog($"MetaWear command characteristic not found.");
+                    DebugLog($"  Expected Command UUID: {MetaWearCommandCharacteristicUuid}");
+                    DebugLog("Available characteristics listed above.");
                     _isDeviceConnected = false;
                     return false;
                 }
                 
                 if (_notificationCharacteristic == null)
                 {
-                    System.Diagnostics.Debug.WriteLine($"MetaWear notification characteristic not found.");
-                    System.Diagnostics.Debug.WriteLine($"  Expected Notification UUID: {MetaWearNotificationCharacteristicUuid} or {MetaWearNotificationCharacteristicUuidAlt}");
-                    System.Diagnostics.Debug.WriteLine("Available characteristics listed above.");
+                    DebugLog($"MetaWear notification characteristic not found.");
+                    DebugLog($"  Expected Notification UUID: {MetaWearNotificationCharacteristicUuid} or {MetaWearNotificationCharacteristicUuidAlt}");
+                    DebugLog("Available characteristics listed above.");
                     _isDeviceConnected = false;
                     return false;
                 }
 
-                System.Diagnostics.Debug.WriteLine("MetaWear characteristics found");
-                System.Diagnostics.Debug.WriteLine($"  Command: {_commandCharacteristic.Id}");
-                System.Diagnostics.Debug.WriteLine($"  Notification: {_notificationCharacteristic.Id}");
+                DebugLog("MetaWear characteristics found");
+                DebugLog($"  Command: {_commandCharacteristic.Id}");
+                DebugLog($"  Notification: {_notificationCharacteristic.Id}");
 
                 // Enable notifications 
-                System.Diagnostics.Debug.WriteLine("Enabling notifications...");
+                DebugLog("Enabling notifications...");
                 
                 // Attach handler BEFORE starting updates to avoid missing data
                 // Remove handler first to prevent duplicate attachments
                 if (_notificationHandlerAttached)
                 {
-                    System.Diagnostics.Debug.WriteLine("Removing existing notification handler...");
+                    DebugLog("Removing existing notification handler...");
                     _notificationCharacteristic.ValueUpdated -= OnNotificationReceived;
                     _notificationHandlerAttached = false;
                 }
@@ -204,12 +234,12 @@ namespace Cellular.Services
                 // Start receiving notifications
                 await _notificationCharacteristic.StartUpdatesAsync();
                 
-                System.Diagnostics.Debug.WriteLine("Notifications enabled successfully");
+                DebugLog("Notifications enabled successfully");
 
                 // Stop any active sensors from previous sessions (light sensor, magnetometer, etc.)
                 await StopAllSensorsAsync();
 
-                System.Diagnostics.Debug.WriteLine("MetaWear device connected successfully!");
+                DebugLog("MetaWear device connected successfully!");
 
                 // Mark as connected only after successful service/characteristic discovery
                 _isDeviceConnected = true;
@@ -217,8 +247,8 @@ namespace Cellular.Services
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error in ConnectToDeviceAsync: {ex.Message}");
-                System.Diagnostics.Debug.WriteLine($"Stack trace: {ex.StackTrace}");
+                DebugLog($"Error in ConnectToDeviceAsync: {ex.Message}");
+                DebugLog($"Stack trace: {ex.StackTrace}");
                 _isDeviceConnected = false;
                 return false;
             }
@@ -240,11 +270,11 @@ namespace Cellular.Services
                     try
                     {
                         await _notificationCharacteristic.StopUpdatesAsync();
-                        System.Diagnostics.Debug.WriteLine("Notifications stopped successfully");
+                        DebugLog("Notifications stopped successfully");
                     }
                     catch (Exception ex)
                     {
-                        System.Diagnostics.Debug.WriteLine($"Error stopping notifications: {ex.Message}");
+                        DebugLog($"Error stopping notifications: {ex.Message}");
                     }
                 }
 
@@ -257,7 +287,7 @@ namespace Cellular.Services
                     }
                     catch (Exception ex)
                     {
-                        System.Diagnostics.Debug.WriteLine($"Error disconnecting device: {ex.Message}");
+                        DebugLog($"Error disconnecting device: {ex.Message}");
                     }
                 }
 
@@ -276,7 +306,7 @@ namespace Cellular.Services
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error in DisconnectAsync: {ex.Message}");
+                DebugLog($"Error in DisconnectAsync: {ex.Message}");
             }
         }
 
@@ -289,18 +319,18 @@ namespace Cellular.Services
             // Note: We check _commandCharacteristic directly since _isDeviceConnected hasn't been set yet
             if (_commandCharacteristic == null || _device == null)
             {
-                System.Diagnostics.Debug.WriteLine("[Connection] Cannot stop sensors - command characteristic or device not available");
+                DebugLog("[Connection] Cannot stop sensors - command characteristic or device not available");
                 return;
             }
 
             try
             {
-                System.Diagnostics.Debug.WriteLine("[Connection] Stopping all sensors from previous sessions...");
+                DebugLog("[Connection] Stopping all sensors from previous sessions...");
 
                 // Stop light sensor (module 0x14) - it's often active by default
                 try
                 {
-                    System.Diagnostics.Debug.WriteLine("[Connection] Stopping light sensor (module 0x14)...");
+                    DebugLog("[Connection] Stopping light sensor (module 0x14)...");
                     // Stop command: [module_id, register_0x01]
                     byte[] stopLightSensor = new byte[] { 0x14, 0x01 };
                     await _commandCharacteristic.WriteAsync(stopLightSensor);
@@ -310,71 +340,167 @@ namespace Cellular.Services
                     byte[] stopLightSensorProducer = new byte[] { 0x14, 0x03 };
                     await _commandCharacteristic.WriteAsync(stopLightSensorProducer);
                     await Task.Delay(100);
-                    System.Diagnostics.Debug.WriteLine("[Connection] Light sensor stop commands sent");
+                    DebugLog("[Connection] Light sensor stop commands sent");
                 }
                 catch (Exception ex)
                 {
-                    System.Diagnostics.Debug.WriteLine($"[Connection] Error stopping light sensor: {ex.Message}");
+                    DebugLog($"[Connection] Error stopping light sensor: {ex.Message}");
                 }
 
-                // Stop magnetometer (module 0x15) - it might also be active
+                // Stop magnetometer (always attempt, even if flag is false - device might have it enabled from previous session)
                 try
                 {
-                    System.Diagnostics.Debug.WriteLine("[Connection] Stopping magnetometer (module 0x15)...");
-                    // Stop command: [module_id, register_0x01]
-                    byte[] stopMagnetometer = new byte[] { 0x15, 0x01 };
-                    await _commandCharacteristic.WriteAsync(stopMagnetometer);
-                    await Task.Delay(100);
+                    DebugLog("[Connection] Stopping magnetometer (module 0x15)...");
+                    // Use the same stop sequence as StopMagnetometerAsync but don't check _magnetometerActive flag
+                    // Step 1: Disable data producers (try both 0x05 and 0x06)
+                    try
+                    {
+                        byte[] stopProducerCommand = new byte[] { 0x15, 0x05 }; // Stop data producer (register 0x05)
+                        await _commandCharacteristic.WriteAsync(stopProducerCommand);
+                        await Task.Delay(50);
+                    }
+                    catch { }
                     
-                    // Also try stopping the data producer if it's using register 0x05
-                    byte[] stopMagnetometerProducer = new byte[] { 0x15, 0x05 };
-                    await _commandCharacteristic.WriteAsync(stopMagnetometerProducer);
-                    await Task.Delay(100);
-                    System.Diagnostics.Debug.WriteLine("[Connection] Magnetometer stop commands sent");
+                    try
+                    {
+                        byte[] stopProducerCommand2 = new byte[] { 0x15, 0x06 }; // Stop data producer (register 0x06)
+                        await _commandCharacteristic.WriteAsync(stopProducerCommand2);
+                        await Task.Delay(50);
+                    }
+                    catch { }
+                    
+                    // Step 2: Remove route using Route Manager
+                    try
+                    {
+                        byte[] removeRouteCommand = new byte[] { 0x12, 0x02, 0x03 }; // Route Manager, remove route 0x03
+                        await _commandCharacteristic.WriteAsync(removeRouteCommand);
+                        await Task.Delay(50);
+                    }
+                    catch { }
+                    
+                    // Step 3: Disable the module
+                    try
+                    {
+                        byte[] disableModule = new byte[] { 0x15, 0x01, 0x00 }; // Module 0x15, Register 0x01, Disable
+                        await _commandCharacteristic.WriteAsync(disableModule);
+                        await Task.Delay(50);
+                    }
+                    catch { }
+                    
+                    // Step 4: General stop command (fallback)
+                    try
+                    {
+                        byte[] stopCommand1 = new byte[] { 0x15, 0x01 }; // General stop
+                        await _commandCharacteristic.WriteAsync(stopCommand1);
+                        await Task.Delay(50);
+                    }
+                    catch { }
+                    
+                    _magnetometerActive = false; // Ensure flag is false
+                    DebugLog("[Connection] Magnetometer stop commands sent");
                 }
                 catch (Exception ex)
                 {
-                    System.Diagnostics.Debug.WriteLine($"[Connection] Error stopping magnetometer: {ex.Message}");
+                    DebugLog($"[Connection] Error stopping magnetometer: {ex.Message}");
+                    _magnetometerActive = false; // Ensure flag is false even on error
                 }
 
-                // Stop accelerometer if active (shouldn't be, but just in case)
-                if (_accelerometerActive)
+                // Stop accelerometer (always attempt, even if flag is false - device might have it enabled from previous session)
+                try
                 {
+                    DebugLog("[Connection] Stopping accelerometer (module 0x03)...");
+                    // Use the same stop sequence as StopAccelerometerAsync but don't check _accelerometerActive flag
+                    // Step 1: Disable the data producer
+                    byte[] disableProducer = new byte[] { 0x03, 0x04, 0x00 }; // Module 0x03, Register 0x04, Disable
+                    await _commandCharacteristic.WriteAsync(disableProducer);
+                    await Task.Delay(50);
+                    
+                    // Step 2: Disable the module
+                    byte[] disableModule = new byte[] { 0x03, 0x01, 0x00 }; // Module 0x03, Register 0x01, Disable
+                    await _commandCharacteristic.WriteAsync(disableModule);
+                    await Task.Delay(50);
+                    
+                    // Step 3: Remove route using Route Manager (try both 0x12 and 0x11)
                     try
                     {
-                        await StopAccelerometerAsync();
+                        byte[] removeRouteCommand12 = new byte[] { 0x12, 0x02, 0x01 }; // Route Manager 0x12, remove route 0x01
+                        await _commandCharacteristic.WriteAsync(removeRouteCommand12);
+                        await Task.Delay(50);
                     }
-                    catch (Exception ex)
+                    catch { }
+                    
+                    try
                     {
-                        System.Diagnostics.Debug.WriteLine($"[Connection] Error stopping accelerometer: {ex.Message}");
+                        byte[] removeRouteCommand11 = new byte[] { 0x11, 0x02, 0x01 }; // Route Manager 0x11, remove route 0x01
+                        await _commandCharacteristic.WriteAsync(removeRouteCommand11);
+                        await Task.Delay(50);
                     }
+                    catch { }
+                    
+                    // Fallback: General stop command
+                    byte[] fallbackStopCommand = new byte[] { 0x03, 0x05 }; // Stop acceleration data producer
+                    await _commandCharacteristic.WriteAsync(fallbackStopCommand);
+                    await Task.Delay(50);
+                    
+                    _accelerometerActive = false; // Ensure flag is false
+                    DebugLog("[Connection] Accelerometer stop commands sent");
+                }
+                catch (Exception ex)
+                {
+                    DebugLog($"[Connection] Error stopping accelerometer: {ex.Message}");
+                    _accelerometerActive = false; // Ensure flag is false even on error
                 }
 
-                // Stop gyroscope if active (shouldn't be, but just in case)
-                if (_gyroscopeActive)
+                // Stop gyroscope (always attempt, even if flag is false - device might have it enabled from previous session)
+                try
                 {
+                    DebugLog("[Connection] Stopping gyroscope (module 0x13)...");
+                    // Use similar stop sequence as StopGyroscopeAsync but don't check _gyroscopeActive flag
+                    byte[] stopProducerCommand = new byte[] { 0x13, 0x05 }; // Stop angular velocity data producer
+                    await _commandCharacteristic.WriteAsync(stopProducerCommand);
+                    await Task.Delay(50);
+                    
+                    byte[] stopCommand1 = new byte[] { 0x13, 0x01 }; // General stop
+                    await _commandCharacteristic.WriteAsync(stopCommand1);
+                    await Task.Delay(50);
+                    
+                    // Disable producer (phyphox pattern reverse)
+                    byte[] disableProducer = new byte[] { 0x13, 0x04, 0x00 }; // Module 0x13, Register 0x04, Disable
+                    await _commandCharacteristic.WriteAsync(disableProducer);
+                    await Task.Delay(50);
+                    
+                    // Disable module
+                    byte[] disableModule = new byte[] { 0x13, 0x01, 0x00 }; // Module 0x13, Register 0x01, Disable
+                    await _commandCharacteristic.WriteAsync(disableModule);
+                    await Task.Delay(50);
+                    
+                    // Remove route using Route Manager
                     try
                     {
-                        await StopGyroscopeAsync();
+                        byte[] removeRouteCommand = new byte[] { 0x12, 0x02, 0x02 }; // Route Manager, remove route 0x02
+                        await _commandCharacteristic.WriteAsync(removeRouteCommand);
+                        await Task.Delay(50);
                     }
-                    catch (Exception ex)
+                    catch { }
+                    
+                    try
                     {
-                        System.Diagnostics.Debug.WriteLine($"[Connection] Error stopping gyroscope: {ex.Message}");
+                        byte[] removeRouteCommand11 = new byte[] { 0x11, 0x02, 0x02 }; // Route Manager 0x11, remove route 0x02
+                        await _commandCharacteristic.WriteAsync(removeRouteCommand11);
+                        await Task.Delay(50);
                     }
+                    catch { }
+                    
+                    _gyroscopeActive = false; // Ensure flag is false
+                    DebugLog("[Connection] Gyroscope stop commands sent");
+                }
+                catch (Exception ex)
+                {
+                    DebugLog($"[Connection] Error stopping gyroscope: {ex.Message}");
+                    _gyroscopeActive = false; // Ensure flag is false even on error
                 }
 
-                // Stop magnetometer if active
-                if (_magnetometerActive)
-                {
-                    try
-                    {
-                        await StopMagnetometerAsync();
-                    }
-                    catch (Exception ex)
-                    {
-                        System.Diagnostics.Debug.WriteLine($"[Connection] Error stopping magnetometer: {ex.Message}");
-                    }
-                }
+                // Magnetometer is already stopped above (always attempted regardless of flag)
 
                 // Stop light sensor if active
                 if (_lightSensorActive)
@@ -385,15 +511,15 @@ namespace Cellular.Services
                     }
                     catch (Exception ex)
                     {
-                        System.Diagnostics.Debug.WriteLine($"[Connection] Error stopping light sensor: {ex.Message}");
+                        DebugLog($"[Connection] Error stopping light sensor: {ex.Message}");
                     }
                 }
 
-                System.Diagnostics.Debug.WriteLine("[Connection] All sensors stopped");
+                DebugLog("[Connection] All sensors stopped");
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[Connection] Error in StopAllSensorsAsync: {ex.Message}");
+                DebugLog($"[Connection] Error in StopAllSensorsAsync: {ex.Message}");
                 // Don't throw - connection should still succeed even if we can't stop sensors
             }
         }
@@ -406,7 +532,7 @@ namespace Cellular.Services
                 byte[]? data = e.Characteristic.Value;
                 if (data == null || data.Length < 2)
                 {
-                    System.Diagnostics.Debug.WriteLine($"[Notification] Received null or too small data (length: {data?.Length ?? 0})");
+                    DebugLog($"[Notification] Received null or too small data (length: {data?.Length ?? 0})");
                     return;
                 }
 
@@ -415,11 +541,19 @@ namespace Cellular.Services
                 byte moduleId = data[0];
                 byte registerId = data[1];
 
-                // Reduced logging - only log occasionally to avoid performance issues
-                // Data comes at 50-100Hz, so logging every single packet causes lag
-                if (data.Length <= 20 && (DateTime.Now.Millisecond % 1000) < 10) // Only log ~1% of packets
+                // Log ALL notifications for accelerometer, gyroscope, magnetometer, and light sensor to debug
+                if (moduleId == 0x03 || moduleId == 0x13 || moduleId == 0x14 || moduleId == 0x15)
                 {
-                    System.Diagnostics.Debug.WriteLine($"[Notification] Module: 0x{moduleId:X2}, Reg: 0x{registerId:X2}, Len: {data.Length}");
+                    DebugLog($"[Notification] Module: 0x{moduleId:X2}, Reg: 0x{registerId:X2}, Len: {data.Length}, Raw: [{string.Join(", ", data.Select(b => $"0x{b:X2}"))}]");
+                }
+                else
+                {
+                    // Reduced logging for other modules - only log occasionally to avoid performance issues
+                    // Data comes at 50-100Hz, so logging every single packet causes lag
+                    if (data.Length <= 20 && (DateTime.Now.Millisecond % 1000) < 10) // Only log ~1% of packets
+                    {
+                        DebugLog($"[Notification] Module: 0x{moduleId:X2}, Reg: 0x{registerId:X2}, Len: {data.Length}");
+                    }
                 }
 
                 // MetaWear module IDs (correct mapping for MetaMotionS - MMS):
@@ -436,8 +570,8 @@ namespace Cellular.Services
                 if (isAccelerometer)
                 {
                     // Always log accelerometer notifications for debugging (even if not active) to verify we're receiving data
-                    System.Diagnostics.Debug.WriteLine($"[Accelerometer] DEBUG: Received accelerometer notification! Module: 0x{data[0]:X2}, Reg: 0x{data[1]:X2}, Len: {data.Length}, Active: {_accelerometerActive}");
-                    System.Diagnostics.Debug.WriteLine($"[Accelerometer] DEBUG: Raw data: [{string.Join(", ", data.Select(b => $"0x{b:X2}"))}]");
+                    DebugLog($"[Accelerometer] DEBUG: Received accelerometer notification! Module: 0x{data[0]:X2}, Reg: 0x{data[1]:X2}, Len: {data.Length}, Active: {_accelerometerActive}");
+                    DebugLog($"[Accelerometer] DEBUG: Raw data: [{string.Join(", ", data.Select(b => $"0x{b:X2}"))}]");
                     
                     if (_accelerometerActive)
                     {
@@ -446,7 +580,7 @@ namespace Cellular.Services
                     }
                     else
                     {
-                        System.Diagnostics.Debug.WriteLine($"[Accelerometer] DEBUG: Accelerometer not active, ignoring data");
+                        DebugLog($"[Accelerometer] DEBUG: Accelerometer not active, ignoring data");
                     }
                 }
                 else if (isGyroscope)
@@ -460,11 +594,18 @@ namespace Cellular.Services
                 }
                 else if (isMagnetometer)
                 {
+                    // Always log magnetometer notifications for debugging (even if not active) to verify we're receiving data
+                    DebugLog($"[Magnetometer] DEBUG: Received magnetometer notification! Module: 0x{data[0]:X2}, Reg: 0x{data[1]:X2}, Len: {data.Length}, Active: {_magnetometerActive}");
+                    DebugLog($"[Magnetometer] DEBUG: Raw data: [{string.Join(", ", data.Select(b => $"0x{b:X2}"))}]");
+                    
                     if (_magnetometerActive)
                     {
                         ParseMagnetometerData(data);
                     }
-                    // Silently ignore if not active
+                    else
+                    {
+                        DebugLog($"[Magnetometer] DEBUG: Magnetometer not active, ignoring data");
+                    }
                 }
                 else if (isLightSensor)
                 {
@@ -479,14 +620,14 @@ namespace Cellular.Services
                     // Only log unknown module IDs occasionally (not every packet)
                     if ((DateTime.Now.Millisecond % 5000) < 10) // Log once per 5 seconds max
                     {
-                        System.Diagnostics.Debug.WriteLine($"[Notification] Unknown module ID: 0x{moduleId:X2}, Register: 0x{registerId:X2}, Length: {data.Length}");
+                        DebugLog($"[Notification] Unknown module ID: 0x{moduleId:X2}, Register: 0x{registerId:X2}, Length: {data.Length}");
                     }
                 }
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[Notification] Error processing notification: {ex.Message}");
-                System.Diagnostics.Debug.WriteLine($"Stack trace: {ex.StackTrace}");
+                DebugLog($"[Notification] Error processing notification: {ex.Message}");
+                DebugLog($"Stack trace: {ex.StackTrace}");
             }
         }
 
@@ -524,17 +665,19 @@ namespace Cellular.Services
                     return;
                 }
 
-                // Convert to G (assuming 16G range, adjust based on actual configuration)
-                // MetaWear typically uses 4096 LSB/g for ±16G range (BMA255)
-                // BMI160 might use different scaling, so we'll use 4096 as default
-                float xG = x / 4096.0f;
-                float yG = y / 4096.0f;
-                float zG = z / 4096.0f;
+                // Convert to G using phyphox scaling factor
+                // Phyphox documentation: +/-2^15 range corresponds to +/-16G, factor = 1/2048
+                // Reference: https://phyphox.org/wiki/index.php?title=MbientLab_MetaWear_(MetaMotionR)
+                float xG = x / 2048.0f;
+                float yG = y / 2048.0f;
+                float zG = z / 2048.0f;
 
-                // Reduced logging - only log occasionally (every 2 seconds) to avoid performance issues
-                if ((DateTime.Now.Millisecond % 2000) < 10)
+                // Log raw data every 1 second to reduce lag
+                DateTime now = DateTime.Now;
+                if ((now - _lastAccelerometerLogTime).TotalSeconds >= 1.0)
                 {
-                    System.Diagnostics.Debug.WriteLine($"[Accelerometer] Data - X: {xG:F3}g, Y: {yG:F3}g, Z: {zG:F3}g");
+                    DebugLog($"[Accelerometer] Raw data: [{string.Join(", ", data.Select(b => $"0x{b:X2}"))}] | X: {xG:F3}g, Y: {yG:F3}g, Z: {zG:F3}g");
+                    _lastAccelerometerLogTime = now;
                 }
 
                 AccelerometerDataReceived?.Invoke(this, new MetaWearAccelerometerData
@@ -547,8 +690,8 @@ namespace Cellular.Services
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[Accelerometer] Error parsing data: {ex.Message}");
-                System.Diagnostics.Debug.WriteLine($"[Accelerometer] Raw data: [{string.Join(", ", data.Select(b => $"0x{b:X2}"))}]");
+                DebugLog($"[Accelerometer] Error parsing data: {ex.Message}");
+                DebugLog($"[Accelerometer] Raw data: [{string.Join(", ", data.Select(b => $"0x{b:X2}"))}]");
             }
         }
 
@@ -572,8 +715,8 @@ namespace Cellular.Services
                 }
                 else
                 {
-                    System.Diagnostics.Debug.WriteLine($"[Gyroscope] Data too short: {data.Length} bytes (need at least 8)");
-                    System.Diagnostics.Debug.WriteLine($"[Gyroscope] Raw data: [{string.Join(", ", data.Select(b => $"0x{b:X2}"))}]");
+                    DebugLog($"[Gyroscope] Data too short: {data.Length} bytes (need at least 8)");
+                    DebugLog($"[Gyroscope] Raw data: [{string.Join(", ", data.Select(b => $"0x{b:X2}"))}]");
                     return;
                 }
 
@@ -586,7 +729,7 @@ namespace Cellular.Services
                 // Reduced logging - only log occasionally (every 2 seconds) to avoid performance issues
                 if ((DateTime.Now.Millisecond % 2000) < 10)
                 {
-                    System.Diagnostics.Debug.WriteLine($"[Gyroscope] Data - X: {xDps:F2}°/s, Y: {yDps:F2}°/s, Z: {zDps:F2}°/s");
+                    DebugLog($"[Gyroscope] Data - X: {xDps:F2}°/s, Y: {yDps:F2}°/s, Z: {zDps:F2}°/s");
                 }
 
                 GyroscopeDataReceived?.Invoke(this, new MetaWearGyroscopeData
@@ -599,8 +742,8 @@ namespace Cellular.Services
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[Gyroscope] Error parsing data: {ex.Message}");
-                System.Diagnostics.Debug.WriteLine($"[Gyroscope] Raw data: [{string.Join(", ", data.Select(b => $"0x{b:X2}"))}]");
+                DebugLog($"[Gyroscope] Error parsing data: {ex.Message}");
+                DebugLog($"[Gyroscope] Raw data: [{string.Join(", ", data.Select(b => $"0x{b:X2}"))}]");
             }
         }
 
@@ -611,12 +754,12 @@ namespace Cellular.Services
 
             try
             {
-                System.Diagnostics.Debug.WriteLine($"[Accelerometer] Starting accelerometer - SampleRate: {sampleRate}Hz, Range: {range}G");
+                DebugLog($"[Accelerometer] Starting accelerometer - SampleRate: {sampleRate}Hz, Range: {range}G");
                 
                 // Stop accelerometer first if already running
                 if (_accelerometerActive)
                 {
-                    System.Diagnostics.Debug.WriteLine($"[Accelerometer] Stopping existing accelerometer first...");
+                    DebugLog($"[Accelerometer] Stopping existing accelerometer first...");
                     await StopAccelerometerAsync();
                     await Task.Delay(100); // Small delay between stop and start
                 }
@@ -624,7 +767,7 @@ namespace Cellular.Services
                 // Stop light sensor (0x14) if it's interfering - light sensor might be sending data
                 try
                 {
-                    System.Diagnostics.Debug.WriteLine($"[Accelerometer] Stopping light sensor (module 0x14) to prevent interference...");
+                    DebugLog($"[Accelerometer] Stopping light sensor (module 0x14) to prevent interference...");
                     // Try stopping by disabling data route (register 0x02 or 0x04 might disable routes)
                     byte[] stopLightSensor = new byte[] { 0x14, 0x02 }; // Module 0x14, Stop/disable routes
                     await _commandCharacteristic.WriteAsync(stopLightSensor);
@@ -636,143 +779,72 @@ namespace Cellular.Services
                 }
                 catch (Exception ex)
                 {
-                    System.Diagnostics.Debug.WriteLine($"[Accelerometer] Error stopping light sensor: {ex.Message}");
+                    DebugLog($"[Accelerometer] Error stopping light sensor: {ex.Message}");
                 }
 
                 // MetaWear command to configure and enable accelerometer
                 // Module ID: 0x03 (Accelerometer - BMI270 on MMS, BMA255 on other devices)
                 // Reference: https://mbientlab.com/tutorials/MetaMotionS.html
                 
-                // Step 1: Configure the accelerometer (register 0x04 - configuration register)
-                // Configuration byte format depends on sensor type
-                // For BMI270 (MMS) or BMA255 (other devices): [odr (4 bits), range (2 bits), unused (2 bits)]
-                // ODR: 0 = 125Hz, 1 = 250Hz, 2 = 500Hz, 3 = 1000Hz, 4 = 2000Hz
-                // Range: 0 = ±2G, 1 = ±4G, 2 = ±8G, 3 = ±16G
-                // Reference: https://mbientlab.com/tutorials/MetaMotionS.html
-                byte odr = sampleRate switch
-                {
-                    <= 125f => 0,
-                    <= 250f => 1,
-                    <= 500f => 2,
-                    <= 1000f => 3,
-                    _ => 4
-                };
-                byte rangeConfig = range switch
-                {
-                    <= 2f => 0,
-                    <= 4f => 1,
-                    <= 8f => 2,
-                    _ => 3
-                };
-                byte configByte = (byte)((odr << 4) | (rangeConfig << 2));
-                
+                // Step 1: Configure the accelerometer using phyphox pattern
+                // Phyphox pattern: 0x03, 0x04, 0x28, 0x0C (for 100Hz, 16G)
+                // Format: [module, register, config_byte1, config_byte2]
+                // For 100Hz (ODR=0) and 16G (Range=3), phyphox uses: 0x03, 0x04, 0x28, 0x0C
                 byte[] configCommand = new byte[]
                 {
-                    0x03, 0x04, // Module ID: 0x03 (Accelerometer - BMI270 on MMS), Register ID: 0x04 (Configuration)
-                    configByte
+                    0x03, 0x04, 0x28, 0x0C  // Module 0x03, Register 0x04, Config: 0x280C (100Hz, 16G per phyphox)
                 };
                 
-                System.Diagnostics.Debug.WriteLine($"[Accelerometer] Sending config command: [{string.Join(", ", configCommand.Select(b => $"0x{b:X2}"))}] (ODR={odr}, Range={rangeConfig})");
+                DebugLog($"[Accelerometer] Sending config command (phyphox pattern): [{string.Join(", ", configCommand.Select(b => $"0x{b:X2}"))}]");
                 
                 // Write configuration first
                 await _commandCharacteristic.WriteAsync(configCommand);
-                await Task.Delay(50); // Allow configuration to take effect
+                await Task.Delay(100); // Allow configuration to take effect
                 
-                // Step 2: Enable the accelerometer sensor module first (power on)
-                // For BMI270, we need to enable the sensor module before creating routes
+                // Step 2: Setup route using phyphox pattern (Route Manager module 0x11, not 0x12)
+                // Based on phyphox documentation: https://phyphox.org/wiki/index.php?title=MbientLab_MetaWear_(MetaMotionR)
                 try
                 {
-                    // Enable accelerometer module (register 0x01 = enable/power on)
-                    byte[] enableModule = new byte[] { 0x03, 0x01, 0x01 }; // Module 0x03, Register 0x01, Enable
-                    System.Diagnostics.Debug.WriteLine($"[Accelerometer] Enabling accelerometer module: [{string.Join(", ", enableModule.Select(b => $"0x{b:X2}"))}]");
-                    await _commandCharacteristic.WriteAsync(enableModule);
-                    await Task.Delay(100); // Give it time to power on
-                }
-                catch (Exception enableEx)
-                {
-                    System.Diagnostics.Debug.WriteLine($"[Accelerometer] Error enabling module: {enableEx.Message}");
-                }
-                
-                // Step 3: Create route using Route Manager (module 0x12) for BMI270
-                // For BMI270, we need to create a route first, then enable the data producer
-                // Route Manager: module 0x12, register 0x03 (create route)
-                // Format: [0x12, 0x03, producer_module, producer_register, route_id, endpoint_type, endpoint_id]
-                // For BMI270 accelerometer, the route uses register 0x03 as the producer (same pattern as gyroscope uses 0x03)
-                // Note: Even though notifications show register 0x04, the route creation uses 0x03 for the producer
-                try
-                {
-                    System.Diagnostics.Debug.WriteLine($"[Accelerometer] Creating route using Route Manager...");
-                    // Create route: accelerometer (0x03) acceleration data (0x03 = acceleration data producer for BMI270) -> route 0x01 -> stream to notifications
-                    // Route Manager command format: [0x12, 0x03, producer_module, producer_register, route_id, endpoint_type, endpoint_id]
-                    // Endpoint type: 0x01 = stream, endpoint_id: 0x00 = default notifications
-                    // Pattern matches gyroscope: gyro route uses 0x13, 0x03 even though notifications show 0x13, 0x04
-                    byte[] createRouteCommand = new byte[]
-                    {
-                        0x12, 0x03,  // Route Manager (module 0x12, register 0x03 - create route)
-                        0x03, 0x03,  // Producer: accelerometer (0x03), data producer register (0x03 = acceleration data producer for BMI270)
-                        0x01,        // Route ID: 0x01
-                        0x01,        // Endpoint type: 0x01 = stream (notifications)
-                        0x00         // Endpoint ID: 0x00 = default
-                    };
-                    
-                    System.Diagnostics.Debug.WriteLine($"[Accelerometer] Creating route: [{string.Join(", ", createRouteCommand.Select(b => $"0x{b:X2}"))}]");
-                    await _commandCharacteristic.WriteAsync(createRouteCommand);
-                    await Task.Delay(200); // Wait longer for route creation
+                    DebugLog($"[Accelerometer] Setting up route using phyphox pattern...");
+                    // Route manager setup: 0x11, 0x09, 0x06, 0x00, 0x06, 0x00, 0x00, 0x00, 0x58, 0x02
+                    byte[] routeManagerSetup = new byte[] { 0x11, 0x09, 0x06, 0x00, 0x06, 0x00, 0x00, 0x00, 0x58, 0x02 };
+                    DebugLog($"[Accelerometer] Route manager setup: [{string.Join(", ", routeManagerSetup.Select(b => $"0x{b:X2}"))}]");
+                    await _commandCharacteristic.WriteAsync(routeManagerSetup);
+                    await Task.Delay(200);
                 }
                 catch (Exception routeEx)
                 {
-                    System.Diagnostics.Debug.WriteLine($"[Accelerometer] Error creating route: {routeEx.Message}");
-                    throw; // Don't continue if route creation fails
+                    DebugLog($"[Accelerometer] Error setting up route manager: {routeEx.Message}");
+                    throw;
                 }
                 
-                // Step 4: Enable the accelerometer data producer (register 0x03 for BMI270 acceleration data)
-                // For BMI270, register 0x03 is the data producer that generates acceleration data
-                // After creating the route, we need to subscribe to/enable the data producer
-                // Pattern matches gyroscope: gyro enable uses 0x13, 0x03 even though notifications show 0x13, 0x04
-                byte[] enableProducer = new byte[]
-                {
-                    0x03, 0x03, 0x01  // Module ID: 0x03 (Accelerometer), Register ID: 0x03 (Acceleration data producer), Route ID: 0x01
-                };
-
-                System.Diagnostics.Debug.WriteLine($"[Accelerometer] Enabling accelerometer data producer: [{string.Join(", ", enableProducer.Select(b => $"0x{b:X2}"))}]");
-                
-                // Add debug logging to check for notifications
-                System.Diagnostics.Debug.WriteLine($"[Accelerometer] DEBUG: Accelerometer active flag will be set to true");
-                System.Diagnostics.Debug.WriteLine($"[Accelerometer] DEBUG: Notification handler attached: {_notificationHandlerAttached}");
-                
-                // Verify notification handler is still attached
-                if (!_notificationHandlerAttached && _notificationCharacteristic != null)
-                {
-                    System.Diagnostics.Debug.WriteLine($"[Accelerometer] WARNING: Notification handler not attached! Re-attaching...");
-                    _notificationCharacteristic.ValueUpdated -= OnNotificationReceived;
-                    _notificationCharacteristic.ValueUpdated += OnNotificationReceived;
-                    _notificationHandlerAttached = true;
-                    
-                    // Re-enable notifications if needed
-                    try
-                    {
-                        await _notificationCharacteristic.StartUpdatesAsync();
-                        System.Diagnostics.Debug.WriteLine($"[Accelerometer] Notifications re-enabled");
-                    }
-                    catch (Exception notifEx)
-                    {
-                        System.Diagnostics.Debug.WriteLine($"[Accelerometer] Error re-enabling notifications: {notifEx.Message}");
-                    }
-                }
-                
-                // Write enable producer command 
+                // Step 4: Enable the accelerometer data producer using phyphox pattern
+                // Phyphox pattern: 0x03, 0x04, 0x01 (module 0x03, register 0x04, enable)
+                // Then: 0x03, 0x02, 0x01, 0x00 (module 0x03, register 0x02, route ID 0x0100)
+                // Then: 0x03, 0x01, 0x01 (module 0x03, register 0x01, enable module)
+                byte[] enableProducer = new byte[] { 0x03, 0x04, 0x01 };
+                DebugLog($"[Accelerometer] Enabling producer (phyphox pattern): [{string.Join(", ", enableProducer.Select(b => $"0x{b:X2}"))}]");
                 await _commandCharacteristic.WriteAsync(enableProducer);
+                await Task.Delay(100);
                 
-                // Small delay to allow command to process
-                await Task.Delay(100); // Increased delay for device to process command
+                byte[] setRoute = new byte[] { 0x03, 0x02, 0x01, 0x00 };
+                DebugLog($"[Accelerometer] Setting route ID: [{string.Join(", ", setRoute.Select(b => $"0x{b:X2}"))}]");
+                await _commandCharacteristic.WriteAsync(setRoute);
+                await Task.Delay(100);
+                
+                // Enable module: 0x03, 0x01, 0x01
+                byte[] enableModule = new byte[] { 0x03, 0x01, 0x01 };
+                DebugLog($"[Accelerometer] Enabling module: [{string.Join(", ", enableModule.Select(b => $"0x{b:X2}"))}]");
+                await _commandCharacteristic.WriteAsync(enableModule);
+                await Task.Delay(200);
                 
                 _accelerometerActive = true;
-                System.Diagnostics.Debug.WriteLine($"[Accelerometer] Accelerometer started successfully");
+                DebugLog($"[Accelerometer] Accelerometer started successfully - expecting notifications with Module 0x03, Register 0x04 (phyphox pattern)");
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[Accelerometer] Error starting accelerometer: {ex.Message}");
-                System.Diagnostics.Debug.WriteLine($"Stack trace: {ex.StackTrace}");
+                DebugLog($"[Accelerometer] Error starting accelerometer: {ex.Message}");
+                DebugLog($"Stack trace: {ex.StackTrace}");
                 _accelerometerActive = false;
                 throw;
             }
@@ -788,40 +860,83 @@ namespace Cellular.Services
 
             try
             {
-                System.Diagnostics.Debug.WriteLine($"[Accelerometer] Stopping accelerometer...");
+                DebugLog($"[Accelerometer] Stopping accelerometer...");
                 
-                // Stop accelerometer - try multiple methods
-                // Method 1: Stop data producer (register 0x05 - same as start)
-                byte[] stopProducerCommand = new byte[] { 0x03, 0x05 }; // Stop acceleration data producer
-                System.Diagnostics.Debug.WriteLine($"[Accelerometer] Sending stop producer command (0x05): [{string.Join(", ", stopProducerCommand.Select(b => $"0x{b:X2}"))}]");
-                await _commandCharacteristic.WriteAsync(stopProducerCommand);
-                await Task.Delay(50);
+                // Stop accelerometer using reverse of phyphox pattern
+                // Start pattern: Enable producer (0x03, 0x04, 0x01) -> Set route (0x03, 0x02, 0x01, 0x00) -> Enable module (0x03, 0x01, 0x01)
+                // Stop pattern: Disable producer -> Disable module -> Remove route
                 
-                // Method 2: Stop command (register 0x01) - general stop
-                byte[] stopCommand1 = new byte[] { 0x03, 0x01 };
-                System.Diagnostics.Debug.WriteLine($"[Accelerometer] Sending stop command (0x01): [{string.Join(", ", stopCommand1.Select(b => $"0x{b:X2}"))}]");
-                await _commandCharacteristic.WriteAsync(stopCommand1);
-                await Task.Delay(50);
-                
-                // Method 3: Remove route using Route Manager (module 0x12, register 0x02)
+                // Step 1: Disable the data producer (reverse of 0x03, 0x04, 0x01)
                 try
                 {
-                    byte[] removeRouteCommand = new byte[] { 0x12, 0x02, 0x01 }; // Route Manager, remove route 0x01
-                    System.Diagnostics.Debug.WriteLine($"[Accelerometer] Removing route: [{string.Join(", ", removeRouteCommand.Select(b => $"0x{b:X2}"))}]");
-                    await _commandCharacteristic.WriteAsync(removeRouteCommand);
-                    await Task.Delay(50);
+                    byte[] disableProducer = new byte[] { 0x03, 0x04, 0x00 }; // Disable producer
+                    DebugLog($"[Accelerometer] Disabling producer: [{string.Join(", ", disableProducer.Select(b => $"0x{b:X2}"))}]");
+                    await _commandCharacteristic.WriteAsync(disableProducer);
+                    await Task.Delay(100);
+                }
+                catch (Exception ex1)
+                {
+                    DebugLog($"[Accelerometer] Error disabling producer: {ex1.Message}");
+                }
+                
+                // Step 2: Disable the module (reverse of 0x03, 0x01, 0x01)
+                try
+                {
+                    byte[] disableModule = new byte[] { 0x03, 0x01, 0x00 }; // Disable module
+                    DebugLog($"[Accelerometer] Disabling module: [{string.Join(", ", disableModule.Select(b => $"0x{b:X2}"))}]");
+                    await _commandCharacteristic.WriteAsync(disableModule);
+                    await Task.Delay(100);
                 }
                 catch (Exception ex2)
                 {
-                    System.Diagnostics.Debug.WriteLine($"[Accelerometer] Error removing route: {ex2.Message}");
+                    DebugLog($"[Accelerometer] Error disabling module: {ex2.Message}");
+                }
+                
+                // Step 3: Remove route using Route Manager (module 0x11 or 0x12, register 0x02)
+                try
+                {
+                    // Try Route Manager 0x12 first (standard)
+                    byte[] removeRouteCommand = new byte[] { 0x12, 0x02, 0x01 }; // Route Manager, remove route 0x01
+                    DebugLog($"[Accelerometer] Removing route (0x12): [{string.Join(", ", removeRouteCommand.Select(b => $"0x{b:X2}"))}]");
+                    await _commandCharacteristic.WriteAsync(removeRouteCommand);
+                    await Task.Delay(100);
+                }
+                catch (Exception ex3)
+                {
+                    DebugLog($"[Accelerometer] Error removing route (0x12): {ex3.Message}");
+                    // Try alternative route manager 0x11
+                    try
+                    {
+                        byte[] removeRouteCommand2 = new byte[] { 0x11, 0x02, 0x01 }; // Route Manager 0x11, remove route 0x01
+                        DebugLog($"[Accelerometer] Removing route (0x11): [{string.Join(", ", removeRouteCommand2.Select(b => $"0x{b:X2}"))}]");
+                        await _commandCharacteristic.WriteAsync(removeRouteCommand2);
+                        await Task.Delay(100);
+                    }
+                    catch (Exception ex4)
+                    {
+                        DebugLog($"[Accelerometer] Error removing route (0x11): {ex4.Message}");
+                    }
+                }
+                
+                // Step 4: Additional stop commands as fallback
+                try
+                {
+                    byte[] stopCommand = new byte[] { 0x03, 0x05 }; // Stop command (register 0x05)
+                    DebugLog($"[Accelerometer] Sending stop command (0x05): [{string.Join(", ", stopCommand.Select(b => $"0x{b:X2}"))}]");
+                    await _commandCharacteristic.WriteAsync(stopCommand);
+                    await Task.Delay(50);
+                }
+                catch (Exception ex5)
+                {
+                    DebugLog($"[Accelerometer] Error sending stop command: {ex5.Message}");
                 }
                 
                 _accelerometerActive = false;
-                System.Diagnostics.Debug.WriteLine($"[Accelerometer] Accelerometer stopped successfully");
+                DebugLog($"[Accelerometer] Accelerometer stopped successfully");
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[Accelerometer] Error stopping accelerometer: {ex.Message}");
+                DebugLog($"[Accelerometer] Error stopping accelerometer: {ex.Message}");
                 _accelerometerActive = false; // Reset flag even if write fails
             }
         }
@@ -833,12 +948,12 @@ namespace Cellular.Services
 
             try
             {
-                System.Diagnostics.Debug.WriteLine($"[Gyroscope] Starting gyroscope - SampleRate: {sampleRate}Hz, Range: {range} dps");
+                DebugLog($"[Gyroscope] Starting gyroscope - SampleRate: {sampleRate}Hz, Range: {range} dps");
                 
                 // Stop gyroscope first if already running
                 if (_gyroscopeActive)
                 {
-                    System.Diagnostics.Debug.WriteLine($"[Gyroscope] Stopping existing gyroscope first...");
+                    DebugLog($"[Gyroscope] Stopping existing gyroscope first...");
                     await StopGyroscopeAsync();
                     await Task.Delay(100); // Small delay between stop and start
                 }
@@ -846,7 +961,7 @@ namespace Cellular.Services
                 // Stop magnetometer (0x15) if it's interfering - magnetometer might be sending data
                 try
                 {
-                    System.Diagnostics.Debug.WriteLine($"[Gyroscope] Stopping magnetometer (module 0x15) to prevent interference...");
+                    DebugLog($"[Gyroscope] Stopping magnetometer (module 0x15) to prevent interference...");
                     // Try stopping by disabling data route (register 0x02 or 0x04 might disable routes)
                     byte[] stopMagnetometer = new byte[] { 0x15, 0x02 }; // Module 0x15, Stop/disable routes
                     await _commandCharacteristic.WriteAsync(stopMagnetometer);
@@ -858,136 +973,72 @@ namespace Cellular.Services
                 }
                 catch (Exception ex)
                 {
-                    System.Diagnostics.Debug.WriteLine($"[Gyroscope] Error stopping magnetometer: {ex.Message}");
+                    DebugLog($"[Gyroscope] Error stopping magnetometer: {ex.Message}");
                 }
 
                 // MetaWear command to configure and enable gyroscope
                 // Module ID: 0x13 (Gyroscope - BMI270 on MMS, BMI160 on other devices)
                 // Reference: https://mbientlab.com/tutorials/MetaMotionS.html
                 
-                // Step 1: Configure the gyroscope (register 0x04 - configuration register)
-                // For BMI270 (MMS) or BMI160 (other devices): [odr (4 bits), range (3 bits), ...]
-                // ODR: 0 = 25Hz, 1 = 50Hz, 2 = 100Hz, 3 = 200Hz, 4 = 400Hz, 5 = 800Hz, 6 = 1600Hz, 7 = 3200Hz
-                // Range: 0 = ±125°/s, 1 = ±250°/s, 2 = ±500°/s, 3 = ±1000°/s, 4 = ±2000°/s
-                // Reference: https://mbientlab.com/tutorials/MetaMotionS.html
-                byte odr = sampleRate switch
-                {
-                    <= 25f => 0,
-                    <= 50f => 1,
-                    <= 100f => 2,
-                    <= 200f => 3,
-                    <= 400f => 4,
-                    <= 800f => 5,
-                    <= 1600f => 6,
-                    _ => 7
-                };
-                byte rangeConfig = range switch
-                {
-                    <= 125f => 0,
-                    <= 250f => 1,
-                    <= 500f => 2,
-                    <= 1000f => 3,
-                    _ => 4
-                };
-                byte configByte = (byte)((odr << 4) | rangeConfig);
-                
+                // Step 1: Configure the gyroscope using phyphox pattern
+                // Phyphox pattern: 0x13, 0x04, 0x28, 0x0C (for 100Hz, 2000dps)
+                // Format: [module, register, config_byte1, config_byte2]
+                // Similar to accelerometer pattern - use 4-byte format
                 byte[] configCommand = new byte[]
                 {
-                    0x13, 0x04, // Module ID: 0x13 (Gyroscope - BMI270 on MMS), Register ID: 0x04 (Configuration)
-                    configByte
+                    0x13, 0x04, 0x28, 0x0C  // Module 0x13, Register 0x04, Config: 0x280C (100Hz, 2000dps per phyphox pattern)
                 };
                 
-                System.Diagnostics.Debug.WriteLine($"[Gyroscope] Sending config command: [{string.Join(", ", configCommand.Select(b => $"0x{b:X2}"))}] (ODR={odr}, Range={rangeConfig})");
+                DebugLog($"[Gyroscope] Sending config command (phyphox pattern): [{string.Join(", ", configCommand.Select(b => $"0x{b:X2}"))}]");
                 
                 // Write configuration first
                 await _commandCharacteristic.WriteAsync(configCommand);
-                await Task.Delay(50); // Allow configuration to take effect
+                await Task.Delay(100); // Allow configuration to take effect
                 
-                // Step 2: Create route using Route Manager (module 0x12) for BMI270
-                // For BMI270 gyroscope, we need to create a route first
+                // Step 2: Setup route using phyphox pattern (Route Manager module 0x11, not 0x12)
+                // Based on phyphox accelerometer pattern, apply similar pattern for gyroscope
                 try
                 {
-                    System.Diagnostics.Debug.WriteLine($"[Gyroscope] Creating route using Route Manager...");
-                    // Create route: gyroscope (0x13) angular velocity data (0x03 = data producer) -> route 0x02 -> stream to notifications
-                    // For BMI270, the angular velocity data comes from register 0x03 (data producer), not 0x05
-                    // Route Manager command format: [0x12, 0x03, producer_module, producer_register, route_id, endpoint_type, endpoint_id]
-                    byte[] createRouteCommand = new byte[]
-                    {
-                        0x12, 0x03,  // Route Manager (module 0x12, register 0x03 - create route)
-                        0x13, 0x03,  // Producer: gyroscope (0x13), data producer (0x03) - NOT 0x05 for BMI270
-                        0x02,        // Route ID: 0x02 (different from accelerometer route)
-                        0x01,        // Endpoint type: 0x01 = stream (notifications)
-                        0x00         // Endpoint ID: 0x00 = default
-                    };
-                    
-                    System.Diagnostics.Debug.WriteLine($"[Gyroscope] Creating route: [{string.Join(", ", createRouteCommand.Select(b => $"0x{b:X2}"))}]");
-                    await _commandCharacteristic.WriteAsync(createRouteCommand);
-                    await Task.Delay(150); // Wait for route creation
+                    DebugLog($"[Gyroscope] Setting up route using phyphox pattern...");
+                    // Route manager setup: 0x11, 0x09, 0x06, 0x00, 0x06, 0x00, 0x00, 0x00, 0x58, 0x02
+                    byte[] routeManagerSetup = new byte[] { 0x11, 0x09, 0x06, 0x00, 0x06, 0x00, 0x00, 0x00, 0x58, 0x02 };
+                    DebugLog($"[Gyroscope] Route manager setup: [{string.Join(", ", routeManagerSetup.Select(b => $"0x{b:X2}"))}]");
+                    await _commandCharacteristic.WriteAsync(routeManagerSetup);
+                    await Task.Delay(200);
                 }
                 catch (Exception routeEx)
                 {
-                    System.Diagnostics.Debug.WriteLine($"[Gyroscope] Error creating route: {routeEx.Message}");
+                    DebugLog($"[Gyroscope] Error setting up route manager: {routeEx.Message}");
                     // Continue anyway
                 }
                 
-                // Step 3: Enable the gyroscope sensor module first (power on)
-                // For BMI270, we need to enable the sensor module before enabling the data producer
-                try
-                {
-                    // Enable gyroscope module (register 0x01 = enable/power on)
-                    byte[] enableModule = new byte[] { 0x13, 0x01, 0x01 }; // Module 0x13, Register 0x01, Enable
-                    System.Diagnostics.Debug.WriteLine($"[Gyroscope] Enabling gyroscope module: [{string.Join(", ", enableModule.Select(b => $"0x{b:X2}"))}]");
-                    await _commandCharacteristic.WriteAsync(enableModule);
-                    await Task.Delay(50);
-                }
-                catch (Exception enableEx)
-                {
-                    System.Diagnostics.Debug.WriteLine($"[Gyroscope] Error enabling module (might not be needed): {enableEx.Message}");
-                }
-                
-                // Step 4: Enable the gyroscope data producer (register 0x03 for BMI270 angular velocity data)
-                // For BMI270, register 0x03 is the data producer that generates angular velocity data
-                // After creating the route, we need to subscribe to/enable the data producer
-                byte[] enableProducer = new byte[]
-                {
-                    0x13, 0x03, 0x02  // Module ID: 0x13 (Gyroscope), Register ID: 0x03 (Data producer), Route ID: 0x02
-                };
-
-                System.Diagnostics.Debug.WriteLine($"[Gyroscope] Enabling gyroscope data producer: [{string.Join(", ", enableProducer.Select(b => $"0x{b:X2}"))}]");
-                
-                // Verify notification handler is still attached
-                if (!_notificationHandlerAttached && _notificationCharacteristic != null)
-                {
-                    System.Diagnostics.Debug.WriteLine($"[Gyroscope] WARNING: Notification handler not attached! Re-attaching...");
-                    _notificationCharacteristic.ValueUpdated -= OnNotificationReceived;
-                    _notificationCharacteristic.ValueUpdated += OnNotificationReceived;
-                    _notificationHandlerAttached = true;
-                    
-                    // Re-enable notifications if needed
-                    try
-                    {
-                        await _notificationCharacteristic.StartUpdatesAsync();
-                        System.Diagnostics.Debug.WriteLine($"[Gyroscope] Notifications re-enabled");
-                    }
-                    catch (Exception notifEx)
-                    {
-                        System.Diagnostics.Debug.WriteLine($"[Gyroscope] Error re-enabling notifications: {notifEx.Message}");
-                    }
-                }
-                
-                // Write enable producer command 
+                // Step 3: Enable the gyroscope data producer using phyphox pattern
+                // Similar to accelerometer: 0x13, 0x04, 0x01 (module 0x13, register 0x04, enable)
+                // Then: 0x13, 0x02, 0x01, 0x00 (module 0x13, register 0x02, route ID 0x0100)
+                // Then: 0x13, 0x01, 0x01 (module 0x13, register 0x01, enable module)
+                byte[] enableProducer = new byte[] { 0x13, 0x04, 0x01 };
+                DebugLog($"[Gyroscope] Enabling producer (phyphox pattern): [{string.Join(", ", enableProducer.Select(b => $"0x{b:X2}"))}]");
                 await _commandCharacteristic.WriteAsync(enableProducer);
+                await Task.Delay(100);
                 
-                // Small delay to allow command to process
-                await Task.Delay(100); // Increased delay for device to process command
+                byte[] setRoute = new byte[] { 0x13, 0x02, 0x01, 0x00 };
+                DebugLog($"[Gyroscope] Setting route ID: [{string.Join(", ", setRoute.Select(b => $"0x{b:X2}"))}]");
+                await _commandCharacteristic.WriteAsync(setRoute);
+                await Task.Delay(100);
+                
+                // Enable module: 0x13, 0x01, 0x01
+                byte[] enableModule = new byte[] { 0x13, 0x01, 0x01 };
+                DebugLog($"[Gyroscope] Enabling module: [{string.Join(", ", enableModule.Select(b => $"0x{b:X2}"))}]");
+                await _commandCharacteristic.WriteAsync(enableModule);
+                await Task.Delay(200);
                 
                 _gyroscopeActive = true;
-                System.Diagnostics.Debug.WriteLine($"[Gyroscope] Gyroscope started successfully");
+                DebugLog($"[Gyroscope] Gyroscope started successfully - expecting notifications with Module 0x13, Register 0x04 (phyphox pattern)");
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[Gyroscope] Error starting gyroscope: {ex.Message}");
-                System.Diagnostics.Debug.WriteLine($"Stack trace: {ex.StackTrace}");
+                DebugLog($"[Gyroscope] Error starting gyroscope: {ex.Message}");
+                DebugLog($"Stack trace: {ex.StackTrace}");
                 _gyroscopeActive = false;
                 throw;
             }
@@ -1003,18 +1054,18 @@ namespace Cellular.Services
 
             try
             {
-                System.Diagnostics.Debug.WriteLine($"[Gyroscope] Stopping gyroscope...");
+                DebugLog($"[Gyroscope] Stopping gyroscope...");
                 
                 // Stop gyroscope - try multiple methods
                 // Method 1: Stop data producer (register 0x05 - same as start)
                 byte[] stopProducerCommand = new byte[] { 0x13, 0x05 }; // Stop angular velocity data producer
-                System.Diagnostics.Debug.WriteLine($"[Gyroscope] Sending stop producer command (0x05): [{string.Join(", ", stopProducerCommand.Select(b => $"0x{b:X2}"))}]");
+                DebugLog($"[Gyroscope] Sending stop producer command (0x05): [{string.Join(", ", stopProducerCommand.Select(b => $"0x{b:X2}"))}]");
                 await _commandCharacteristic.WriteAsync(stopProducerCommand);
                 await Task.Delay(50);
                 
                 // Method 2: Stop command (register 0x01) - general stop
                 byte[] stopCommand1 = new byte[] { 0x13, 0x01 };
-                System.Diagnostics.Debug.WriteLine($"[Gyroscope] Sending stop command (0x01): [{string.Join(", ", stopCommand1.Select(b => $"0x{b:X2}"))}]");
+                DebugLog($"[Gyroscope] Sending stop command (0x01): [{string.Join(", ", stopCommand1.Select(b => $"0x{b:X2}"))}]");
                 await _commandCharacteristic.WriteAsync(stopCommand1);
                 await Task.Delay(50);
                 
@@ -1022,21 +1073,21 @@ namespace Cellular.Services
                 try
                 {
                     byte[] removeRouteCommand = new byte[] { 0x12, 0x02, 0x02 }; // Route Manager, remove route 0x02
-                    System.Diagnostics.Debug.WriteLine($"[Gyroscope] Removing route: [{string.Join(", ", removeRouteCommand.Select(b => $"0x{b:X2}"))}]");
+                    DebugLog($"[Gyroscope] Removing route: [{string.Join(", ", removeRouteCommand.Select(b => $"0x{b:X2}"))}]");
                     await _commandCharacteristic.WriteAsync(removeRouteCommand);
                     await Task.Delay(50);
                 }
                 catch (Exception ex2)
                 {
-                    System.Diagnostics.Debug.WriteLine($"[Gyroscope] Error removing route: {ex2.Message}");
+                    DebugLog($"[Gyroscope] Error removing route: {ex2.Message}");
                 }
                 
                 _gyroscopeActive = false;
-                System.Diagnostics.Debug.WriteLine($"[Gyroscope] Gyroscope stopped successfully");
+                DebugLog($"[Gyroscope] Gyroscope stopped successfully");
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[Gyroscope] Error stopping gyroscope: {ex.Message}");
+                DebugLog($"[Gyroscope] Error stopping gyroscope: {ex.Message}");
                 _gyroscopeActive = false; // Reset flag even if write fails
             }
         }
@@ -1080,7 +1131,7 @@ namespace Cellular.Services
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error reading device info: {ex.Message}");
+                DebugLog($"Error reading device info: {ex.Message}");
                 return new DeviceInfo { Manufacturer = "MbientLab" };
             }
         }
@@ -1116,7 +1167,7 @@ namespace Cellular.Services
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error reading characteristic {uuid}: {ex.Message}");
+                DebugLog($"Error reading characteristic {uuid}: {ex.Message}");
                 return null;
             }
         }
@@ -1126,27 +1177,39 @@ namespace Cellular.Services
             try
             {
                 // MetaWear magnetometer (BMM150) data format:
-                // Format: [module_id, register_id, x_low, x_high, y_low, y_high, z_low, z_high]
+                // Register 0x05 (without timestamp): [module_id, register_id, x_low, x_high, y_low, y_high, z_low, z_high] (8 bytes)
+                // Register 0x06 (with timestamp): [module_id, register_id, timestamp_bytes..., x_low, x_high, y_low, y_high, z_low, z_high] (12 bytes typically)
                 // BMM150 uses 16-bit signed values
                 
-                if (data.Length < 8)
+                byte registerId = data.Length > 1 ? data[1] : (byte)0;
+                int dataOffset = 2; // Start after module_id and register_id
+                
+                // If register 0x06 (with timestamp), skip 4-byte timestamp
+                if (registerId == 0x06 && data.Length >= 12)
                 {
+                    dataOffset = 6; // Skip module_id (1), register_id (1), and timestamp (4)
+                }
+                else if (data.Length < 8)
+                {
+                    DebugLog($"[Magnetometer] Data too short: {data.Length} bytes (need at least 8), Register: 0x{registerId:X2}");
                     return;
                 }
 
-                short x = BitConverter.ToInt16(data, 2);
-                short y = BitConverter.ToInt16(data, 4);
-                short z = BitConverter.ToInt16(data, 6);
+                short x = BitConverter.ToInt16(data, dataOffset);
+                short y = BitConverter.ToInt16(data, dataOffset + 2);
+                short z = BitConverter.ToInt16(data, dataOffset + 4);
 
                 // Convert to microtesla (µT) - BMM150 typically uses 16 LSB/µT for ±1300µT range
                 float xUt = x / 16.0f;
                 float yUt = y / 16.0f;
                 float zUt = z / 16.0f;
 
-                // Reduced logging - only log occasionally (every 2 seconds) to avoid performance issues
-                if ((DateTime.Now.Millisecond % 2000) < 10)
+                // Log raw data every 1 second to reduce lag (similar to accelerometer)
+                DateTime now = DateTime.Now;
+                if ((now - _lastMagnetometerLogTime).TotalSeconds >= 1.0)
                 {
-                    System.Diagnostics.Debug.WriteLine($"[Magnetometer] Data - X: {xUt:F2}µT, Y: {yUt:F2}µT, Z: {zUt:F2}µT");
+                    DebugLog($"[Magnetometer] Raw data (Reg: 0x{registerId:X2}): [{string.Join(", ", data.Select(b => $"0x{b:X2}"))}] | X: {xUt:F2}µT, Y: {yUt:F2}µT, Z: {zUt:F2}µT");
+                    _lastMagnetometerLogTime = now;
                 }
 
                 MagnetometerDataReceived?.Invoke(this, new MetaWearMagnetometerData
@@ -1159,7 +1222,8 @@ namespace Cellular.Services
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[Magnetometer] Error parsing data: {ex.Message}");
+                DebugLog($"[Magnetometer] Error parsing data: {ex.Message}");
+                DebugLog($"[Magnetometer] Raw data: [{string.Join(", ", data.Select(b => $"0x{b:X2}"))}]");
             }
         }
 
@@ -1169,32 +1233,30 @@ namespace Cellular.Services
             {
                 // MetaWear light sensor (LTR-329ALS-01) data format:
                 // Format: [module_id, register_id, visible_low, visible_high, ir_low, ir_high]
-                // 6 bytes total
+                // 6 bytes total (we only use visible)
                 
-                if (data.Length < 6)
+                if (data.Length < 4)
                 {
                     return;
                 }
 
                 ushort visible = BitConverter.ToUInt16(data, 2);
-                ushort infrared = BitConverter.ToUInt16(data, 4);
 
                 // Reduced logging - only log occasionally (every 2 seconds) to avoid performance issues
                 if ((DateTime.Now.Millisecond % 2000) < 10)
                 {
-                    System.Diagnostics.Debug.WriteLine($"[LightSensor] Data - Visible: {visible}, IR: {infrared}");
+                    DebugLog($"[LightSensor] Data - Visible: {visible}");
                 }
 
                 LightSensorDataReceived?.Invoke(this, new MetaWearLightSensorData
                 {
                     Visible = visible,
-                    Infrared = infrared,
                     Timestamp = DateTime.Now
                 });
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[LightSensor] Error parsing data: {ex.Message}");
+                DebugLog($"[LightSensor] Error parsing data: {ex.Message}");
             }
         }
 
@@ -1205,19 +1267,40 @@ namespace Cellular.Services
 
             try
             {
-                System.Diagnostics.Debug.WriteLine($"[Magnetometer] Starting magnetometer - SampleRate: {sampleRate}Hz");
+                DebugLog($"[Magnetometer] Starting magnetometer - SampleRate: {sampleRate}Hz");
                 
-                // Stop magnetometer first if already running
+                // Stop magnetometer first if already running (use full stop method for proper cleanup)
                 if (_magnetometerActive)
                 {
-                    System.Diagnostics.Debug.WriteLine($"[Magnetometer] Stopping existing magnetometer first...");
+                    DebugLog($"[Magnetometer] Stopping existing magnetometer first...");
                     await StopMagnetometerAsync();
-                    await Task.Delay(100);
+                    await Task.Delay(150); // Give it time to fully stop
                 }
 
                 // For BMM150 magnetometer (module 0x15):
-                // Step 1: Configure the magnetometer
-                // Register 0x04: Configuration (ODR, power mode, etc.)
+                // Based on MetaWear documentation, BMM150 uses:
+                // - Register 0x03: Preset configuration
+                // - Register 0x04: ODR configuration  
+                // - Register 0x05: Magnetic field data producer (without timestamp)
+                // - Register 0x06: Magnetic field data producer (with timestamp)
+                // We'll use 0x05 for the data producer
+                
+                // Step 1: Set preset mode (Regular preset = 1)
+                // Register 0x03: Preset configuration (0 = Low power, 1 = Regular, 2 = Enhanced, 3 = High accuracy)
+                try
+                {
+                    byte[] presetCommand = new byte[] { 0x15, 0x03, 0x01 }; // Module 0x15, Register 0x03, Preset=1 (Regular)
+                    DebugLog($"[Magnetometer] Setting preset mode (Regular): [{string.Join(", ", presetCommand.Select(b => $"0x{b:X2}"))}]");
+                    await _commandCharacteristic.WriteAsync(presetCommand);
+                    await Task.Delay(100); // Increased delay for preset to take effect
+                }
+                catch (Exception presetEx)
+                {
+                    DebugLog($"[Magnetometer] Error setting preset (may not be needed): {presetEx.Message}");
+                }
+
+                // Step 2: Configure the magnetometer ODR
+                // Register 0x04: Configuration (ODR setting)
                 // ODR: 0 = 10Hz, 1 = 2Hz, 2 = 6Hz, 3 = 8Hz, 4 = 15Hz, 5 = 20Hz, 6 = 25Hz, 7 = 30Hz
                 byte odr = sampleRate switch
                 {
@@ -1234,61 +1317,65 @@ namespace Cellular.Services
                     odr // ODR setting
                 };
                 
-                System.Diagnostics.Debug.WriteLine($"[Magnetometer] Sending config command: [{string.Join(", ", configCommand.Select(b => $"0x{b:X2}"))}] (ODR={odr})");
+                DebugLog($"[Magnetometer] Sending config command: [{string.Join(", ", configCommand.Select(b => $"0x{b:X2}"))}] (ODR={odr})");
                 await _commandCharacteristic.WriteAsync(configCommand);
-                await Task.Delay(50);
+                await Task.Delay(150); // Increased delay for BMM150 configuration
 
-                // Step 2: Create route using Route Manager
+                // Step 3: Create route using Route Manager (BEFORE enabling module - matches light sensor pattern)
+                // This order seems more reliable based on light sensor working pattern
                 try
                 {
-                    System.Diagnostics.Debug.WriteLine($"[Magnetometer] Creating route using Route Manager...");
+                    DebugLog($"[Magnetometer] Creating route using Route Manager...");
                     byte[] createRouteCommand = new byte[]
                     {
                         0x12, 0x03,  // Route Manager (module 0x12, register 0x03 - create route)
-                        0x15, 0x05,  // Producer: magnetometer (0x15), data producer (0x05 for BMM150)
+                        0x15, 0x05,  // Producer: magnetometer (0x15), data producer (0x05 for BMM150 magnetic field data)
                         0x03,        // Route ID: 0x03
                         0x01,        // Endpoint type: 0x01 = stream (notifications)
                         0x00         // Endpoint ID: 0x00 = default
                     };
                     
-                    System.Diagnostics.Debug.WriteLine($"[Magnetometer] Creating route: [{string.Join(", ", createRouteCommand.Select(b => $"0x{b:X2}"))}]");
+                    DebugLog($"[Magnetometer] Creating route: [{string.Join(", ", createRouteCommand.Select(b => $"0x{b:X2}"))}]");
                     await _commandCharacteristic.WriteAsync(createRouteCommand);
-                    await Task.Delay(150);
+                    await Task.Delay(200); // Increased delay for route creation
                 }
                 catch (Exception routeEx)
                 {
-                    System.Diagnostics.Debug.WriteLine($"[Magnetometer] Error creating route: {routeEx.Message}");
+                    DebugLog($"[Magnetometer] Error creating route: {routeEx.Message}");
+                    throw; // Don't continue if route creation fails
                 }
 
-                // Step 3: Enable the magnetometer module
+                // Step 4: Enable the magnetometer module (after creating route - matches light sensor pattern)
                 try
                 {
                     byte[] enableModule = new byte[] { 0x15, 0x01, 0x01 }; // Module 0x15, Register 0x01, Enable
-                    System.Diagnostics.Debug.WriteLine($"[Magnetometer] Enabling magnetometer module: [{string.Join(", ", enableModule.Select(b => $"0x{b:X2}"))}]");
+                    DebugLog($"[Magnetometer] Enabling magnetometer module: [{string.Join(", ", enableModule.Select(b => $"0x{b:X2}"))}]");
                     await _commandCharacteristic.WriteAsync(enableModule);
-                    await Task.Delay(50);
+                    await Task.Delay(100); // Delay for module to initialize
                 }
                 catch (Exception enableEx)
                 {
-                    System.Diagnostics.Debug.WriteLine($"[Magnetometer] Error enabling module: {enableEx.Message}");
+                    DebugLog($"[Magnetometer] Error enabling module: {enableEx.Message}");
+                    throw; // Don't continue if module enable fails
                 }
 
-                // Step 4: Enable the magnetometer data producer
+                // Step 5: Enable the magnetometer data producer
+                // Use register 0x05 (magnetic field data without timestamp) - this is the standard for BMM150
                 byte[] enableProducer = new byte[]
                 {
                     0x15, 0x05, 0x03  // Module ID: 0x15 (Magnetometer), Register ID: 0x05 (Data producer), Route ID: 0x03
                 };
 
-                System.Diagnostics.Debug.WriteLine($"[Magnetometer] Enabling magnetometer data producer: [{string.Join(", ", enableProducer.Select(b => $"0x{b:X2}"))}]");
+                DebugLog($"[Magnetometer] Enabling magnetometer data producer (0x05): [{string.Join(", ", enableProducer.Select(b => $"0x{b:X2}"))}]");
                 await _commandCharacteristic.WriteAsync(enableProducer);
-                await Task.Delay(100);
+                await Task.Delay(150); // Delay to ensure producer is enabled
 
                 _magnetometerActive = true;
-                System.Diagnostics.Debug.WriteLine($"[Magnetometer] Magnetometer started successfully");
+                DebugLog($"[Magnetometer] Magnetometer started successfully");
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[Magnetometer] Error starting magnetometer: {ex.Message}");
+                DebugLog($"[Magnetometer] Error starting magnetometer: {ex.Message}");
                 _magnetometerActive = false;
                 throw;
             }
@@ -1304,38 +1391,79 @@ namespace Cellular.Services
 
             try
             {
-                System.Diagnostics.Debug.WriteLine($"[Magnetometer] Stopping magnetometer...");
+                DebugLog($"[Magnetometer] Stopping magnetometer...");
                 
-                // Stop magnetometer - try multiple methods
-                byte[] stopProducerCommand = new byte[] { 0x15, 0x05 }; // Stop data producer
-                System.Diagnostics.Debug.WriteLine($"[Magnetometer] Sending stop producer command (0x05): [{string.Join(", ", stopProducerCommand.Select(b => $"0x{b:X2}"))}]");
-                await _commandCharacteristic.WriteAsync(stopProducerCommand);
-                await Task.Delay(50);
+                // Stop magnetometer - try multiple methods in reverse order of start
+                // Step 1: Disable data producers (try both 0x05 and 0x06)
+                try
+                {
+                    byte[] stopProducerCommand = new byte[] { 0x15, 0x05 }; // Stop data producer (register 0x05)
+                    DebugLog($"[Magnetometer] Sending stop producer command (0x05): [{string.Join(", ", stopProducerCommand.Select(b => $"0x{b:X2}"))}]");
+                    await _commandCharacteristic.WriteAsync(stopProducerCommand);
+                    await Task.Delay(50);
+                }
+                catch (Exception ex1)
+                {
+                    DebugLog($"[Magnetometer] Error stopping producer (0x05): {ex1.Message}");
+                }
                 
-                byte[] stopCommand1 = new byte[] { 0x15, 0x01 }; // General stop
-                System.Diagnostics.Debug.WriteLine($"[Magnetometer] Sending stop command (0x01): [{string.Join(", ", stopCommand1.Select(b => $"0x{b:X2}"))}]");
-                await _commandCharacteristic.WriteAsync(stopCommand1);
-                await Task.Delay(50);
+                try
+                {
+                    byte[] stopProducerCommand2 = new byte[] { 0x15, 0x06 }; // Stop data producer (register 0x06)
+                    DebugLog($"[Magnetometer] Sending stop producer command (0x06): [{string.Join(", ", stopProducerCommand2.Select(b => $"0x{b:X2}"))}]");
+                    await _commandCharacteristic.WriteAsync(stopProducerCommand2);
+                    await Task.Delay(50);
+                }
+                catch (Exception ex1b)
+                {
+                    DebugLog($"[Magnetometer] Error stopping producer (0x06): {ex1b.Message}");
+                }
                 
-                // Remove route using Route Manager
+                // Step 2: Remove route using Route Manager
                 try
                 {
                     byte[] removeRouteCommand = new byte[] { 0x12, 0x02, 0x03 }; // Route Manager, remove route 0x03
-                    System.Diagnostics.Debug.WriteLine($"[Magnetometer] Removing route: [{string.Join(", ", removeRouteCommand.Select(b => $"0x{b:X2}"))}]");
+                    DebugLog($"[Magnetometer] Removing route: [{string.Join(", ", removeRouteCommand.Select(b => $"0x{b:X2}"))}]");
                     await _commandCharacteristic.WriteAsync(removeRouteCommand);
                     await Task.Delay(50);
                 }
                 catch (Exception ex2)
                 {
-                    System.Diagnostics.Debug.WriteLine($"[Magnetometer] Error removing route: {ex2.Message}");
+                    DebugLog($"[Magnetometer] Error removing route: {ex2.Message}");
+                }
+                
+                // Step 3: Disable the module (reverse of enable)
+                try
+                {
+                    byte[] disableModule = new byte[] { 0x15, 0x01, 0x00 }; // Module 0x15, Register 0x01, Disable
+                    DebugLog($"[Magnetometer] Disabling module: [{string.Join(", ", disableModule.Select(b => $"0x{b:X2}"))}]");
+                    await _commandCharacteristic.WriteAsync(disableModule);
+                    await Task.Delay(50);
+                }
+                catch (Exception ex3)
+                {
+                    DebugLog($"[Magnetometer] Error disabling module: {ex3.Message}");
+                }
+                
+                // Step 4: General stop command (fallback)
+                try
+                {
+                    byte[] stopCommand1 = new byte[] { 0x15, 0x01 }; // General stop
+                    DebugLog($"[Magnetometer] Sending general stop command (0x01): [{string.Join(", ", stopCommand1.Select(b => $"0x{b:X2}"))}]");
+                    await _commandCharacteristic.WriteAsync(stopCommand1);
+                    await Task.Delay(50);
+                }
+                catch (Exception ex4)
+                {
+                    DebugLog($"[Magnetometer] Error sending general stop: {ex4.Message}");
                 }
 
                 _magnetometerActive = false;
-                System.Diagnostics.Debug.WriteLine($"[Magnetometer] Magnetometer stopped successfully");
+                DebugLog($"[Magnetometer] Magnetometer stopped successfully");
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[Magnetometer] Error stopping magnetometer: {ex.Message}");
+                DebugLog($"[Magnetometer] Error stopping magnetometer: {ex.Message}");
                 _magnetometerActive = false;
             }
         }
@@ -1347,12 +1475,12 @@ namespace Cellular.Services
 
             try
             {
-                System.Diagnostics.Debug.WriteLine($"[LightSensor] Starting light sensor - SampleRate: {sampleRate}Hz");
+                DebugLog($"[LightSensor] Starting light sensor - SampleRate: {sampleRate}Hz");
                 
                 // Stop light sensor first if already running
                 if (_lightSensorActive)
                 {
-                    System.Diagnostics.Debug.WriteLine($"[LightSensor] Stopping existing light sensor first...");
+                    DebugLog($"[LightSensor] Stopping existing light sensor first...");
                     await StopLightSensorAsync();
                     await Task.Delay(100);
                 }
@@ -1367,14 +1495,14 @@ namespace Cellular.Services
                     0x01, 0x01  // Gain and integration time settings (default)
                 };
                 
-                System.Diagnostics.Debug.WriteLine($"[LightSensor] Sending config command: [{string.Join(", ", configCommand.Select(b => $"0x{b:X2}"))}]");
+                DebugLog($"[LightSensor] Sending config command: [{string.Join(", ", configCommand.Select(b => $"0x{b:X2}"))}]");
                 await _commandCharacteristic.WriteAsync(configCommand);
                 await Task.Delay(50);
 
                 // Step 2: Create route using Route Manager
                 try
                 {
-                    System.Diagnostics.Debug.WriteLine($"[LightSensor] Creating route using Route Manager...");
+                    DebugLog($"[LightSensor] Creating route using Route Manager...");
                     byte[] createRouteCommand = new byte[]
                     {
                         0x12, 0x03,  // Route Manager (module 0x12, register 0x03 - create route)
@@ -1384,26 +1512,26 @@ namespace Cellular.Services
                         0x00         // Endpoint ID: 0x00 = default
                     };
                     
-                    System.Diagnostics.Debug.WriteLine($"[LightSensor] Creating route: [{string.Join(", ", createRouteCommand.Select(b => $"0x{b:X2}"))}]");
+                    DebugLog($"[LightSensor] Creating route: [{string.Join(", ", createRouteCommand.Select(b => $"0x{b:X2}"))}]");
                     await _commandCharacteristic.WriteAsync(createRouteCommand);
                     await Task.Delay(150);
                 }
                 catch (Exception routeEx)
                 {
-                    System.Diagnostics.Debug.WriteLine($"[LightSensor] Error creating route: {routeEx.Message}");
+                    DebugLog($"[LightSensor] Error creating route: {routeEx.Message}");
                 }
 
                 // Step 3: Enable the light sensor module
                 try
                 {
                     byte[] enableModule = new byte[] { 0x14, 0x01, 0x01 }; // Module 0x14, Register 0x01, Enable
-                    System.Diagnostics.Debug.WriteLine($"[LightSensor] Enabling light sensor module: [{string.Join(", ", enableModule.Select(b => $"0x{b:X2}"))}]");
+                    DebugLog($"[LightSensor] Enabling light sensor module: [{string.Join(", ", enableModule.Select(b => $"0x{b:X2}"))}]");
                     await _commandCharacteristic.WriteAsync(enableModule);
                     await Task.Delay(50);
                 }
                 catch (Exception enableEx)
                 {
-                    System.Diagnostics.Debug.WriteLine($"[LightSensor] Error enabling module: {enableEx.Message}");
+                    DebugLog($"[LightSensor] Error enabling module: {enableEx.Message}");
                 }
 
                 // Step 4: Enable the light sensor data producer
@@ -1412,16 +1540,16 @@ namespace Cellular.Services
                     0x14, 0x03, 0x04  // Module ID: 0x14 (Light Sensor), Register ID: 0x03 (Data producer), Route ID: 0x04
                 };
 
-                System.Diagnostics.Debug.WriteLine($"[LightSensor] Enabling light sensor data producer: [{string.Join(", ", enableProducer.Select(b => $"0x{b:X2}"))}]");
+                DebugLog($"[LightSensor] Enabling light sensor data producer: [{string.Join(", ", enableProducer.Select(b => $"0x{b:X2}"))}]");
                 await _commandCharacteristic.WriteAsync(enableProducer);
                 await Task.Delay(100);
 
                 _lightSensorActive = true;
-                System.Diagnostics.Debug.WriteLine($"[LightSensor] Light sensor started successfully");
+                DebugLog($"[LightSensor] Light sensor started successfully");
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[LightSensor] Error starting light sensor: {ex.Message}");
+                DebugLog($"[LightSensor] Error starting light sensor: {ex.Message}");
                 _lightSensorActive = false;
                 throw;
             }
@@ -1437,16 +1565,16 @@ namespace Cellular.Services
 
             try
             {
-                System.Diagnostics.Debug.WriteLine($"[LightSensor] Stopping light sensor...");
+                DebugLog($"[LightSensor] Stopping light sensor...");
                 
                 // Stop light sensor - try multiple methods
                 byte[] stopProducerCommand = new byte[] { 0x14, 0x03 }; // Stop data producer
-                System.Diagnostics.Debug.WriteLine($"[LightSensor] Sending stop producer command (0x03): [{string.Join(", ", stopProducerCommand.Select(b => $"0x{b:X2}"))}]");
+                DebugLog($"[LightSensor] Sending stop producer command (0x03): [{string.Join(", ", stopProducerCommand.Select(b => $"0x{b:X2}"))}]");
                 await _commandCharacteristic.WriteAsync(stopProducerCommand);
                 await Task.Delay(50);
                 
                 byte[] stopCommand1 = new byte[] { 0x14, 0x01 }; // General stop
-                System.Diagnostics.Debug.WriteLine($"[LightSensor] Sending stop command (0x01): [{string.Join(", ", stopCommand1.Select(b => $"0x{b:X2}"))}]");
+                DebugLog($"[LightSensor] Sending stop command (0x01): [{string.Join(", ", stopCommand1.Select(b => $"0x{b:X2}"))}]");
                 await _commandCharacteristic.WriteAsync(stopCommand1);
                 await Task.Delay(50);
                 
@@ -1454,21 +1582,21 @@ namespace Cellular.Services
                 try
                 {
                     byte[] removeRouteCommand = new byte[] { 0x12, 0x02, 0x04 }; // Route Manager, remove route 0x04
-                    System.Diagnostics.Debug.WriteLine($"[LightSensor] Removing route: [{string.Join(", ", removeRouteCommand.Select(b => $"0x{b:X2}"))}]");
+                    DebugLog($"[LightSensor] Removing route: [{string.Join(", ", removeRouteCommand.Select(b => $"0x{b:X2}"))}]");
                     await _commandCharacteristic.WriteAsync(removeRouteCommand);
                     await Task.Delay(50);
                 }
                 catch (Exception ex2)
                 {
-                    System.Diagnostics.Debug.WriteLine($"[LightSensor] Error removing route: {ex2.Message}");
+                    DebugLog($"[LightSensor] Error removing route: {ex2.Message}");
                 }
 
                 _lightSensorActive = false;
-                System.Diagnostics.Debug.WriteLine($"[LightSensor] Light sensor stopped successfully");
+                DebugLog($"[LightSensor] Light sensor stopped successfully");
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[LightSensor] Error stopping light sensor: {ex.Message}");
+                DebugLog($"[LightSensor] Error stopping light sensor: {ex.Message}");
                 _lightSensorActive = false;
             }
         }
@@ -1486,8 +1614,67 @@ namespace Cellular.Services
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error resetting device: {ex.Message}");
+                DebugLog($"Error resetting device: {ex.Message}");
                 throw;
+            }
+        }
+
+        public async Task ProbeDeviceAsync()
+        {
+            if (_commandCharacteristic == null || !IsConnected)
+            {
+                DebugLog("[Probe] Cannot probe - not connected");
+                return;
+            }
+
+            try
+            {
+                DebugLog("[Probe] ========================================");
+                DebugLog("[Probe] Starting device probe based on phyphox pattern");
+                DebugLog("[Probe] ========================================");
+                
+                // First, reset using phyphox pattern
+                DebugLog("[Probe] Step 1: Reset sequence (phyphox pattern)...");
+                await _commandCharacteristic.WriteAsync(new byte[] { 0x0B, 0x84 });
+                await Task.Delay(100);
+                await _commandCharacteristic.WriteAsync(new byte[] { 0x0F, 0x08 });
+                await Task.Delay(100);
+                await _commandCharacteristic.WriteAsync(new byte[] { 0xFE, 0x05 });
+                await Task.Delay(200);
+
+                // Try phyphox accelerometer setup sequence exactly as documented
+                DebugLog("[Probe] Step 2: Phyphox accelerometer setup sequence...");
+                await _commandCharacteristic.WriteAsync(new byte[] { 0x0B, 0x84 });
+                await Task.Delay(100);
+                // Route manager setup: 0x11, 0x09, 0x06, 0x00, 0x06, 0x00, 0x00, 0x00, 0x58, 0x02
+                await _commandCharacteristic.WriteAsync(new byte[] { 0x11, 0x09, 0x06, 0x00, 0x06, 0x00, 0x00, 0x00, 0x58, 0x02 });
+                await Task.Delay(200);
+                // Config: 0x03, 0x04, 0x28, 0x0C (ODR=0=100Hz, Range=3=16G)
+                await _commandCharacteristic.WriteAsync(new byte[] { 0x03, 0x04, 0x28, 0x0C });
+                await Task.Delay(100);
+                // Enable producer: 0x03, 0x04, 0x01 (module 0x03, register 0x04, enable)
+                await _commandCharacteristic.WriteAsync(new byte[] { 0x03, 0x04, 0x01 });
+                await Task.Delay(100);
+                // Set route: 0x03, 0x02, 0x01, 0x00 (module 0x03, register 0x02, route ID 0x0100)
+                await _commandCharacteristic.WriteAsync(new byte[] { 0x03, 0x02, 0x01, 0x00 });
+                await Task.Delay(100);
+                // Enable module: 0x03, 0x01, 0x01
+                await _commandCharacteristic.WriteAsync(new byte[] { 0x03, 0x01, 0x01 });
+                await Task.Delay(200);
+
+                DebugLog("[Probe] Accelerometer setup complete!");
+                DebugLog("[Probe] Expecting notifications: Module 0x03, Register 0x04");
+                DebugLog("[Probe] Waiting 5 seconds for accelerometer data...");
+                await Task.Delay(5000);
+
+                DebugLog("[Probe] ========================================");
+                DebugLog("[Probe] Probe complete. Check logs above for notification patterns.");
+                DebugLog("[Probe] ========================================");
+            }
+            catch (Exception ex)
+            {
+                DebugLog($"[Probe] Error during probe: {ex.Message}");
+                DebugLog($"Stack trace: {ex.StackTrace}");
             }
         }
     }

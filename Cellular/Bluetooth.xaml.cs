@@ -29,6 +29,13 @@ namespace Cellular
         private BluetoothDevice? _selectedDevice;
         private bool _isScanning;
         private bool _isConnected;
+        private bool _isNavigatingToGraphPage = false;
+        
+        // Sensor data storage for graphing
+        public List<SensorDataPoint> AccelerometerData { get; private set; } = new();
+        public List<SensorDataPoint> GyroscopeData { get; private set; } = new();
+        public List<SensorDataPoint> MagnetometerData { get; private set; } = new();
+        public List<SensorDataPoint> LightSensorData { get; private set; } = new();
 
         public ObservableCollection<BluetoothDevice> Devices
         {
@@ -105,7 +112,16 @@ namespace Cellular
             // Handle device selection
             DeviceListView.SelectionChanged += OnDeviceSelected;
             
+            // Handle navigation events to detect when returning from graph page
+            this.Appearing += OnPageAppearing;
+            
             BindingContext = this;
+        }
+
+        private void OnPageAppearing(object? sender, EventArgs e)
+        {
+            // Reset the flag when page appears (user might have navigated back)
+            _isNavigatingToGraphPage = false;
         }
 
         private void OnDeviceSelected(object? sender, SelectionChangedEventArgs e)
@@ -132,6 +148,31 @@ namespace Cellular
 
         private void OnAccelerometerDataReceived(object? sender, Services.MetaWearAccelerometerData data)
         {
+            // Store data for graphing (store all data, not throttled)
+            var timestamp = DateTime.Now;
+            lock (AccelerometerData)
+            {
+                AccelerometerData.Add(new SensorDataPoint
+                {
+                    Timestamp = timestamp,
+                    X = data.X,
+                    Y = data.Y,
+                    Z = data.Z
+                });
+                
+                // Keep only last 1000 points to avoid memory issues
+                if (AccelerometerData.Count > 1000)
+                {
+                    AccelerometerData.RemoveAt(0);
+                }
+                
+                // Debug: log every 100th data point (only if debug logging is enabled)
+                if (Services.MetaWearBleService.IsDebugLoggingEnabled && AccelerometerData.Count % 100 == 0)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[Bluetooth] Accelerometer data count: {AccelerometerData.Count}");
+                }
+            }
+            
             // Throttle UI updates - match gyroscope throttle (50ms = 20Hz) for consistent visual speed
             var now = DateTime.Now;
             if ((now - _lastAccelerometerUpdate).TotalMilliseconds < ACCELEROMETER_UPDATE_THROTTLE_MS)
@@ -149,6 +190,31 @@ namespace Cellular
 
         private void OnGyroscopeDataReceived(object? sender, Services.MetaWearGyroscopeData data)
         {
+            // Store data for graphing (store all data, not throttled)
+            var timestamp = DateTime.Now;
+            lock (GyroscopeData)
+            {
+                GyroscopeData.Add(new SensorDataPoint
+                {
+                    Timestamp = timestamp,
+                    X = data.X,
+                    Y = data.Y,
+                    Z = data.Z
+                });
+                
+                // Keep only last 1000 points to avoid memory issues
+                if (GyroscopeData.Count > 1000)
+                {
+                    GyroscopeData.RemoveAt(0);
+                }
+                
+                // Debug: log every 100th data point (only if debug logging is enabled)
+                if (Services.MetaWearBleService.IsDebugLoggingEnabled && GyroscopeData.Count % 100 == 0)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[Bluetooth] Gyroscope data count: {GyroscopeData.Count}");
+                }
+            }
+            
             // Throttle UI updates to avoid lag - only update every 50ms (20Hz)
             var now = DateTime.Now;
             if ((now - _lastGyroscopeUpdate).TotalMilliseconds < GYROSCOPE_UPDATE_THROTTLE_MS)
@@ -171,6 +237,22 @@ namespace Cellular
 
         private void OnMagnetometerDataReceived(object? sender, Services.MetaWearMagnetometerData data)
         {
+            // Store data for graphing (store all data, not throttled)
+            var timestamp = DateTime.Now;
+            MagnetometerData.Add(new SensorDataPoint
+            {
+                Timestamp = timestamp,
+                X = data.X,
+                Y = data.Y,
+                Z = data.Z
+            });
+            
+            // Keep only last 1000 points to avoid memory issues
+            if (MagnetometerData.Count > 1000)
+            {
+                MagnetometerData.RemoveAt(0);
+            }
+            
             // Throttle UI updates to avoid lag
             var now = DateTime.Now;
             if ((now - _lastMagnetometerUpdate).TotalMilliseconds < MAGNETOMETER_UPDATE_THROTTLE_MS)
@@ -188,6 +270,22 @@ namespace Cellular
 
         private void OnLightSensorDataReceived(object? sender, Services.MetaWearLightSensorData data)
         {
+            // Store data for graphing (store all data, not throttled)
+            var timestamp = DateTime.Now;
+            LightSensorData.Add(new SensorDataPoint
+            {
+                Timestamp = timestamp,
+                X = data.Visible,
+                Y = 0,
+                Z = 0 // Light sensor only has visible value
+            });
+            
+            // Keep only last 1000 points to avoid memory issues
+            if (LightSensorData.Count > 1000)
+            {
+                LightSensorData.RemoveAt(0);
+            }
+            
             // Throttle UI updates to avoid lag
             var now = DateTime.Now;
             if ((now - _lastLightSensorUpdate).TotalMilliseconds < LIGHT_SENSOR_UPDATE_THROTTLE_MS)
@@ -199,7 +297,7 @@ namespace Cellular
             
             MainThread.BeginInvokeOnMainThread(() =>
             {
-                LightSensorLabel.Text = $"Light: Visible={data.Visible}, IR={data.Infrared}";
+                LightSensorLabel.Text = $"Light: Visible={data.Visible}";
             });
         }
 
@@ -605,37 +703,102 @@ namespace Cellular
             }
         }
 
+        private async void OnProbeClicked(object sender, EventArgs e)
+        {
+            try
+            {
+                StatusLabel.Text = "Probing device...";
+                await _metaWearService.ProbeDeviceAsync();
+                StatusLabel.Text = "Probe complete - check debug logs";
+            }
+            catch (Exception ex)
+            {
+                await DisplayAlert("Probe Error", ex.Message, "OK");
+                StatusLabel.Text = "Probe failed";
+            }
+        }
+
+        private async void OnShowGraphClicked(object sender, EventArgs e)
+        {
+            // Set flag to prevent disconnection when navigating to graph page
+            _isNavigatingToGraphPage = true;
+            
+            List<SensorDataPoint> accelData, gyroData, magData, lightData;
+            
+            lock (AccelerometerData)
+            {
+                accelData = AccelerometerData.ToList();
+            }
+            lock (GyroscopeData)
+            {
+                gyroData = GyroscopeData.ToList();
+            }
+            lock (MagnetometerData)
+            {
+                magData = MagnetometerData.ToList();
+            }
+            lock (LightSensorData)
+            {
+                lightData = LightSensorData.ToList();
+            }
+            
+            // Only log if debug logging is enabled
+            if (Services.MetaWearBleService.IsDebugLoggingEnabled)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Graph] Data counts - Accel: {accelData.Count}, Gyro: {gyroData.Count}, Mag: {magData.Count}, Light: {lightData.Count}");
+            }
+            
+            var graphPage = new SensorGraphPage(
+                accelData,
+                gyroData,
+                magData,
+                lightData);
+            await Navigation.PushAsync(graphPage);
+        }
+
         protected override async void OnDisappearing()
         {
             base.OnDisappearing();
             
-            // Disconnect from device when leaving the page
-            if (_metaWearService.IsConnected)
+            // Check if we're navigating to SensorGraphPage - if so, don't disconnect
+            var navigationStack = Navigation.NavigationStack;
+            bool isNavigatingToGraph = navigationStack.Any(p => p is SensorGraphPage);
+            
+            // Also check if SensorGraphPage is being pushed (it might not be in stack yet)
+            // We'll use a flag to track this
+            if (!isNavigatingToGraph && !_isNavigatingToGraphPage)
             {
-                try
+                // Disconnect from device when leaving the page (but not when going to graph page)
+                if (_metaWearService.IsConnected)
                 {
-                    // Stop all sensors first
-                    await _metaWearService.StopAccelerometerAsync();
-                    await _metaWearService.StopGyroscopeAsync();
-                    await _metaWearService.StopMagnetometerAsync();
-                    await _metaWearService.StopLightSensorAsync();
-                    
-                    // Then disconnect
-                    await _metaWearService.DisconnectAsync();
+                    try
+                    {
+                        // Stop all sensors first
+                        await _metaWearService.StopAccelerometerAsync();
+                        await _metaWearService.StopGyroscopeAsync();
+                        await _metaWearService.StopMagnetometerAsync();
+                        await _metaWearService.StopLightSensorAsync();
+                        
+                        // Then disconnect
+                        await _metaWearService.DisconnectAsync();
+                    }
+                    catch (Exception ex)
+                    {
+                        // Log error but don't block navigation
+                        System.Diagnostics.Debug.WriteLine($"Error disconnecting on page disappear: {ex.Message}");
+                    }
                 }
-                catch (Exception ex)
-                {
-                    // Log error but don't block navigation
-                    System.Diagnostics.Debug.WriteLine($"Error disconnecting on page disappear: {ex.Message}");
-                }
+                
+                // Unsubscribe from events only if we're actually leaving (not going to graph)
+                _metaWearService.DeviceDisconnected -= OnDeviceDisconnected;
+                _metaWearService.AccelerometerDataReceived -= OnAccelerometerDataReceived;
+                _metaWearService.GyroscopeDataReceived -= OnGyroscopeDataReceived;
+                _metaWearService.MagnetometerDataReceived -= OnMagnetometerDataReceived;
+                _metaWearService.LightSensorDataReceived -= OnLightSensorDataReceived;
             }
             
-            // Unsubscribe from events
-            _metaWearService.DeviceDisconnected -= OnDeviceDisconnected;
-            _metaWearService.AccelerometerDataReceived -= OnAccelerometerDataReceived;
-            _metaWearService.GyroscopeDataReceived -= OnGyroscopeDataReceived;
-            _metaWearService.MagnetometerDataReceived -= OnMagnetometerDataReceived;
-            _metaWearService.LightSensorDataReceived -= OnLightSensorDataReceived;
+            // Reset the flag
+            _isNavigatingToGraphPage = false;
         }
     }
 
@@ -645,5 +808,13 @@ namespace Cellular
         public string Name { get; set; } = string.Empty;
         public int Rssi { get; set; }
         public IDevice? Device { get; set; }
+    }
+
+    public class SensorDataPoint
+    {
+        public DateTime Timestamp { get; set; }
+        public double X { get; set; }
+        public double Y { get; set; }
+        public double Z { get; set; }
     }
 }
