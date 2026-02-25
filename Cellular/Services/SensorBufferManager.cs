@@ -160,13 +160,20 @@ namespace Cellular.Services
         }
 
         /// <summary>
-        /// Stops buffering sensor data
+        /// Stops buffering sensor data. If a continuous save (4-second collection) was in progress,
+        /// flushes accumulated data to a temp file and raises ContinuousSaveComplete so the Video page
+        /// can save the log and then stop the video.
         /// </summary>
         public async Task StopBufferingAsync()
         {
+            List<SensorDataPoint>? dataToFlush = null;
             lock (_bufferLock)
             {
                 _isBuffering = false;
+                if (_isContinuousSaving && _allSavedPoints.Count > 0)
+                {
+                    dataToFlush = _allSavedPoints.OrderBy(p => p.Timestamp).ToList();
+                }
                 _isContinuousSaving = false;
             }
 
@@ -185,6 +192,13 @@ namespace Cellular.Services
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Error stopping sensors: {ex.Message}");
+            }
+
+            // If we had an in-progress continuous save, flush to temp file and raise ContinuousSaveComplete
+            if (dataToFlush != null)
+            {
+                System.Diagnostics.Debug.WriteLine($"[SensorBuffer] Flushing {dataToFlush.Count} points on stop (log will be saved, then video can stop)");
+                await SaveAccumulatedDataToTempFileAsync(dataToFlush);
             }
         }
 

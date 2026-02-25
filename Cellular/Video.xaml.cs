@@ -32,7 +32,14 @@ namespace Cellular
 
         //Recording state
         private bool isRecording = false;
-        private string currentVideoPath;
+        private string currentVideoPath = string.Empty;
+
+        // Stop video only after log is saved; timeout if no log save happens
+        private CancellationTokenSource? _stopVideoCts;
+
+        // Upload to RevMetrix API (Digital Ocean Space) - use your API credentials
+        private static readonly string RevMetrixApiUsername = "string";
+        private static readonly string RevMetrixApiPassword = "string";
 
         // Sensor data buffering
         private SensorBufferManager? _sensorBufferManager;
@@ -227,68 +234,139 @@ namespace Cellular
             }
             else
             {
+                // User clicked Stop: stop sensor buffering first. Video keeps recording until log is saved (or timeout).
                 try
                 {
-                    // Stop sensor buffering
+                    _stopVideoCts?.Cancel();
+                    _stopVideoCts = new CancellationTokenSource();
+                    var cts = _stopVideoCts;
+
                     if (_sensorBufferManager != null)
-                    {
                         await _sensorBufferManager.StopBufferingAsync();
-                    }
 
-                    // Update state and UI
-                    isRecording = false;
-                    Record.Text = "Record";
-                    Record.BackgroundColor = Color.FromArgb("#9880e5");
-
-                    // Stop recording
-                    CameraResult result = await cameraView.StopRecordingAsync();
-
-                    if (result == CameraResult.Success)
+                    // If we get OnContinuousSaveComplete, we'll stop the video there and upload both. Otherwise after 5s stop video and upload video only.
+                    _ = Task.Run(async () =>
                     {
-                        if (File.Exists(currentVideoPath))
+                        try
                         {
-                            try
-                            {
-                                using var videoStream = File.OpenRead(currentVideoPath);
-
-                                string fileName = Path.GetFileName(currentVideoPath);
-
-                                string initialPath = App.LastSavePath;
-
-                                var saveResult = await FileSaver.Default.SaveAsync(initialPath, fileName, videoStream, CancellationToken.None);
-
-                                if (saveResult.IsSuccessful)
-                                {
-                                    App.LastSavePath = Path.GetDirectoryName(saveResult.FilePath);
-
-                                    await DisplayAlert("Success", $"Video saved to: {saveResult.FilePath}", "OK");
-
-                                    File.Delete(currentVideoPath);
-                                }
-                                else
-                                {
-                                    await DisplayAlert("Error", $"Failed to save to gallery: {saveResult.Exception?.Message}", "OK");
-                                }
-                            }
-                            catch (Exception saveEx)
-                            {
-                                await DisplayAlert("Error", $"Error preparing to save: {saveEx.Message}", "OK");
-                            }
+                            await Task.Delay(5000, cts.Token);
                         }
-                        else
+                        catch (OperationCanceledException)
                         {
-                            await DisplayAlert("Error", "Could not find the recorded video file to save.", "OK");
+                            return;
                         }
-                    }
-                    else
-                    {
-                        await DisplayAlert("Error", "Failed to save the video.", "OK");
-                    }
+                        MainThread.BeginInvokeOnMainThread(async () =>
+                        {
+                            if (!isRecording) return;
+                            await StopVideoAndUploadVideoOnlyAsync();
+                        });
+                    });
                 }
                 catch (Exception ex)
                 {
                     await DisplayAlert("Error", $"Failed to stop recording: {ex.Message}", "OK");
                 }
+            }
+        }
+
+        /// <summary>
+        /// Stops the video and uploads only the video (no log). Used when log save never completed (timeout).
+        /// </summary>
+        private async Task StopVideoAndUploadVideoOnlyAsync()
+        {
+            if (!isRecording || string.IsNullOrEmpty(currentVideoPath)) return;
+            try
+            {
+                isRecording = false;
+                Record.Text = "Record";
+                Record.BackgroundColor = Color.FromArgb("#9880e5");
+                CameraResult result = await cameraView.StopRecordingAsync();
+                if (result == CameraResult.Success && File.Exists(currentVideoPath))
+                    await SaveAndUploadVideoAsync(currentVideoPath, logBytesForUpload: null, logFileNameForUpload: null, folderToSaveVideoTo: null);
+                else if (result != CameraResult.Success)
+                    await DisplayAlert("Error", "Failed to save the video.", "OK");
+            }
+            catch (Exception ex)
+            {
+                await DisplayAlert("Error", $"Failed to stop/upload video: {ex.Message}", "OK");
+            }
+        }
+
+        /// <summary>
+        /// Saves video to the phone (same folder as log when provided), uploads video and log to RevMetrix API.
+        /// </summary>
+        /// <param name="videoPath">Temp video file path (will be deleted after upload).</param>
+        /// <param name="logBytesForUpload">Log file content for upload (from app cache); avoids Android access-denied to user path.</param>
+        /// <param name="logFileNameForUpload">Filename for the log upload (e.g. sensor_xxx.json).</param>
+        /// <param name="folderToSaveVideoTo">Folder to save video on phone (same as log); we use FileSaver so the video is actually written on all platforms.</param>
+        private async Task SaveAndUploadVideoAsync(string videoPath, byte[]? logBytesForUpload, string? logFileNameForUpload, string? folderToSaveVideoTo)
+        {
+            // Save video to the phone using FileSaver (same folder as log when provided). On Android, folder path may be denied — retry with no initial path.
+            string? savedVideoPath = null;
+            string? saveFolder = folderToSaveVideoTo ?? App.LastSavePath;
+            if (File.Exists(videoPath))
+            {
+                string videoFileName = Path.GetFileName(videoPath);
+                for (int attempt = 0; attempt < 2; attempt++)
+                {
+                    try
+                    {
+                        using var videoStream = File.OpenRead(videoPath);
+                        var initialPath = attempt == 0 ? (saveFolder ?? "") : "";
+                        var saveResult = await FileSaver.Default.SaveAsync(initialPath, videoFileName, videoStream, CancellationToken.None);
+                        if (saveResult.IsSuccessful)
+                        {
+                            savedVideoPath = saveResult.FilePath;
+                            if (!string.IsNullOrEmpty(savedVideoPath))
+                                App.LastSavePath = Path.GetDirectoryName(savedVideoPath);
+                        }
+                        break;
+                    }
+                    catch (Exception ex) when (attempt == 0 && (ex.Message.Contains("denied", StringComparison.OrdinalIgnoreCase) || ex.Message.Contains("access", StringComparison.OrdinalIgnoreCase)))
+                    {
+                        continue; // Retry with empty initial path so user picks location
+                    }
+                    catch (Exception ex)
+                    {
+                        await DisplayAlert("Save Video", $"Video will upload to cloud but could not save to phone: {ex.Message}", "OK");
+                        break;
+                    }
+                }
+            }
+
+            var uploadService = new RevMetrixUploadService();
+            try
+            {
+                string? token = await uploadService.GetTokenAsync(RevMetrixApiUsername, RevMetrixApiPassword);
+                if (string.IsNullOrEmpty(token))
+                {
+                    await DisplayAlert("Upload Error", "Could not get API token.", "OK");
+                    return;
+                }
+                string videoKey = await uploadService.UploadFileAsync(token, videoPath, "videos", "video/mp4");
+                string? logKey = null;
+                if (logBytesForUpload != null && logBytesForUpload.Length > 0 && !string.IsNullOrEmpty(logFileNameForUpload))
+                {
+                    try
+                    {
+                        logKey = await uploadService.UploadFileAsync(token, logBytesForUpload, logFileNameForUpload, "logs", "application/json");
+                    }
+                    catch (Exception logEx)
+                    {
+                        await DisplayAlert("Log Upload", $"Video uploaded successfully. Log failed to upload: {logEx.Message}", "OK");
+                    }
+                }
+                try { File.Delete(videoPath); } catch { /* ignore */ }
+                string msg = logKey != null
+                    ? $"Video and log uploaded.\nVideo key: {videoKey}\nLog key: {logKey}"
+                    : $"Video uploaded.\nKey: {videoKey}";
+                if (!string.IsNullOrEmpty(savedVideoPath))
+                    msg += $"\n\nVideo saved to phone:\n{savedVideoPath}";
+                await DisplayAlert("Upload Complete", msg, "OK");
+            }
+            catch (Exception ex)
+            {
+                await DisplayAlert("Upload Failed", ex.Message, "OK");
             }
         }
 
@@ -346,71 +424,78 @@ namespace Cellular
 
         private void OnContinuousSaveComplete(object? sender, SensorDataSavedEventArgs e)
         {
-            // Show file picker to let user choose save location
+            // Cancel the "stop video after 5s" timeout — we will stop the video after the log is saved.
+            _stopVideoCts?.Cancel();
+
             MainThread.BeginInvokeOnMainThread(async () =>
             {
-                // Small delay to ensure any other popups are dismissed
                 await Task.Delay(500);
-                
-                // Verify temp file exists
+
                 if (!File.Exists(e.FilePath))
                 {
-                    await DisplayAlert("Error", 
-                        $"Sensor data temp file not found at:\n{e.FilePath}\n\n" +
-                        $"Please check the debug logs for details.", 
-                        "OK");
+                    await DisplayAlert("Error", $"Sensor data temp file not found at:\n{e.FilePath}", "OK");
+                    await StopVideoAndUploadVideoOnlyAsync();
                     return;
                 }
 
                 try
                 {
-                    // Open the temp file as a stream
-                    using var sensorDataStream = File.OpenRead(e.FilePath);
-                    
-                    // Get the filename
+                    // Read log into memory from app cache path (we have access). Upload from bytes to avoid touching user path on Android.
+                    byte[]? logBytesForUpload = null;
+                    string? logFileNameForUpload = null;
+                    try
+                    {
+                        logBytesForUpload = await File.ReadAllBytesAsync(e.FilePath);
+                        logFileNameForUpload = Path.GetFileName(e.FilePath);
+                    }
+                    catch (Exception readEx)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[Video] Could not read log for upload: {readEx.Message}");
+                    }
+
                     string fileName = Path.GetFileName(e.FilePath);
-                    
-                    // Use the last save path if available, otherwise use empty string
                     string initialPath = App.LastSavePath;
-                    
-                    // Show file picker to let user choose where to save
-                    var saveResult = await FileSaver.Default.SaveAsync(initialPath, fileName, sensorDataStream, CancellationToken.None);
-                    
+                    using var saveStream = logBytesForUpload != null ? (Stream)new MemoryStream(logBytesForUpload) : File.OpenRead(e.FilePath);
+                    var saveResult = await FileSaver.Default.SaveAsync(initialPath, fileName, saveStream, CancellationToken.None);
+
+                    string? logSavedDirectory = null;
                     if (saveResult.IsSuccessful)
                     {
-                        // Update last save path for next time
                         App.LastSavePath = Path.GetDirectoryName(saveResult.FilePath);
-                        
-                        // Delete the temp file after successful save
-                        try
-                        {
-                            File.Delete(e.FilePath);
-                        }
-                        catch (Exception deleteEx)
-                        {
-                            System.Diagnostics.Debug.WriteLine($"[Video] Error deleting temp file: {deleteEx.Message}");
-                        }
-                        
-                        await DisplayAlert("Success", 
-                            $"Sensor data saved successfully!\n\n" +
-                            $"File: {Path.GetFileName(saveResult.FilePath)}\n" +
-                            $"Location: {Path.GetDirectoryName(saveResult.FilePath)}\n" +
-                            $"Data Points: {e.DataPointCount}\n\n" +
-                            $"4 seconds of data have been saved.", 
+                        logSavedDirectory = App.LastSavePath;
+                    }
+
+                    // Stop the video recording now that the log is saved (or user cancelled)
+                    if (isRecording && !string.IsNullOrEmpty(currentVideoPath))
+                    {
+                        isRecording = false;
+                        Record.Text = "Record";
+                        Record.BackgroundColor = Color.FromArgb("#9880e5");
+                        var result = await cameraView.StopRecordingAsync();
+                        if (result == CameraResult.Success && File.Exists(currentVideoPath))
+                            await SaveAndUploadVideoAsync(currentVideoPath, logBytesForUpload, logFileNameForUpload, folderToSaveVideoTo: logSavedDirectory);
+                        else if (result != CameraResult.Success)
+                            await DisplayAlert("Error", "Failed to save the video.", "OK");
+                    }
+
+                    try { if (File.Exists(e.FilePath)) File.Delete(e.FilePath); } catch (Exception deleteEx) { System.Diagnostics.Debug.WriteLine($"[Video] Error deleting temp log: {deleteEx.Message}"); }
+
+                    if (saveResult.IsSuccessful && logBytesForUpload != null)
+                    {
+                        await DisplayAlert("Success",
+                            $"Sensor data saved.\nData Points: {e.DataPointCount}\n\nVideo and log have been uploaded to RevMetrix.",
                             "OK");
                     }
-                    else
+                    else if (!saveResult.IsSuccessful)
                     {
-                        await DisplayAlert("Error", 
-                            $"Failed to save sensor data: {saveResult.Exception?.Message ?? "Unknown error"}", 
-                            "OK");
+                        await DisplayAlert("Error", $"Failed to save sensor data: {saveResult.Exception?.Message ?? "Unknown error"}", "OK");
                     }
                 }
                 catch (Exception ex)
                 {
-                    await DisplayAlert("Error", 
-                        $"Error preparing to save sensor data: {ex.Message}", 
-                        "OK");
+                    await DisplayAlert("Error", $"Error preparing to save sensor data: {ex.Message}", "OK");
+                    if (isRecording)
+                        await StopVideoAndUploadVideoOnlyAsync();
                 }
             });
         }

@@ -15,9 +15,9 @@ namespace Cellular.Services
     /// </summary>
     public class MetaWearBleService : IMetaWearService
     {
-        // ============================================================================
-        // DEBUG CONTROL: Set this to false to disable all debug logging
-        // ============================================================================
+        // ========================================================================================
+        // DEBUG CONTROL: Set this to false to disable all debug logging. This Lags the Phone Hard.
+        // ========================================================================================
         private const bool EnableDebugLogging = false;
         public static bool IsDebugLoggingEnabled => EnableDebugLogging;
         // ============================================================================
@@ -41,25 +41,18 @@ namespace Cellular.Services
         private static readonly Guid BatteryServiceUuid = Guid.Parse("0000180f-0000-1000-8000-00805f9b34fb");
         private static readonly Guid BatteryLevelCharacteristicUuid = Guid.Parse("00002a19-0000-1000-8000-00805f9b34fb");
 
-        // -------------------------------------------------------------------------
-        // MetaWear C++ SDK-aligned constants (mbientlab/MetaWear-SDK-Cpp)
-        // Module IDs from core/module.h (MblMwModule)
-        // -------------------------------------------------------------------------
+        // MetaWear C++ SDK constants we use (mbientlab/MetaWear-SDK-Cpp)
+        // Module IDs: route BLE notifications (first byte). Scales: raw int16 → g, °/s, µT.
         private const byte MW_MODULE_ACCELEROMETER = 3;
         private const byte MW_MODULE_GYRO = 19;
         private const byte MW_MODULE_AMBIENT_LIGHT = 20;
         private const byte MW_MODULE_MAGNETOMETER = 21;
 
-        // Accelerometer LSB/g from sensor/cpp/accelerometer_bosch.cpp (BMI160_FSR_SCALE, BMI270_FSR_SCALE)
         private const float ACC_SCALE_2G = 16384f;
         private const float ACC_SCALE_4G = 8192f;
         private const float ACC_SCALE_8G = 4096f;
         private const float ACC_SCALE_16G = 2048f;
-
-        // Gyroscope LSB/(°/s) from sensor/cpp/gyro_bosch.cpp FSR_SCALE[5]; index 0 = 2000dps
         private const float GYRO_SCALE_2000DPS = 16.4f;
-
-        // Magnetometer LSB/µT from impl/cpp/datainterpreter.cpp BMM150_SCALE
         private const float BMM150_SCALE = 16f;
 
         private readonly IBluetoothLE _bluetoothLE;
@@ -736,6 +729,10 @@ namespace Cellular.Services
                 // Set LSB/g from range (C++ SDK: BMI160_FSR_SCALE / BMI270_FSR_SCALE)
                 _accelLsbPerG = range switch { <= 2f => ACC_SCALE_2G, <= 4f => ACC_SCALE_4G, <= 8f => ACC_SCALE_8G, _ => ACC_SCALE_16G };
 
+                // Ensure device info is loaded so we can choose BMI160 vs BMI270 config (MMS = BMI270)
+                if (_cachedDeviceInfo == null)
+                    _ = await GetDeviceInfoAsync();
+
                 // Stop accelerometer first if already running
                 if (_accelerometerActive)
                 {
@@ -763,14 +760,23 @@ namespace Cellular.Services
                 }
 
                 // Exact phyphox accelerometer sequence:
-                // 0303280c  → Config on register 0x03
+                // 0303xxxx  → Config on register 0x03 (payload depends on chip)
                 // 030401    → Enable data producer on register 0x04
                 // 03020100  → Subscribe on register 0x02
                 // 030101    → Enable module on register 0x01
 
-                // Step 1: Configure accelerometer - register 0x03 (phyphox: 0303280c)
-                byte[] configCommand = new byte[] { 0x03, 0x03, 0x28, 0x0C };
-                DebugLog($"[Accelerometer] Config (register 0x03): [{string.Join(", ", configCommand.Select(b => $"0x{b:X2}"))}]");
+                // Step 1: Configure accelerometer - register 0x03. Build payload from range (C++ SDK: BMI160 vs BMI270).
+                // BMI160 (MMC): FSR 2g=0x3, 4g=0x5, 8g=0x8, 16g=0xc; first byte 0x28 (ODR/bwp/us).
+                // BMI270 (MMS): FSR 2g=0x0, 4g=0x1, 8g=0x2, 16g=0x3; first byte 0xa8 (SDK default).
+                int rangeIndex = range <= 2f ? 0 : range <= 4f ? 1 : range <= 8f ? 2 : 3;
+                bool isBmi270 = _cachedDeviceInfo?.Model?.Contains("MetaMotion S", StringComparison.OrdinalIgnoreCase) == true
+                    || _cachedDeviceInfo?.Model?.Contains("MMS", StringComparison.OrdinalIgnoreCase) == true;
+                byte configByte0 = isBmi270 ? (byte)0xa8 : (byte)0x28;
+                byte rangeByte = isBmi270
+                    ? (byte)rangeIndex
+                    : (byte)(rangeIndex == 0 ? 0x3 : rangeIndex == 1 ? 0x5 : rangeIndex == 2 ? 0x8 : 0xc);
+                byte[] configCommand = new byte[] { 0x03, 0x03, configByte0, rangeByte };
+                DebugLog($"[Accelerometer] Config (register 0x03) {(isBmi270 ? "BMI270" : "BMI160")} {range}G: [{string.Join(", ", configCommand.Select(b => $"0x{b:X2}"))}]");
                 await WriteCommandAsync(configCommand);
                 await Task.Delay(100);
 
