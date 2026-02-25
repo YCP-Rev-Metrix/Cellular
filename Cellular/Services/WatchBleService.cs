@@ -164,18 +164,45 @@ namespace Cellular.Services
         public async Task<bool> SendJsonToWatch(object json)
         {
             if (!IsConnected || _commandChar == null)
+            {
+                Debug.WriteLine("SendJsonToWatch: Not connected or no characteristic");
                 return false;
+            }
 
             string payload = JsonSerializer.Serialize(json);
             byte[] bytes = System.Text.Encoding.UTF8.GetBytes(payload);
 
+            Debug.WriteLine($"SendJsonToWatch: Payload size = {bytes.Length} bytes");
+            Debug.WriteLine($"SendJsonToWatch: Payload = {payload}");
+
             try
             {
-                await _commandChar.WriteAsync(bytes);
+                const int chunkSize = 20;
+                int totalChunks = (bytes.Length + chunkSize - 1) / chunkSize;
+
+                Debug.WriteLine($"SendJsonToWatch: Sending in {totalChunks} chunks of {chunkSize} bytes");
+
+                for (int i = 0; i < bytes.Length; i += chunkSize)
+                {
+                    int length = Math.Min(chunkSize, bytes.Length - i);
+                    byte[] chunk = new byte[length];
+                    Array.Copy(bytes, i, chunk, 0, length);
+
+                    await _commandChar.WriteAsync(chunk);
+                    Debug.WriteLine($"SendJsonToWatch: Sent chunk {(i / chunkSize) + 1}/{totalChunks} ({length} bytes)");
+
+                    if (i + chunkSize < bytes.Length)
+                    {
+                        await Task.Delay(50);
+                    }
+                }
+
+                Debug.WriteLine("SendJsonToWatch: All chunks sent successfully");
                 return true;
             }
-            catch
+            catch (Exception ex)
             {
+                Debug.WriteLine($"SendJsonToWatch: Error = {ex.Message}");
                 return false;
             }
         }

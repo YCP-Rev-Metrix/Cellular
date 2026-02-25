@@ -10,6 +10,9 @@ using Plugin.BLE.Abstractions.EventArgs;
 using Cellular.Services;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Maui.ApplicationModel;
+using Cellular.Data;
+using Cellular.ViewModel;
+using Microsoft.Maui.Storage;
 #if ANDROID
 using Android;
 using Android.Content.PM;
@@ -32,6 +35,9 @@ namespace Cellular
         private readonly IBluetoothLE _ble = CrossBluetoothLE.Current;
         private readonly IAdapter _adapter = CrossBluetoothLE.Current.Adapter;
         private readonly IWatchBleService _watchBleService;
+        private readonly UserRepository _userRepository;
+        private readonly SessionRepository _sessionRepository;
+        private readonly BallRepository _ballRepository;
 
         private ObservableCollection<BluetoothDeviceWatch> _devices;
         private BluetoothDeviceWatch? _selectedDevice;
@@ -91,6 +97,12 @@ namespace Cellular
         {
             InitializeComponent();
             _watchBleService = watchBleService;
+
+            var dbConnection = new CellularDatabase().GetConnection();
+            _userRepository = new UserRepository(dbConnection);
+            _sessionRepository = new SessionRepository(dbConnection);
+            _ballRepository = new BallRepository(dbConnection);
+
             Devices = BlankPageStore.SavedDevices ?? new ObservableCollection<BluetoothDeviceWatch>();
             _selectedDevice = BlankPageStore.SavedSelected;
             _isConnected = BlankPageStore.SavedIsConnected;
@@ -326,6 +338,8 @@ namespace Cellular
                 {
                     IsConnected = true;
                     StatusLabel.Text = $"Connected to {SelectedDevice.Name}";
+
+                    await SendUserDataToWatch();
                 }
                 else
                 {
@@ -335,6 +349,69 @@ namespace Cellular
             catch (Exception ex)
             {
                 await DisplayAlert("Connect Error", ex.Message, "OK");
+            }
+        }
+
+        private async Task SendUserDataToWatch()
+        {
+            try
+            {
+                int userId = Preferences.Get("UserId", -1);
+                if (userId == -1)
+                {
+                    System.Diagnostics.Debug.WriteLine("PHONE BLE SEND → No user logged in");
+                    return;
+                }
+
+                var user = await _userRepository.GetUserByIdAsync(userId);
+                if (user == null)
+                {
+                    System.Diagnostics.Debug.WriteLine("PHONE BLE SEND → User not found");
+                    return;
+                }
+
+                var sessions = await _sessionRepository.GetSessionsByUserIdAsync(userId);
+                var balls = await _ballRepository.GetBallsByUserIdAsync(userId);
+
+                var sessionData = sessions.Select(s => new
+                {
+                    sessionId = s.SessionId,
+                    sessionNumber = s.SessionNumber
+                }).ToList();
+
+                var ballData = balls.Select(b => new
+                {
+                    ballId = b.BallId,
+                    name = b.Name
+                }).ToList();
+
+                var userData = new
+                {
+                    cmd = "userData",
+                    username = user.UserName,
+                    hand = user.Hand,
+                    sessions = sessionData,
+                    balls = ballData
+                };
+
+                var jsonString = System.Text.Json.JsonSerializer.Serialize(userData);
+                System.Diagnostics.Debug.WriteLine($"PHONE BLE SEND → {jsonString}");
+
+                bool success = await _watchBleService.SendJsonToWatch(userData);
+
+                if (success)
+                {
+                    System.Diagnostics.Debug.WriteLine("PHONE BLE SEND → Success");
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine("PHONE BLE SEND → Failed");
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"PHONE BLE SEND → Error: {ex.Message}");
+                await DisplayAlert("Data Send Error", ex.Message, "OK");
             }
         }
 
