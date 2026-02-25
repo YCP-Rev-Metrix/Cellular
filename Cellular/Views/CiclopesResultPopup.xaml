@@ -1,0 +1,389 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<toolkit:Popup xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+               xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+               xmlns:toolkit="clr-namespace:CommunityToolkit.Maui.Views;assembly=CommunityToolkit.Maui"
+               xmlns:views="clr-namespace:Cellular.Views"
+               x:Class="Cellular.Views.CiclopesResultPopup"
+               CanBeDismissedByTappingOutsideOfPopup="True">
+    <Border StrokeShape="RoundRectangle 14"
+            Padding="0"
+            StrokeThickness="0"
+            BackgroundColor="#f8f7fc">
+        <Grid WidthRequest="780" HeightRequest="940"
+              ColumnDefinitions="200,*"
+              ColumnSpacing="0">
+
+            <!-- ===== BALL PANE (lane + stats) ===== -->
+            <Grid x:Name="BallPane" IsVisible="True"
+                  Grid.ColumnSpan="2"
+                  ColumnDefinitions="200,*"
+                  ColumnSpacing="0">
+
+                <!-- Lane column -->
+                <GraphicsView x:Name="BallPlotView"
+                              Grid.Column="0"
+                              Margin="0"/>
+
+                <!-- Stats column -->
+                <ScrollView Grid.Column="1" Padding="14,10,14,10">
+                    <VerticalStackLayout Spacing="10">
+                        <!-- Section: Position -->
+                        <Label Text="POSITION"
+                               FontSize="11"
+                               FontAttributes="Bold"
+                               TextColor="#512BD4"
+                               CharacterSpacing="1.5"
+                               Margin="4,4,0,0"/>
+                        <Grid ColumnDefinitions="*,*" ColumnSpacing="10" RowDefinitions="Auto,Auto,Auto"
+                              RowSpacing="10">
+                            <!-- Entry X -->
+                            <Border Grid.Row="0" Grid.Column="0"
+                                    StrokeShape="RoundRectangle 10" StrokeThickness="0" Padding="0">
+                                <Border.Shadow>
+                                    <Shadow Brush="#30000000" Offset="0,2" Radius="6" Opacity="0.35"/>
+                                </Border.Shadow>
+                                <Grid RowDefinitions="Auto,Auto" BackgroundColor="Transparent">
+                                    <Grid.Background>
+                                        <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                            <GradientStop Color="#eae4f8" Offset="0.0"/>
+                                            <GradientStop Color="White" Offset="1.0"/>
+                                        </LinearGradientBrush>
+                                    </Grid.Background>
+                                    <Label Grid.Row="0" Text="Entry X" FontSize="11" FontAttributes="Bold"
+                                           TextColor="#6b5b95" Margin="10,8,10,4"/>
+                                    <BoxView Grid.Row="0" HeightRequest="1" Color="#d8d0eb"
+                                             VerticalOptions="End" Margin="8,0"/>
+                                    <Label x:Name="StatEntryX" Grid.Row="1" Text="--"
+                                           FontSize="20" FontAttributes="Bold"
+                                           TextColor="#1f1f1f" HorizontalTextAlignment="Center"
+                                           Margin="10,8,10,10"/>
+                                </Grid>
+                            </Border>
+                            <!-- Exit X -->
+                            <Border Grid.Row="0" Grid.Column="1"
+                                    StrokeShape="RoundRectangle 10" StrokeThickness="0" Padding="0">
+                                <Border.Shadow>
+                                    <Shadow Brush="#30000000" Offset="0,2" Radius="6" Opacity="0.35"/>
+                                </Border.Shadow>
+                                <Grid RowDefinitions="Auto,Auto">
+                                    <Grid.Background>
+                                        <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                            <GradientStop Color="#eae4f8" Offset="0.0"/>
+                                            <GradientStop Color="White" Offset="1.0"/>
+                                        </LinearGradientBrush>
+                                    </Grid.Background>
+                                    <Label Grid.Row="0" Text="Exit X" FontSize="11" FontAttributes="Bold"
+                                           TextColor="#6b5b95" Margin="10,8,10,4"/>
+                                    <BoxView Grid.Row="0" HeightRequest="1" Color="#d8d0eb"
+                                             VerticalOptions="End" Margin="8,0"/>
+                                    <Label x:Name="StatExitX" Grid.Row="1" Text="--"
+                                           FontSize="20" FontAttributes="Bold"
+                                           TextColor="#1f1f1f" HorizontalTextAlignment="Center"
+                                           Margin="10,8,10,10"/>
+                                </Grid>
+                            </Border>
+                            <!-- Lateral Drift -->
+                            <Border Grid.Row="1" Grid.Column="0"
+                                    StrokeShape="RoundRectangle 10" StrokeThickness="0" Padding="0">
+                                <Border.Shadow>
+                                    <Shadow Brush="#30000000" Offset="0,2" Radius="6" Opacity="0.35"/>
+                                </Border.Shadow>
+                                <Grid RowDefinitions="Auto,Auto">
+                                    <Grid.Background>
+                                        <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                            <GradientStop Color="#eae4f8" Offset="0.0"/>
+                                            <GradientStop Color="White" Offset="1.0"/>
+                                        </LinearGradientBrush>
+                                    </Grid.Background>
+                                    <Label Grid.Row="0" Text="Lateral Drift" FontSize="11" FontAttributes="Bold"
+                                           TextColor="#6b5b95" Margin="10,8,10,4"/>
+                                    <BoxView Grid.Row="0" HeightRequest="1" Color="#d8d0eb"
+                                             VerticalOptions="End" Margin="8,0"/>
+                                    <Label x:Name="StatDrift" Grid.Row="1" Text="--"
+                                           FontSize="20" FontAttributes="Bold"
+                                           TextColor="#1f1f1f" HorizontalTextAlignment="Center"
+                                           Margin="10,8,10,10"/>
+                                </Grid>
+                            </Border>
+                            <!-- Lane Coverage -->
+                            <Border Grid.Row="1" Grid.Column="1"
+                                    StrokeShape="RoundRectangle 10" StrokeThickness="0" Padding="0">
+                                <Border.Shadow>
+                                    <Shadow Brush="#30000000" Offset="0,2" Radius="6" Opacity="0.35"/>
+                                </Border.Shadow>
+                                <Grid RowDefinitions="Auto,Auto">
+                                    <Grid.Background>
+                                        <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                            <GradientStop Color="#eae4f8" Offset="0.0"/>
+                                            <GradientStop Color="White" Offset="1.0"/>
+                                        </LinearGradientBrush>
+                                    </Grid.Background>
+                                    <Label Grid.Row="0" Text="Lane Coverage" FontSize="11" FontAttributes="Bold"
+                                           TextColor="#6b5b95" Margin="10,8,10,4"/>
+                                    <BoxView Grid.Row="0" HeightRequest="1" Color="#d8d0eb"
+                                             VerticalOptions="End" Margin="8,0"/>
+                                    <Label x:Name="StatCoverage" Grid.Row="1" Text="--"
+                                           FontSize="20" FontAttributes="Bold"
+                                           TextColor="#1f1f1f" HorizontalTextAlignment="Center"
+                                           Margin="10,8,10,10"/>
+                                </Grid>
+                            </Border>
+                            <!-- Sample Count -->
+                            <Border Grid.Row="2" Grid.Column="0"
+                                    StrokeShape="RoundRectangle 10" StrokeThickness="0" Padding="0">
+                                <Border.Shadow>
+                                    <Shadow Brush="#30000000" Offset="0,2" Radius="6" Opacity="0.35"/>
+                                </Border.Shadow>
+                                <Grid RowDefinitions="Auto,Auto">
+                                    <Grid.Background>
+                                        <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                            <GradientStop Color="#eae4f8" Offset="0.0"/>
+                                            <GradientStop Color="White" Offset="1.0"/>
+                                        </LinearGradientBrush>
+                                    </Grid.Background>
+                                    <Label Grid.Row="0" Text="Samples" FontSize="11" FontAttributes="Bold"
+                                           TextColor="#6b5b95" Margin="10,8,10,4"/>
+                                    <BoxView Grid.Row="0" HeightRequest="1" Color="#d8d0eb"
+                                             VerticalOptions="End" Margin="8,0"/>
+                                    <Label x:Name="StatSamples" Grid.Row="1" Text="--"
+                                           FontSize="20" FontAttributes="Bold"
+                                           TextColor="#1f1f1f" HorizontalTextAlignment="Center"
+                                           Margin="10,8,10,10"/>
+                                </Grid>
+                            </Border>
+                            <!-- Quarters -->
+                            <Border Grid.Row="2" Grid.Column="1"
+                                    StrokeShape="RoundRectangle 10" StrokeThickness="0" Padding="0">
+                                <Border.Shadow>
+                                    <Shadow Brush="#30000000" Offset="0,2" Radius="6" Opacity="0.35"/>
+                                </Border.Shadow>
+                                <Grid RowDefinitions="Auto,Auto">
+                                    <Grid.Background>
+                                        <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                            <GradientStop Color="#eae4f8" Offset="0.0"/>
+                                            <GradientStop Color="White" Offset="1.0"/>
+                                        </LinearGradientBrush>
+                                    </Grid.Background>
+                                    <Label Grid.Row="0" Text="Quarters" FontSize="11" FontAttributes="Bold"
+                                           TextColor="#6b5b95" Margin="10,8,10,4"/>
+                                    <BoxView Grid.Row="0" HeightRequest="1" Color="#d8d0eb"
+                                             VerticalOptions="End" Margin="8,0"/>
+                                    <Label x:Name="StatQuarters" Grid.Row="1" Text="--"
+                                           FontSize="20" FontAttributes="Bold"
+                                           TextColor="#1f1f1f" HorizontalTextAlignment="Center"
+                                           Margin="10,8,10,10"/>
+                                </Grid>
+                            </Border>
+                        </Grid>
+
+                        <!-- Section: Kinematics -->
+                        <Label Text="KINEMATICS"
+                               FontSize="11"
+                               FontAttributes="Bold"
+                               TextColor="#512BD4"
+                               CharacterSpacing="1.5"
+                               Margin="4,6,0,0"/>
+                        <Grid ColumnDefinitions="*,*" ColumnSpacing="10" RowDefinitions="Auto,Auto,Auto"
+                              RowSpacing="10">
+                            <!-- Avg Speed -->
+                            <Border Grid.Row="0" Grid.Column="0"
+                                    StrokeShape="RoundRectangle 10" StrokeThickness="0" Padding="0">
+                                <Border.Shadow>
+                                    <Shadow Brush="#30000000" Offset="0,2" Radius="6" Opacity="0.35"/>
+                                </Border.Shadow>
+                                <Grid RowDefinitions="Auto,Auto">
+                                    <Grid.Background>
+                                        <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                            <GradientStop Color="#e4e8f8" Offset="0.0"/>
+                                            <GradientStop Color="White" Offset="1.0"/>
+                                        </LinearGradientBrush>
+                                    </Grid.Background>
+                                    <Label Grid.Row="0" Text="Avg Speed" FontSize="11" FontAttributes="Bold"
+                                           TextColor="#4a5a8a" Margin="10,8,10,4"/>
+                                    <BoxView Grid.Row="0" HeightRequest="1" Color="#ced4e8"
+                                             VerticalOptions="End" Margin="8,0"/>
+                                    <Label x:Name="StatAvgSpeed" Grid.Row="1" Text="--"
+                                           FontSize="20" FontAttributes="Bold"
+                                           TextColor="#1f1f1f" HorizontalTextAlignment="Center"
+                                           Margin="10,8,10,10"/>
+                                </Grid>
+                            </Border>
+                            <!-- Peak Speed -->
+                            <Border Grid.Row="0" Grid.Column="1"
+                                    StrokeShape="RoundRectangle 10" StrokeThickness="0" Padding="0">
+                                <Border.Shadow>
+                                    <Shadow Brush="#30000000" Offset="0,2" Radius="6" Opacity="0.35"/>
+                                </Border.Shadow>
+                                <Grid RowDefinitions="Auto,Auto">
+                                    <Grid.Background>
+                                        <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                            <GradientStop Color="#e4e8f8" Offset="0.0"/>
+                                            <GradientStop Color="White" Offset="1.0"/>
+                                        </LinearGradientBrush>
+                                    </Grid.Background>
+                                    <Label Grid.Row="0" Text="Peak Speed" FontSize="11" FontAttributes="Bold"
+                                           TextColor="#4a5a8a" Margin="10,8,10,4"/>
+                                    <BoxView Grid.Row="0" HeightRequest="1" Color="#ced4e8"
+                                             VerticalOptions="End" Margin="8,0"/>
+                                    <Label x:Name="StatPeakSpeed" Grid.Row="1" Text="--"
+                                           FontSize="20" FontAttributes="Bold"
+                                           TextColor="#1f1f1f" HorizontalTextAlignment="Center"
+                                           Margin="10,8,10,10"/>
+                                </Grid>
+                            </Border>
+                            <!-- Avg Accel -->
+                            <Border Grid.Row="1" Grid.Column="0"
+                                    StrokeShape="RoundRectangle 10" StrokeThickness="0" Padding="0">
+                                <Border.Shadow>
+                                    <Shadow Brush="#30000000" Offset="0,2" Radius="6" Opacity="0.35"/>
+                                </Border.Shadow>
+                                <Grid RowDefinitions="Auto,Auto">
+                                    <Grid.Background>
+                                        <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                            <GradientStop Color="#e4e8f8" Offset="0.0"/>
+                                            <GradientStop Color="White" Offset="1.0"/>
+                                        </LinearGradientBrush>
+                                    </Grid.Background>
+                                    <Label Grid.Row="0" Text="Avg Accel" FontSize="11" FontAttributes="Bold"
+                                           TextColor="#4a5a8a" Margin="10,8,10,4"/>
+                                    <BoxView Grid.Row="0" HeightRequest="1" Color="#ced4e8"
+                                             VerticalOptions="End" Margin="8,0"/>
+                                    <Label x:Name="StatAvgAccel" Grid.Row="1" Text="--"
+                                           FontSize="20" FontAttributes="Bold"
+                                           TextColor="#1f1f1f" HorizontalTextAlignment="Center"
+                                           Margin="10,8,10,10"/>
+                                </Grid>
+                            </Border>
+                            <!-- Peak Accel -->
+                            <Border Grid.Row="1" Grid.Column="1"
+                                    StrokeShape="RoundRectangle 10" StrokeThickness="0" Padding="0">
+                                <Border.Shadow>
+                                    <Shadow Brush="#30000000" Offset="0,2" Radius="6" Opacity="0.35"/>
+                                </Border.Shadow>
+                                <Grid RowDefinitions="Auto,Auto">
+                                    <Grid.Background>
+                                        <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                            <GradientStop Color="#e4e8f8" Offset="0.0"/>
+                                            <GradientStop Color="White" Offset="1.0"/>
+                                        </LinearGradientBrush>
+                                    </Grid.Background>
+                                    <Label Grid.Row="0" Text="Peak Accel" FontSize="11" FontAttributes="Bold"
+                                           TextColor="#4a5a8a" Margin="10,8,10,4"/>
+                                    <BoxView Grid.Row="0" HeightRequest="1" Color="#ced4e8"
+                                             VerticalOptions="End" Margin="8,0"/>
+                                    <Label x:Name="StatPeakAccel" Grid.Row="1" Text="--"
+                                           FontSize="20" FontAttributes="Bold"
+                                           TextColor="#1f1f1f" HorizontalTextAlignment="Center"
+                                           Margin="10,8,10,10"/>
+                                </Grid>
+                            </Border>
+                            <!-- Entry Speed -->
+                            <Border Grid.Row="2" Grid.Column="0"
+                                    StrokeShape="RoundRectangle 10" StrokeThickness="0" Padding="0">
+                                <Border.Shadow>
+                                    <Shadow Brush="#30000000" Offset="0,2" Radius="6" Opacity="0.35"/>
+                                </Border.Shadow>
+                                <Grid RowDefinitions="Auto,Auto">
+                                    <Grid.Background>
+                                        <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                            <GradientStop Color="#e4e8f8" Offset="0.0"/>
+                                            <GradientStop Color="White" Offset="1.0"/>
+                                        </LinearGradientBrush>
+                                    </Grid.Background>
+                                    <Label Grid.Row="0" Text="Entry Speed" FontSize="11" FontAttributes="Bold"
+                                           TextColor="#4a5a8a" Margin="10,8,10,4"/>
+                                    <BoxView Grid.Row="0" HeightRequest="1" Color="#ced4e8"
+                                             VerticalOptions="End" Margin="8,0"/>
+                                    <Label x:Name="StatEntrySpeed" Grid.Row="1" Text="--"
+                                           FontSize="20" FontAttributes="Bold"
+                                           TextColor="#1f1f1f" HorizontalTextAlignment="Center"
+                                           Margin="10,8,10,10"/>
+                                </Grid>
+                            </Border>
+                            <!-- Exit Speed -->
+                            <Border Grid.Row="2" Grid.Column="1"
+                                    StrokeShape="RoundRectangle 10" StrokeThickness="0" Padding="0">
+                                <Border.Shadow>
+                                    <Shadow Brush="#30000000" Offset="0,2" Radius="6" Opacity="0.35"/>
+                                </Border.Shadow>
+                                <Grid RowDefinitions="Auto,Auto">
+                                    <Grid.Background>
+                                        <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                            <GradientStop Color="#e4e8f8" Offset="0.0"/>
+                                            <GradientStop Color="White" Offset="1.0"/>
+                                        </LinearGradientBrush>
+                                    </Grid.Background>
+                                    <Label Grid.Row="0" Text="Exit Speed" FontSize="11" FontAttributes="Bold"
+                                           TextColor="#4a5a8a" Margin="10,8,10,4"/>
+                                    <BoxView Grid.Row="0" HeightRequest="1" Color="#ced4e8"
+                                             VerticalOptions="End" Margin="8,0"/>
+                                    <Label x:Name="StatExitSpeed" Grid.Row="1" Text="--"
+                                           FontSize="20" FontAttributes="Bold"
+                                           TextColor="#1f1f1f" HorizontalTextAlignment="Center"
+                                           Margin="10,8,10,10"/>
+                                </Grid>
+                            </Border>
+                        </Grid>
+                    </VerticalStackLayout>
+                </ScrollView>
+            </Grid>
+
+            <!-- ===== POSE PANE ===== -->
+            <Grid x:Name="PosePane" IsVisible="False"
+                  Grid.ColumnSpan="2"
+                  RowDefinitions="*,Auto"
+                  Padding="10">
+                <views:CiclopesPoseView Grid.Row="0"/>
+
+                <Grid Grid.Row="1"
+                      Margin="0,6,0,0"
+                      ColumnDefinitions="*,Auto"
+                      ColumnSpacing="8">
+                    <Slider x:Name="FrameSlider"
+                            Grid.Column="0"
+                            Minimum="0"
+                            Maximum="0"
+                            Value="0"
+                            ValueChanged="OnFrameSliderValueChanged"
+                            VerticalOptions="Center"/>
+                    <Button x:Name="PlayStopButton"
+                            Grid.Column="1"
+                            Text="&#x25B6;"
+                            FontSize="20"
+                            Clicked="OnPlayStopClicked"
+                            WidthRequest="50"
+                            HeightRequest="50"/>
+                </Grid>
+            </Grid>
+
+            <!-- Page dots -->
+            <HorizontalStackLayout Grid.ColumnSpan="2"
+                                   HorizontalOptions="Center"
+                                   VerticalOptions="End"
+                                   Spacing="16"
+                                   Margin="0,0,0,8">
+                <Border x:Name="BallDot"
+                        WidthRequest="14"
+                        HeightRequest="14"
+                        BackgroundColor="#1f2937"
+                        StrokeShape="RoundRectangle 7"
+                        StrokeThickness="0">
+                    <Border.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="OnBallDotClicked"/>
+                    </Border.GestureRecognizers>
+                </Border>
+                <Border x:Name="PoseDot"
+                        WidthRequest="14"
+                        HeightRequest="14"
+                        BackgroundColor="#1f2937"
+                        StrokeShape="RoundRectangle 7"
+                        StrokeThickness="0">
+                    <Border.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="OnPoseDotClicked"/>
+                    </Border.GestureRecognizers>
+                </Border>
+            </HorizontalStackLayout>
+
+        </Grid>
+    </Border>
+</toolkit:Popup>

@@ -17,7 +17,8 @@ public enum EntityType
     Frame,
     Game,
     Session,
-    Shot
+    Shot,
+    CiclopesAggRun
 }
 
 public enum OperationType
@@ -28,6 +29,11 @@ public enum OperationType
 
 public class ApiController
 {
+    private static readonly JsonSerializerOptions JsonOptions = new()
+    {
+        PropertyNameCaseInsensitive = true
+    };
+
     /// <summary>
     /// Executes the API request and returns the authorization response body as a string.
     /// Optionally invokes onAuthResponse when the authorization response is received.
@@ -143,6 +149,38 @@ public class ApiController
         catch (Exception ex)
         {
             Debug.WriteLine("Request failed: " + ex);
+            throw;
+        }
+    }
+
+    public async Task<CiclopesRunResponse?> ExecuteCiclopesRunRequest(CiclopesRunRequest requestData)
+    {
+        using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(120) };
+        ApiExecutor executor = new ApiExecutor(EntityType.CiclopesAggRun, OperationType.Post);
+        string requestUrl = executor.GetUrl();
+
+        var requestBody = JsonSerializer.Serialize(requestData);
+        var content = new StringContent(requestBody, Encoding.UTF8, "application/json");
+
+        HttpResponseMessage response = await client.PostAsync(requestUrl, content).ConfigureAwait(false);
+
+        try
+        {
+            response.EnsureSuccessStatusCode();
+            var responseBody = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+
+            Debug.WriteLine(responseBody);
+
+            return JsonSerializer.Deserialize<CiclopesRunResponse>(responseBody, JsonOptions);
+        }
+        catch (HttpRequestException httpEx)
+        {
+            Debug.WriteLine("HTTP Request failed: " + httpEx);
+            throw;
+        }
+        catch (JsonException jsonEx)
+        {
+            Debug.WriteLine("JSON parse failed: " + jsonEx);
             throw;
         }
     }

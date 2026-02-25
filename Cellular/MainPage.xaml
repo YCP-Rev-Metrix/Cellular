@@ -90,6 +90,13 @@
                     HorizontalOptions="Fill"
                     IsVisible="True" /> 
 
+            <Button x:Name="ciclopesTest"
+                    Text="Ciclopes Test"
+                    SemanticProperties.Hint="Runs a Ciclopes aggregation test"
+                    Clicked="OnCiclopesTestClicked"
+                    HorizontalOptions="Fill"
+                    IsVisible="True" />
+
             <Button x:Name="account"
                     Text="Account" 
                     SemanticProperties.Hint="takes you to the account page"

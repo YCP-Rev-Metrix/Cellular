@@ -364,3 +364,6 @@ FodyWeavers.xsd
 
 # Ignore JetBrains Rider project files
 .idea/
+
+# Local secrets
+.env

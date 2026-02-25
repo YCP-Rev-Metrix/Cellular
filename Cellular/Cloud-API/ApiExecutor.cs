@@ -90,6 +90,22 @@ public class ApiExecutor
                     url += "posts/PostAppShots";
                 }
                 break;
+            case EntityType.CiclopesAggRun:
+                if (OperationType == OperationType.Post)
+                {
+                    string? ciclopesBaseUrl = CiclopesSettings.BaseUrl;
+                    if (string.IsNullOrWhiteSpace(ciclopesBaseUrl))
+                    {
+                        throw new InvalidOperationException("CICLOPES_IP and CICLOPES_PORT must be configured.");
+                    }
+
+                    url = ciclopesBaseUrl + "agg/run";
+                }
+                else
+                {
+                    throw new NotImplementedException("CiclopesAggRun only supports POST.");
+                }
+                break;
             default:
                 throw new NotImplementedException("This obj type is not implemented yet.");
         }
