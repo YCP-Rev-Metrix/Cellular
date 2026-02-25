@@ -34,14 +34,22 @@ public partial class BallArsenalRegistrationPage : ContentPage
     private async void OnRegisterBallClicked(object sender, EventArgs e)
     {
         // Get the entered data
-        string ballName = BallName.Text;
-        string? ballWeight = BallWeight.Text;
-        string? ballCore = BallCoreType.Text;
+        string ballName = BallName.Text.Trim();
+        string? ballWeight = BallWeight.Text.Trim();
+        string? ballCore = BallCoreType.Text.Trim();
         string? ballColor = BallColor.SelectedItem?.ToString();
         // Validation to ensure all fields are filled
         if (string.IsNullOrWhiteSpace(ballName))
         {
             await DisplayAlert("Error", "Please enter a Ball name.", "OK");
+            return;
+        }
+        var existingBall = await _BallRepository.GetBallByNameAndUserAsync(ballName, Preferences.Get("UserId", 0));
+
+        if (existingBall != null)
+        {
+            await DisplayAlert("Duplicate Name",
+                $"You already have a ball named '{ballName}' in your arsenal.", "OK");
             return;
         }
         if (string.IsNullOrEmpty(ballWeight))
@@ -81,6 +89,7 @@ public partial class BallArsenalRegistrationPage : ContentPage
             await DisplayAlert("Error", "Ball weight must be a valid number.", "OK");
             return;
         }
+
         // You can further process the data here (e.g., save it to a database or display a success message)
         var newBall = new Ball
         {
@@ -91,13 +100,9 @@ public partial class BallArsenalRegistrationPage : ContentPage
             Core = ballCore,
             ColorString = ballColor ?? string.Empty
         };
-        var existingBall = await _BallRepository.GetBallByNameAsync(ballName);
-        //Debug.WriteLine(existingBall);
-        if (existingBall == null)
-        {
-            await _BallRepository.AddAsync(newBall);
-            Balls.Add(newBall);
-        }
+
+        await _BallRepository.AddAsync(newBall); // Saves to SQLite
+        Balls.Add(newBall);
 
         await DisplayAlert("Ball", "The Ball was Added", "OK");
         // Optionally, clear the form

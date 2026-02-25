@@ -1,10 +1,5 @@
 using Cellular.ViewModel;
 using SQLite;
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace Cellular.Data
 {
@@ -44,6 +39,13 @@ namespace Cellular.Data
         public async Task<Ball?> GetBallByNameAsync(String name)
         {
             return await _conn.Table<Ball>().FirstOrDefaultAsync(u => u.Name == name);
+        }
+
+        public async Task<Ball> GetBallByNameAndUserAsync(string name, int userId)
+        {
+            return await _conn.Table<Ball>()
+                .Where(b => b.UserId == userId && b.Name.ToLower() == name.ToLower())
+                .FirstOrDefaultAsync();
         }
 
         public async Task<Ball?> GetBallByIdAsync(int ballID)
