@@ -29,7 +29,6 @@ namespace Cellular
                 ballArsenal.IsVisible = false;
                 eventList.IsVisible = false;
                 bluetooth.IsVisible = false;
-                dataPage.IsVisible = false;
                 databaseVisualizer.IsVisible = false;
                 establishment.IsVisible = false;
                 apiPage.IsVisible = false;
@@ -43,7 +42,6 @@ namespace Cellular
                 ballArsenal.IsVisible = true;
                 eventList.IsVisible = true;
                 bluetooth.IsVisible = true;
-                dataPage.IsVisible = true;
                 databaseVisualizer.IsVisible = true;
                 establishment.IsVisible = true;
                 apiPage.IsVisible = true;

@@ -498,6 +498,17 @@ namespace Cellular
                     else if (!saveResult.IsSuccessful)
                     {
                         await DisplayAlert("Error", $"Failed to save sensor data: {saveResult.Exception?.Message ?? "Unknown error"}", "OK");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    await DisplayAlert("Error", $"Error preparing to save sensor data: {ex.Message}", "OK");
+                    if (isRecording)
+                        await StopVideoAndUploadVideoOnlyAsync();
+                }
+            });
+        }
+
         public async Task BeginExternalRecording()
         {
             if (!isCameraStarted || isRecording)
@@ -594,9 +605,7 @@ namespace Cellular
                 }
                 catch (Exception ex)
                 {
-                    await DisplayAlert("Error", $"Error preparing to save sensor data: {ex.Message}", "OK");
-                    if (isRecording)
-                        await StopVideoAndUploadVideoOnlyAsync();
+                    await DisplayAlert("Error", $"Error stopping or saving recording: {ex.Message}", "OK");
                 }
             });
         }
@@ -897,10 +906,6 @@ namespace Cellular
                 System.Diagnostics.Debug.WriteLine($"Error updating IsConnected status: {ex.Message}");
                 // Don't show error to user - this is a background operation
             }
-        }
-                    await DisplayAlert("Error", $"Failed to stop recording: {ex.Message}", "OK");
-                }
-            });
         }
     }
 }

@@ -46,8 +46,6 @@ namespace Cellular
             bluetooth.IsVisible = isLoggedIn;
             video.IsVisible = isLoggedIn;
             account.IsVisible = isLoggedIn;
-            SessionList.IsVisible = isLoggedIn;
-            data.IsVisible = isLoggedIn;
             databaseVisualizer.IsVisible = isLoggedIn;
             EventList.IsVisible = isLoggedIn;
             establishment.IsVisible = isLoggedIn;
