@@ -1,12 +1,12 @@
 ﻿<?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-             x:Class="Cellular.SessionList"
+             x:Class="Cellular.EventList"
              xmlns:local="clr-namespace:Cellular.ViewModel"
              x:DataType="local:SessionListViewModel">
 
     <ContentPage.ToolbarItems>
-        <ToolbarItem Text="Add Session" Clicked="AddSession" Order="Primary" />
+        <ToolbarItem Text="Add Event" Clicked="AddEvent" Order="Primary" />
     </ContentPage.ToolbarItems>
 
     <ScrollView>
@@ -20,18 +20,23 @@
                 SemanticProperties.Description="RevMetrix Bowling Ball Logo" />
 
             <Label
-                Text="Sessions"
+                Text="Events"
                 x:Name="labelname"
                 Style="{StaticResource Headline}"
                 SemanticProperties.HeadingLevel="Level1" />
 
-            <Button
-                Text="Test Interface"
-                Clicked="GoToShot"
-                HorizontalOptions="Fill" />
-
-            <StackLayout Orientation="Vertical" x:Name="_sessionlist">
-
+            <!-- BindableLayout will create a Button for each Event in the VM.Events collection -->
+            <StackLayout Orientation="Vertical" x:Name="_eventlist"
+                         BindableLayout.ItemsSource="{Binding Events}">
+                <BindableLayout.ItemTemplate>
+                    <DataTemplate x:DataType="local:Event">
+                        <Button Text="{Binding Name}"
+                                CommandParameter="{Binding .}"
+                                Clicked="OnEventButtonClicked"
+                                HorizontalOptions="FillAndExpand"
+                                Margin="0,5"/>
+                    </DataTemplate>
+                </BindableLayout.ItemTemplate>
             </StackLayout>
         </VerticalStackLayout>
     </ScrollView>

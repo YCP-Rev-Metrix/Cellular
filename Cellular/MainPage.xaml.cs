@@ -49,6 +49,8 @@ namespace Cellular
             SessionList.IsVisible = isLoggedIn;
             data.IsVisible = isLoggedIn;
             databaseVisualizer.IsVisible = isLoggedIn;
+            EventList.IsVisible = isLoggedIn;
+            establishment.IsVisible = isLoggedIn;
             API.IsVisible = isLoggedIn;
             BlankPage.IsVisible = isLoggedIn;
         }
@@ -83,9 +85,9 @@ namespace Cellular
             await Navigation.PushAsync(new BallArsenal());
         }
 
-        private async void OnSessionListClicked(object sender, EventArgs e)
+        private async void OnEventListClicked(object sender, EventArgs e)
         {
-            await Navigation.PushAsync(new SessionList());
+            await Navigation.PushAsync(new EventList());
         }
 
         private async void OnBluetoothClicked(object sender, EventArgs e)
@@ -103,9 +105,9 @@ namespace Cellular
             await Navigation.PushAsync(new AccountPage());
         }
 
-        private async void OnDataClicked(object sender, EventArgs e)
+        private async void OnEstablishmentClicked(object sender, EventArgs e)
         {
-            await Navigation.PushAsync(new DataPage());
+            await Navigation.PushAsync(new EstablishmentPage());
         }
 
         private async void OnDatabaseVisualizerClicked(object sender, EventArgs e)

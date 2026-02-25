@@ -1,3 +1,4 @@
+using System;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using Cellular.Data;
@@ -14,23 +15,41 @@ public partial class BallArsenalRegistrationPage : ContentPage
         InitializeComponent();
         _BallRepository = new BallRepository(new CellularDatabase().GetConnection());
         Balls = new ObservableCollection<Ball>();
+
+        // ensure initial visibility matches any pre-selected value (usually none)
+        UpdateHexVisibility();
     }
+
+    private void OnBallColorSelectedIndexChanged(object sender, EventArgs e)
+    {
+        UpdateHexVisibility();
+    }
+
+    private void UpdateHexVisibility()
+    {
+        var selected = BallColor.SelectedItem?.ToString();
+        BallHexColor.IsVisible = string.Equals(selected, "Custom", StringComparison.OrdinalIgnoreCase);
+    }
+
     private async void OnRegisterBallClicked(object sender, EventArgs e)
     {
         // Get the entered data
-        string ballName = BallName.Text;
-        string? ballSerial = BallSerial.Text;
-        string? ballWeight = BallWeight.Text;
-        string? ballCore = BallCoreType.Text;
+        string ballName = BallName.Text.Trim();
+        string? ballWeight = BallWeight.Text.Trim();
+        string? ballCore = BallCoreType.Text.Trim();
+        string? ballColor = BallColor.SelectedItem?.ToString();
         // Validation to ensure all fields are filled
         if (string.IsNullOrWhiteSpace(ballName))
         {
             await DisplayAlert("Error", "Please enter a Ball name.", "OK");
             return;
         }
-        if (string.IsNullOrEmpty(ballSerial))
+        var existingBall = await _BallRepository.GetBallByNameAndUserAsync(ballName, Preferences.Get("UserId", 0));
+
+        if (existingBall != null)
         {
-            await DisplayAlert("Error", "Please enter a Ball diameter.", "OK");
+            await DisplayAlert("Duplicate Name",
+                $"You already have a ball named '{ballName}' in your arsenal.", "OK");
             return;
         }
         if (string.IsNullOrEmpty(ballWeight))
@@ -43,17 +62,34 @@ public partial class BallArsenalRegistrationPage : ContentPage
             await DisplayAlert("Error", "Please enter a Ball core.", "OK");
             return;
         }
-        // Convert string inputs to integers where necessary
-        if (!int.TryParse(ballSerial, out int serial))
+        // If custom was selected, ensure a hex color is provided
+        if (string.Equals(ballColor, "Custom", StringComparison.OrdinalIgnoreCase))
         {
-            await DisplayAlert("Error", "Ball diameter must be a valid number.", "OK");
-            return;
+            var hex = BallHexColor.Text;
+            if (string.IsNullOrWhiteSpace(hex))
+            {
+                await DisplayAlert("Error", "Please enter a hex color value for custom color.", "OK");
+                return;
+            }
+
+            // optional: basic hex validation
+            if (!System.Text.RegularExpressions.Regex.IsMatch(hex.Trim(), "^#?[0-9A-Fa-f]{6}$"))
+            {
+                await DisplayAlert("Error", "Please enter a valid 6-digit hex color (e.g. #FFAABB).", "OK");
+                return;
+            }
+
+            // normalize to include leading '#'
+            if (!hex.StartsWith("#")) hex = "#" + hex.Trim();
+            ballColor = hex;
         }
+
         if (!int.TryParse(ballWeight, out int weight))
         {
             await DisplayAlert("Error", "Ball weight must be a valid number.", "OK");
             return;
         }
+
         // You can further process the data here (e.g., save it to a database or display a success message)
         var newBall = new Ball
         {
@@ -61,22 +97,21 @@ public partial class BallArsenalRegistrationPage : ContentPage
             Name = ballName,
             //SerialNumber = serial,
             Weight = weight,
-            Core = ballCore
+            Core = ballCore,
+            ColorString = ballColor ?? string.Empty
         };
-        var existingBall = await _BallRepository.GetBallByNameAsync(ballName);
-        //Debug.WriteLine(existingBall);
-        if (existingBall == null)
-        {
-            await _BallRepository.AddAsync(newBall);
-            Balls.Add(newBall);
-        }
-       
+
+        await _BallRepository.AddAsync(newBall); // Saves to SQLite
+        Balls.Add(newBall);
+
         await DisplayAlert("Ball", "The Ball was Added", "OK");
         // Optionally, clear the form
         BallName.Text = string.Empty;
-        BallSerial.Text = string.Empty;
         BallWeight.Text = string.Empty;
         BallCoreType.Text = string.Empty;
+        BallColor.SelectedIndex = -1;
+        BallHexColor.Text = string.Empty;
+        BallHexColor.IsVisible = false;
     }
 
 }

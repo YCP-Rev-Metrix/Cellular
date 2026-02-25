@@ -14,10 +14,24 @@
 
         <StackLayout Padding="20" Grid.Row="1">
             <Entry x:Name="BallName" Placeholder="Enter Ball Name" />
-            <Entry x:Name="BallSerial" Placeholder="Enter Balls Serial Number" />
             <Entry x:Name="BallWeight" Placeholder="Enter Balls Weight" />
             <Entry x:Name="BallCoreType" Placeholder="Enter Balls Core Type" />
-
+            <Picker x:Name="BallColor" Title="Select Ball Color"
+                    SelectedIndexChanged="OnBallColorSelectedIndexChanged">
+                <Picker.Items>
+                    <x:String>Red</x:String>
+                    <x:String>Orange</x:String>
+                    <x:String>Yellow</x:String>
+                    <x:String>Green</x:String>
+                    <x:String>Blue</x:String>
+                    <x:String>Purple</x:String>
+                    <x:String>Black</x:String>
+                    <x:String>White</x:String>
+                    <x:String>Silver</x:String>
+                    <x:String>Custom</x:String>
+                </Picker.Items>
+            </Picker>
+            <Entry x:Name="BallHexColor" Placeholder="Enter Hex Color Value (#FFFFFF)" IsVisible="False"/>
             <Button Text="Register Ball" Clicked="OnRegisterBallClicked" />
         </StackLayout>
     </Grid>
