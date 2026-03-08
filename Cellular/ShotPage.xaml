@@ -41,7 +41,7 @@
                         </CollectionView.ItemsLayout>
                         <CollectionView.ItemTemplate>
                             <DataTemplate x:DataType="local:ShotPageFrame">
-                                <Border Stroke="DarkGray" StrokeThickness="1" Padding="0"
+                                <Border Stroke="{Binding BorderColor}" StrokeThickness="1" Padding="0"
                                     BackgroundColor="White" WidthRequest="80">
                                     <Border.GestureRecognizers>
                                         <TapGestureRecognizer 

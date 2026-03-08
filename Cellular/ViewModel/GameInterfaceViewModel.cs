@@ -135,6 +135,7 @@ namespace Cellular.ViewModel
                 {
                     _currentFrame = value;
                     OnPropertyChanged(nameof(CurrentFrame));
+                    UpdateFrameBorders();
                 }
             }
         }
@@ -285,11 +286,22 @@ namespace Cellular.ViewModel
             if (frame == null) return;
             if (frame.ShotOneBox == "") return; //Only allow editing if the frame has a shot recorded
 
-            frame.BackgroundColor = Colors.LightGray;
             CurrentFrame = frame.FrameNumber;
             CurrentShot = 1;
             LoadEditInfo();
             OnPropertyChanged();
+        }
+
+        // Update each ShotPageFrame.BorderColor according to CurrentFrame.
+        private void UpdateFrameBorders()
+        {
+            if (frames == null) return;
+
+            foreach (var f in frames)
+            {
+                // selected frame gets a highlight; others are default white
+                f.BorderColor = (f.FrameNumber == CurrentFrame) ? Colors.Red : Colors.DarkSlateGray;
+            }
         }
     }
 
@@ -298,6 +310,8 @@ namespace Cellular.ViewModel
         public int FrameNumber { get; set; }
         public int? RollingScore { get; set; }
 
+        private Color _borderColor;
+
         private ObservableCollection<Color> _pinColors;
         private ObservableCollection<Color> _centerPinColors;
         public ObservableCollection<Color> PinColors
@@ -305,8 +319,11 @@ namespace Cellular.ViewModel
             get => _pinColors;
             set
             {
-                _pinColors = value;
-                OnPropertyChanged();
+                if (_pinColors != value)
+                {
+                    _pinColors = value;
+                    OnPropertyChanged(nameof(PinColors));
+                }
             }
         }
 
@@ -315,8 +332,11 @@ namespace Cellular.ViewModel
             get => _centerPinColors;
             set
             {
-                _centerPinColors = value;
-                OnPropertyChanged();
+                if (_centerPinColors != value)
+                {
+                    _centerPinColors = value;
+                    OnPropertyChanged(nameof(CenterPinColors));
+                }
             }
         }
 
@@ -329,7 +349,7 @@ namespace Cellular.ViewModel
                 if (_shotOneBox != value)
                 {
                     _shotOneBox = value;
-                    OnPropertyChanged();
+                    OnPropertyChanged(nameof(ShotOneBox));
                 }
             }
         }
@@ -343,12 +363,23 @@ namespace Cellular.ViewModel
                 if (_shotTwoBox != value)
                 {
                     _shotTwoBox = value;
-                    OnPropertyChanged();
+                    OnPropertyChanged(nameof(ShotTwoBox));
                 }
             }
         }
 
-        public Color BackgroundColor { get; set; }
+        public Color BorderColor
+        {
+            get => _borderColor;
+            set
+            {
+                if (_borderColor != value)
+                {
+                    _borderColor = value;
+                    OnPropertyChanged(nameof(BorderColor));
+                }
+            }
+        }
 
         public ShotPageFrame(int frameNumber)
         {
@@ -356,9 +387,9 @@ namespace Cellular.ViewModel
             RollingScore = null;
             ShotOneBox = "";
             ShotTwoBox = "";
-            BackgroundColor = Colors.White;
-            PinColors = [.. Enumerable.Repeat(Colors.Black, 10)];
-            CenterPinColors = [.. Enumerable.Repeat(Colors.Transparent, 10)];
+            _borderColor = Colors.DarkSlateGray;
+            PinColors = new ObservableCollection<Color>(Enumerable.Repeat(Colors.Black, 10));
+            CenterPinColors = new ObservableCollection<Color>(Enumerable.Repeat(Colors.Transparent, 10));
         }
 
         public event PropertyChangedEventHandler PropertyChanged;
