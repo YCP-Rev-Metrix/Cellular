@@ -283,7 +283,9 @@ namespace Cellular.ViewModel
         private void OnFrameTapped(ShotPageFrame frame)
         {
             if (frame == null) return;
+            if (frame.ShotOneBox == "") return; //Only allow editing if the frame has a shot recorded
 
+            frame.BackgroundColor = Colors.LightGray;
             CurrentFrame = frame.FrameNumber;
             CurrentShot = 1;
             LoadEditInfo();
@@ -346,12 +348,15 @@ namespace Cellular.ViewModel
             }
         }
 
+        public Color BackgroundColor { get; set; }
+
         public ShotPageFrame(int frameNumber)
         {
             FrameNumber = frameNumber;
             RollingScore = null;
             ShotOneBox = "";
             ShotTwoBox = "";
+            BackgroundColor = Colors.White;
             PinColors = [.. Enumerable.Repeat(Colors.Black, 10)];
             CenterPinColors = [.. Enumerable.Repeat(Colors.Transparent, 10)];
         }

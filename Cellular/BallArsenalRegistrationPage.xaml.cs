@@ -57,11 +57,6 @@ public partial class BallArsenalRegistrationPage : ContentPage
             await DisplayAlert("Error", "Please enter a Ball weight.", "OK");
             return;
         }
-        if (string.IsNullOrEmpty(ballCore))
-        {
-            await DisplayAlert("Error", "Please enter a Ball core.", "OK");
-            return;
-        }
         // If custom was selected, ensure a hex color is provided
         if (string.Equals(ballColor, "Custom", StringComparison.OrdinalIgnoreCase))
         {
