@@ -135,7 +135,7 @@ namespace Cellular.ViewModel
                 {
                     _currentFrame = value;
                     OnPropertyChanged(nameof(CurrentFrame));
-                    UpdateFrameBorders();
+                    UpdateFrameBackgrounds();
                 }
             }
         }
@@ -292,15 +292,15 @@ namespace Cellular.ViewModel
             OnPropertyChanged();
         }
 
-        // Update each ShotPageFrame.BorderColor according to CurrentFrame.
-        private void UpdateFrameBorders()
+        // Update each ShotPageFrame.BackgroundColor according to CurrentFrame.
+        private void UpdateFrameBackgrounds()
         {
             if (frames == null) return;
 
             foreach (var f in frames)
             {
                 // selected frame gets a highlight; others are default white
-                f.BorderColor = (f.FrameNumber == CurrentFrame) ? Colors.Red : Colors.DarkSlateGray;
+                f.BackgroundColor = (f.FrameNumber == CurrentFrame) ? Color.FromArgb("#e89e99") : Colors.White;
             }
         }
     }
@@ -310,7 +310,7 @@ namespace Cellular.ViewModel
         public int FrameNumber { get; set; }
         public int? RollingScore { get; set; }
 
-        private Color _borderColor;
+        private Color _backgroundColor;
 
         private ObservableCollection<Color> _pinColors;
         private ObservableCollection<Color> _centerPinColors;
@@ -368,15 +368,15 @@ namespace Cellular.ViewModel
             }
         }
 
-        public Color BorderColor
+        public Color BackgroundColor
         {
-            get => _borderColor;
+            get => _backgroundColor;
             set
             {
-                if (_borderColor != value)
+                if (_backgroundColor != value)
                 {
-                    _borderColor = value;
-                    OnPropertyChanged(nameof(BorderColor));
+                    _backgroundColor = value;
+                    OnPropertyChanged(nameof(BackgroundColor));
                 }
             }
         }
@@ -387,7 +387,7 @@ namespace Cellular.ViewModel
             RollingScore = null;
             ShotOneBox = "";
             ShotTwoBox = "";
-            _borderColor = Colors.DarkSlateGray;
+            _backgroundColor = Colors.DarkSlateGray;
             PinColors = new ObservableCollection<Color>(Enumerable.Repeat(Colors.Black, 10));
             CenterPinColors = new ObservableCollection<Color>(Enumerable.Repeat(Colors.Transparent, 10));
         }
