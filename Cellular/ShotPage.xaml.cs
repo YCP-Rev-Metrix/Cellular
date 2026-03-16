@@ -241,10 +241,9 @@ namespace Cellular
                     foreach (var pin in pins)
                         pin.BackgroundColor = Colors.LightSlateGray;
 
-                    if (viewModel.EditMode)
+                    if (!viewModel.EditMode)
                     {
-                        viewModel.EditMode = false;
-                        await LoadExistingGameData();
+                        viewModel._frameCounter++;
                     }
                 }
             }
@@ -254,6 +253,12 @@ namespace Cellular
             currentFrame.OnPropertyChanged(nameof(currentFrame.CenterPinColors));
             currentFrame.OnPropertyChanged(nameof(currentFrame.PinColors));
             viewModel.OnPropertyChanged(nameof(viewModel.Frames));
+
+            if (viewModel.EditMode)
+            {
+                viewModel.EditMode = false;
+                await LoadExistingGameData(true);
+            }
         }
 
         private async void OnCommentClicked(Object sender, EventArgs e)
@@ -510,8 +515,7 @@ namespace Cellular
             currentFrame.UpdateShotBox(viewModel.CurrentShot, "-");
             viewModel.OnPropertyChanged(nameof(viewModel.Frames));
         }
-
-
+        
         private void OnSpareClicked(object sender, EventArgs e)
         {
             var currentFrame = viewModel.Frames.FirstOrDefault(f => f.FrameNumber == viewModel.CurrentFrame);
@@ -985,7 +989,7 @@ namespace Cellular
             }
         }
 
-        private async Task LoadExistingGameData()
+        private async Task LoadExistingGameData(bool fullRefresh = false)
         {
             var db = new CellularDatabase().GetConnection();
             var gameRepository = new GameRepository(db);
@@ -995,6 +999,16 @@ namespace Cellular
             await gameRepository.InitAsync();
             await frameRepository.InitAsync();
             await shotRepository.InitAsync();
+
+            //If full refresh, refresh page (Used for edit mode)
+            if (fullRefresh)
+            {
+                viewModel.Frames.Clear();
+                viewModel.CurrentFrame = 1;
+                viewModel.CurrentShot = 1;
+                viewModel.pinStates = 0;
+                viewModel.shot1PinStates = 0;
+            }
 
             // Retrieve the current game
             var game = await gameRepository.GetGame(viewModel.currentSession, viewModel.currentGame, viewModel.UserId);
