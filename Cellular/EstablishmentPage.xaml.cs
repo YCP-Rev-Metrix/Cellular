@@ -64,7 +64,7 @@ public partial class EstablishmentPage : ContentPage
             // Get the selected event
             var selectedEvent = e.SelectedItem as Establishment;
             // Navigate to the event page (replace with your event details page)
-            await DisplayAlert("Establishment Selected", $"You selected {selectedEvent.Name}", "OK");
+            await DisplayAlertAsync("Establishment Selected", $"You selected {selectedEvent.Name}", "OK");
             // Deselect the item
             EstablishmentsList.SelectedItem = null;
         }

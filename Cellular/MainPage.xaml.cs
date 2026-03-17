@@ -95,7 +95,7 @@ namespace Cellular
 
         private async void OnVideoClicked(object sender, EventArgs e)
         {
-            await Navigation.PushAsync(new Video());
+            await Navigation.PushAsync(new Video2());
         }
 
         private async void OnAccountClicked(object sender, EventArgs e)

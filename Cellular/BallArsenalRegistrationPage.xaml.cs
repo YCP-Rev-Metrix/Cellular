@@ -41,20 +41,20 @@ public partial class BallArsenalRegistrationPage : ContentPage
         // Validation to ensure all fields are filled
         if (string.IsNullOrWhiteSpace(ballName))
         {
-            await DisplayAlert("Error", "Please enter a Ball name.", "OK");
+            await DisplayAlertAsync("Error", "Please enter a Ball name.", "OK");
             return;
         }
         var existingBall = await _BallRepository.GetBallByNameAndUserAsync(ballName, Preferences.Get("UserId", 0));
 
         if (existingBall != null)
         {
-            await DisplayAlert("Duplicate Name",
+            await DisplayAlertAsync("Duplicate Name",
                 $"You already have a ball named '{ballName}' in your arsenal.", "OK");
             return;
         }
         if (string.IsNullOrEmpty(ballWeight))
         {
-            await DisplayAlert("Error", "Please enter a Ball weight.", "OK");
+            await DisplayAlertAsync("Error", "Please enter a Ball weight.", "OK");
             return;
         }
         // If custom was selected, ensure a hex color is provided
@@ -63,14 +63,14 @@ public partial class BallArsenalRegistrationPage : ContentPage
             var hex = BallHexColor.Text;
             if (string.IsNullOrWhiteSpace(hex))
             {
-                await DisplayAlert("Error", "Please enter a hex color value for custom color.", "OK");
+                await DisplayAlertAsync("Error", "Please enter a hex color value for custom color.", "OK");
                 return;
             }
 
             // optional: basic hex validation
             if (!System.Text.RegularExpressions.Regex.IsMatch(hex.Trim(), "^#?[0-9A-Fa-f]{6}$"))
             {
-                await DisplayAlert("Error", "Please enter a valid 6-digit hex color (e.g. #FFAABB).", "OK");
+                await DisplayAlertAsync("Error", "Please enter a valid 6-digit hex color (e.g. #FFAABB).", "OK");
                 return;
             }
 
@@ -81,7 +81,7 @@ public partial class BallArsenalRegistrationPage : ContentPage
 
         if (!int.TryParse(ballWeight, out int weight))
         {
-            await DisplayAlert("Error", "Ball weight must be a valid number.", "OK");
+            await DisplayAlertAsync("Error", "Ball weight must be a valid number.", "OK");
             return;
         }
 
@@ -99,7 +99,7 @@ public partial class BallArsenalRegistrationPage : ContentPage
         await _BallRepository.AddAsync(newBall); // Saves to SQLite
         Balls.Add(newBall);
 
-        await DisplayAlert("Ball", "The Ball was Added", "OK");
+        await DisplayAlertAsync("Ball", "The Ball was Added", "OK");
         // Optionally, clear the form
         BallName.Text = string.Empty;
         BallWeight.Text = string.Empty;
