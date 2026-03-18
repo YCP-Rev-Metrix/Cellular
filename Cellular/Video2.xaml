@@ -1,9 +1,8 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-             x:Class="Cellular.Video"
-             xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
-             xmlns:cv="clr-namespace:Camera.MAUI;assembly=Camera.MAUI">
+             x:Class="Cellular.Video2"
+             xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit">
     
     <ContentPage.ToolbarItems>
         <ToolbarItem x:Name="MmsConnectionToolbarItem"
@@ -28,21 +27,20 @@
                 BackgroundColor="LightSlateGray"
                 SelectedIndexChanged="ResolutionPicker_SelectedIndexChanged" />
 
-            <cv:CameraView
+            <toolkit:CameraView
                 x:Name="cameraView"
                 Grid.Row="0"
                 WidthRequest="300"
                 HeightRequest="400"
-                HorizontalOptions="Center" />
-            <Button
-                x:Name="Record"
-                Grid.Row="1"
-                Text="Record" 
+                HorizontalOptions="Center"
+                SelectedCamera="{Binding SelectedCamera}"/>
+
+            <Button x:Name="RecordBtn"
+                Text="Record"
                 Clicked="OnRecordClicked"
-                WidthRequest="75"
-                HeightRequest="20"
-                IsEnabled="False"
-                BackgroundColor="Gray"/>
+                WidthRequest="90"/>
+
+           
 
         </VerticalStackLayout>
     </ScrollView>

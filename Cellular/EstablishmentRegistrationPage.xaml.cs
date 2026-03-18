@@ -36,24 +36,24 @@ public partial class EstablishmentRegistrationPage : ContentPage
         // Validation to ensure all fields are filled
         if (string.IsNullOrWhiteSpace(estaName))
         {
-            await DisplayAlert("Error", "Please enter an Establishment name.", "OK");
+            await DisplayAlertAsync("Error", "Please enter an Establishment name.", "OK");
             return;
         }
 
         if (string.IsNullOrEmpty(estaLane))
         {
-            await DisplayAlert("Error", "Please enter an Establishment lane.", "OK");
+            await DisplayAlertAsync("Error", "Please enter an Establishment lane.", "OK");
             return;
         }
 
         if (string.IsNullOrEmpty(estaType))
         {
-            await DisplayAlert("Error", "Please enter an Establishment lane type.", "OK");
+            await DisplayAlertAsync("Error", "Please enter an Establishment lane type.", "OK");
             return;
         }
         if (string.IsNullOrEmpty(estaLocation))
         {
-            await DisplayAlert("Error", "Please enter an Establishment location.", "OK");
+            await DisplayAlertAsync("Error", "Please enter an Establishment location.", "OK");
             return;
         }
 
@@ -75,7 +75,7 @@ public partial class EstablishmentRegistrationPage : ContentPage
             await _EstablishmentRepository.AddAsync(newEsta);
             Establishments.Add(newEsta);
         }
-        await DisplayAlert("Establishment", "The Establishment was Added", "OK");
+        await DisplayAlertAsync("Establishment", "The Establishment was Added", "OK");
         // Optionally, clear the form
         nameBox.Text = string.Empty;
         lanesBox.Text = string.Empty;

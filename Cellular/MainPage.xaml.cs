@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Microsoft.Maui.Storage;
 using Cellular.ViewModel;
 using Cellular.Data;
@@ -46,6 +46,7 @@ namespace Cellular
             bluetooth.IsVisible = isLoggedIn;
             video.IsVisible = isLoggedIn;
             account.IsVisible = isLoggedIn;
+            databaseVisualizer.IsVisible = isLoggedIn;
             EventList.IsVisible = isLoggedIn;
             establishment.IsVisible = isLoggedIn;
             API.IsVisible = isLoggedIn;
@@ -94,7 +95,7 @@ namespace Cellular
 
         private async void OnVideoClicked(object sender, EventArgs e)
         {
-            await Navigation.PushAsync(new Video());
+            await Navigation.PushAsync(new Video2());
         }
 
         private async void OnAccountClicked(object sender, EventArgs e)
@@ -105,6 +106,11 @@ namespace Cellular
         private async void OnEstablishmentClicked(object sender, EventArgs e)
         {
             await Navigation.PushAsync(new EstablishmentPage());
+        }
+
+        private async void OnDatabaseVisualizerClicked(object sender, EventArgs e)
+        {
+            await Navigation.PushAsync(new DatabaseVisualizerPage());
         }
 
         private async void OnAPIClicked(object sender, EventArgs e)

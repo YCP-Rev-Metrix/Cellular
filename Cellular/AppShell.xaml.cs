@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Microsoft.Maui.Storage;
 using System.Threading.Tasks;
 using Cellular.ViewModel;
@@ -29,6 +29,7 @@ namespace Cellular
                 ballArsenal.IsVisible = false;
                 eventList.IsVisible = false;
                 bluetooth.IsVisible = false;
+                databaseVisualizer.IsVisible = false;
                 establishment.IsVisible = false;
                 apiPage.IsVisible = false;
                 accountPage.IsVisible = false;
@@ -41,6 +42,7 @@ namespace Cellular
                 ballArsenal.IsVisible = true;
                 eventList.IsVisible = true;
                 bluetooth.IsVisible = true;
+                databaseVisualizer.IsVisible = true;
                 establishment.IsVisible = true;
                 apiPage.IsVisible = true;
                 accountPage.IsVisible = true;

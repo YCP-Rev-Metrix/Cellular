@@ -161,7 +161,7 @@ namespace Cellular
         {
             if (!_ble.IsOn)
             {
-                await DisplayAlert("Bluetooth", "Please enable Bluetooth", "OK");
+                await DisplayAlertAsync("Bluetooth", "Please enable Bluetooth", "OK");
                 return;
             }
 
@@ -198,7 +198,7 @@ namespace Cellular
 
                         if (!allGranted)
                         {
-                            await DisplayAlert("Permission Required",
+                            await DisplayAlertAsync("Permission Required",
                                 "Bluetooth permission is required.",
                                 "OK");
                             return;
@@ -210,7 +210,7 @@ namespace Cellular
                     var locationStatus = await Permissions.RequestAsync<Permissions.LocationWhenInUse>();
                     if (locationStatus != PermissionStatus.Granted)
                     {
-                        await DisplayAlert("Permission Required",
+                        await DisplayAlertAsync("Permission Required",
                             "Location permission is required.",
                             "OK");
                         return;
@@ -219,7 +219,7 @@ namespace Cellular
             }
             catch (Exception ex)
             {
-                await DisplayAlert("Permission Error", ex.Message, "OK");
+                await DisplayAlertAsync("Permission Error", ex.Message, "OK");
                 return;
             }
 #endif
@@ -246,7 +246,7 @@ namespace Cellular
             }
             catch (Exception ex)
             {
-                await DisplayAlert("Scan Error", ex.Message, "OK");
+                await DisplayAlertAsync("Scan Error", ex.Message, "OK");
                 IsScanning = false;
                 ScanButton.Text = "Scan";
                 StatusLabel.Text = "Scan failed";
@@ -318,7 +318,7 @@ namespace Cellular
         {
             if (SelectedDevice == null)
             {
-                await DisplayAlert("Connect", "Please select a device first", "OK");
+                await DisplayAlertAsync("Connect", "Please select a device first", "OK");
                 return;
             }
 
@@ -326,7 +326,7 @@ namespace Cellular
             {
                 if (SelectedDevice.Device == null)
                 {
-                    await DisplayAlert("Connect", "Device object missing", "OK");
+                    await DisplayAlertAsync("Connect", "Device object missing", "OK");
                     return;
                 }
 
@@ -348,7 +348,7 @@ namespace Cellular
             }
             catch (Exception ex)
             {
-                await DisplayAlert("Connect Error", ex.Message, "OK");
+                await DisplayAlertAsync("Connect Error", ex.Message, "OK");
             }
         }
 
@@ -428,7 +428,7 @@ namespace Cellular
             }
             catch (Exception ex)
             {
-                await DisplayAlert("Disconnect Error", ex.Message, "OK");
+                await DisplayAlertAsync("Disconnect Error", ex.Message, "OK");
             }
         }
 
@@ -436,7 +436,7 @@ namespace Cellular
         {
             if (!_watchBleService.IsConnected)
             {
-                await DisplayAlert("BLE", "Not connected", "OK");
+                await DisplayAlertAsync("BLE", "Not connected", "OK");
                 return;
             }
 
@@ -445,7 +445,7 @@ namespace Cellular
             bool success = await _watchBleService.SendJsonToWatch(json);
 
             if (!success)
-                await DisplayAlert("BLE", "Failed to send JSON", "OK");
+                await DisplayAlertAsync("BLE", "Failed to send JSON", "OK");
         }
 
         protected override void OnDisappearing()

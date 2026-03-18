@@ -1,4 +1,4 @@
-﻿using Camera.MAUI;
+﻿// Camera.MAUI removed - use CommunityToolkit CameraView if needed
 using Cellular.Data;
 using Cellular.ViewModel;
 using CommunityToolkit.Maui.Extensions;

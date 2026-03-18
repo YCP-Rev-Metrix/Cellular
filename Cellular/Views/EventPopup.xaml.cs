@@ -24,7 +24,7 @@ public partial class EventPopup : Popup
         {
             try
             {
-                await Application.Current?.MainPage?.DisplayAlert(title, message, cancel);
+                await Application.Current?.MainPage?.DisplayAlertAsync(title, message, cancel);
             }
             catch (System.Exception ex)
             {
