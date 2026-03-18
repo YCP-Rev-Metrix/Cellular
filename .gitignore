@@ -367,3 +367,4 @@ FodyWeavers.xsd
 
 # Local secrets
 .env
+/.claude
