@@ -3,9 +3,12 @@ using Cellular.Services;
 using Cellular.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.DependencyInjection;
-using Camera.MAUI;
 using CommunityToolkit.Maui;
 using Cellular.Services;
+using CommunityToolkit.Maui;
+using CommunityToolkit.Maui.Core;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace Cellular
 {
@@ -16,7 +19,12 @@ namespace Cellular
             DotEnvLoader.LoadFromSolutionRoot();
 
             var builder = MauiApp.CreateBuilder();
-            builder.UseMauiApp<App>().UseMauiCameraView().UseMauiCommunityToolkit().ConfigureFonts(fonts =>
+            builder
+                .UseMauiApp<App>()
+                .UseMauiCommunityToolkitCore()
+                .UseMauiCommunityToolkit()
+                .UseMauiCommunityToolkitCamera()
+                .ConfigureFonts(fonts =>
             {
                 fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
                 fonts.AddFont("OpenSans-Semibold.ttf", "OpenSansSemibold");

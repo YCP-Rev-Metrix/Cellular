@@ -17,5 +17,9 @@ namespace Cellular.ViewModel
         public String? PhoneNumber { get; set; }
 
         public String? Hand { get; set; }
+
+        public String? SmartDotMac { get; set; }
+
+        public bool IsConnected { get; set; }
     }
 }

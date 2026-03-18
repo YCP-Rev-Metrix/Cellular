@@ -5,30 +5,18 @@
              xmlns:core="clr-namespace:CellularCore;assembly=CellularCore"
              x:Class="Cellular.BallArsenal"
              Title="Ball Arsenal">
+
     <ContentPage.Resources>
         <core:StringToColorConverter x:Key="ColorConverter" />
     </ContentPage.Resources>
-    <VerticalStackLayout>
-        <!-- heading stuff -->
-        <Grid Padding="5" Margin="20">
-            <!-- Header Row -->
-            <Grid.RowDefinitions>
-                <RowDefinition Height="Auto" />
-                <!-- Auto-sized header -->
-                <RowDefinition Height="*" />
-                <!-- Remaining space for content -->
-            </Grid.RowDefinitions>
 
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="1*" />
-                <ColumnDefinition Width="1*" />
-                <ColumnDefinition Width="1*" />
-            </Grid.ColumnDefinitions>
+    <Grid RowDefinitions="Auto, *">
 
+        <Grid Grid.Row="0" Padding="5" Margin="20" ColumnDefinitions="*, *, *">
             <SearchBar x:Name="searchBar"
-                              Placeholder="Search"
-                              SearchCommand="{Binding SearchCommand}"
-                              Grid.Column="0"/>
+                       Placeholder="Search"
+                       SearchCommand="{Binding SearchCommand}"
+                       Grid.Column="0"/>
 
             <Picker x:Name="Filter" Title="Filter" Grid.Column="1">
                 <Picker.ItemsSource>
@@ -41,39 +29,35 @@
                 </Picker.ItemsSource>
             </Picker>
 
-            <Button
-                       x:Name="addBall"
-                       Text="➕"
-                       SemanticProperties.Hint="Add new ball to arsenal"
-                       Clicked="OnAddBallBtnClicked"
-                       HorizontalOptions="Center"
-                       Grid.Column="2"/>
+            <Button x:Name="addBall"
+                    Text="➕"
+                    SemanticProperties.Hint="Add new ball to arsenal"
+                    Clicked="OnAddBallBtnClicked"
+                    HorizontalOptions="Center"
+                    Grid.Column="2"/>
         </Grid>
-        <CollectionView x:Name="BallsListView" ItemsSource="{Binding Balls}">
+
+        <CollectionView Grid.Row="1" 
+                        x:Name="BallsListView" 
+                        ItemsSource="{Binding Balls}">
             <CollectionView.ItemTemplate>
                 <DataTemplate>
-                    <Grid Margin="20">
-                        <Border BackgroundColor="LightGray">
-                            <Grid>
-                                <Grid.RowDefinitions>
-                                    <RowDefinition Height="Auto" />
-                                </Grid.RowDefinitions>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="1*" />
-                                    <ColumnDefinition Width="1*" />
-                                </Grid.ColumnDefinitions>
+                    <Grid Padding="10">
+                        <Border BackgroundColor="LightGray" StrokeShape="RoundRectangle 10">
+                            <Grid Padding="15" ColumnDefinitions="*, *">
+                                <VerticalStackLayout Grid.Column="0" Spacing="2">
+                                    <Label Text="{Binding Name}" FontAttributes="Bold" TextColor="Black" FontSize="16"/>
+                                    <Label Text="{Binding Weight, StringFormat='Weight: {0} lbs'}" TextColor="Black" />
+                                    <Label Text="{Binding Core, StringFormat='Core: {0}'}" TextColor="Black"/>
+                                    <Label Text="{Binding ColorString, StringFormat='Color: {0}'}" TextColor="Black" />
+                                </VerticalStackLayout>
 
-                                <!-- Labels -->
-                                <StackLayout Grid.Row="0" Grid.Column="0" Orientation="Vertical">
-                                    <Label Text="{Binding Name}" TextColor="Black" />
-                                    <Label Text="{Binding Weight}" TextColor="Black" />
-                                    <Label Text="{Binding Core}" TextColor="Black"/>
-                                    <!-- Debugging UI -->
-                                    <Label Text="{Binding ColorString}" TextColor="Black" />
-                                </StackLayout>
-
-                                <!-- Image -->
-                                <Image Source="bowling_ball.png" HeightRequest="100" WidthRequest="100" Grid.Row="0" Grid.Column="1" HorizontalOptions="End" BackgroundColor = "{Binding ColorString, Converter={StaticResource ColorConverter}}">
+                                <Image Source="bowling_ball.png" 
+                                       HeightRequest="80" 
+                                       WidthRequest="80" 
+                                       Grid.Column="1" 
+                                       HorizontalOptions="End" 
+                                       BackgroundColor="{Binding ColorString, Converter={StaticResource ColorConverter}}">
                                 </Image>
                             </Grid>
                         </Border>
@@ -81,6 +65,5 @@
                 </DataTemplate>
             </CollectionView.ItemTemplate>
         </CollectionView>
-    </VerticalStackLayout>
-
+    </Grid>
 </ContentPage>

@@ -125,13 +125,13 @@ namespace Cellular.Services
                     if (cmd == "startRec")
                     {
                         // Notify Video.xaml.cs to start recording
-                        MessagingCenter.Send<object>(this, "WatchStartRecording");
+                        //MessagingCenter.Send<object>(this, "WatchStartRecording");
                     }
 
                     if (cmd == "stopRec")
                     {
                         // Notify Video.xaml.cs to stop recording
-                        MessagingCenter.Send<object>(this, "WatchStopRecording");
+                        //MessagingCenter.Send<object>(this, "WatchStopRecording");
                     }
                 }
 
