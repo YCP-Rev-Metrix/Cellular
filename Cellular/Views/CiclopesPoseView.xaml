@@ -2,10 +2,21 @@
 <ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="Cellular.Views.CiclopesPoseView">
-    <Grid BackgroundColor="#F7F7F7">
-        <Label Text="Pose rendering placeholder"
-               HorizontalOptions="Center"
-               VerticalOptions="Center"
-               TextColor="Gray"/>
+    <Grid BackgroundColor="#1a1a2e">
+        <GraphicsView x:Name="SkeletonView"/>
+        <!-- Transparent overlay to capture pan gestures without blocking GraphicsView -->
+        <Grid x:Name="GestureLayer" BackgroundColor="Transparent">
+            <Grid.GestureRecognizers>
+                <PanGestureRecognizer PanUpdated="OnPanUpdated"/>
+            </Grid.GestureRecognizers>
+        </Grid>
+        <!-- Camera angle indicator -->
+        <Label x:Name="CameraLabel"
+               Text="Drag to rotate"
+               FontSize="9"
+               TextColor="#555580"
+               HorizontalOptions="End"
+               VerticalOptions="End"
+               Margin="0,0,6,4"/>
     </Grid>
 </ContentView>

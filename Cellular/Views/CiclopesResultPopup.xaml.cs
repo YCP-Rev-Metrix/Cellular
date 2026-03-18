@@ -35,6 +35,10 @@ public partial class CiclopesResultPopup : Popup
 
         PopulateStats(response);
         PopulatePlots(response);
+
+        // Load skeleton frames into the pose view
+        PoseView.LoadFrames(response.SkeletonPoints);
+
         SetPane(0, false);
         SetPlotPanel(0, false);
     }
@@ -216,7 +220,8 @@ public partial class CiclopesResultPopup : Popup
 
     private void OnFrameSliderValueChanged(object? sender, ValueChangedEventArgs e)
     {
-        _ = (int)Math.Round(e.NewValue);
+        var frame = (int)Math.Round(e.NewValue);
+        PoseView.SetFrame(frame);
     }
 
     private void OnPlayStopClicked(object? sender, EventArgs e)

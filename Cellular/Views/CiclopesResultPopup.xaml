@@ -341,16 +341,14 @@
             </Grid>
 
             <!-- ===== POSE PANE ===== -->
+            <!-- PosePane: no swipe gestures here — pan is used for 3D camera rotation.
+                 Use bottom dots to switch back to BallPane. -->
             <Grid x:Name="PosePane" IsVisible="False"
                   Grid.Row="0"
                   RowDefinitions="*,Auto"
                   Padding="10">
-                <Grid.GestureRecognizers>
-                    <SwipeGestureRecognizer Direction="Left" Swiped="OnMainSwipedLeft"/>
-                    <SwipeGestureRecognizer Direction="Right" Swiped="OnMainSwipedRight"/>
-                </Grid.GestureRecognizers>
 
-                <views:CiclopesPoseView Grid.Row="0"/>
+                <views:CiclopesPoseView x:Name="PoseView" Grid.Row="0"/>
 
                 <Grid Grid.Row="1"
                       Margin="0,6,0,0"
