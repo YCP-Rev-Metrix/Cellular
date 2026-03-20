@@ -38,12 +38,16 @@ namespace Cellular
         private readonly UserRepository _userRepository;
         private readonly SessionRepository _sessionRepository;
         private readonly BallRepository _ballRepository;
+        private readonly EventRepository _eventRepository;
+        private readonly GameRepository _gameRepository;
 
         private ObservableCollection<BluetoothDeviceWatch> _devices;
         private BluetoothDeviceWatch? _selectedDevice;
         private bool _isScanning;
         private bool _isConnected;
         private string _watchJson = "No data received yet.";
+        private string? _defaultWatchName;
+        private string? _defaultWatchMac;
 
         public ObservableCollection<BluetoothDeviceWatch> Devices
         {
@@ -102,6 +106,8 @@ namespace Cellular
             _userRepository = new UserRepository(dbConnection);
             _sessionRepository = new SessionRepository(dbConnection);
             _ballRepository = new BallRepository(dbConnection);
+            _eventRepository = new EventRepository(dbConnection);
+            _gameRepository = new GameRepository(dbConnection);
 
             Devices = BlankPageStore.SavedDevices ?? new ObservableCollection<BluetoothDeviceWatch>();
             _selectedDevice = BlankPageStore.SavedSelected;
@@ -115,6 +121,36 @@ namespace Cellular
             {
                 StatusLabel.Text = $"Connected to {_selectedDevice.Name}";
                 DeviceInfoLabel.Text = BlankPageStore.SavedDeviceInfo;
+            }
+
+            // Load default watch
+            LoadDefaultWatch();
+        }
+
+        private async void LoadDefaultWatch()
+        {
+            try
+            {
+                int userId = Preferences.Get("UserId", -1);
+                if (userId != -1)
+                {
+                    var (name, mac) = await _userRepository.GetDefaultWatchAsync(userId);
+                    if (!string.IsNullOrEmpty(name) && !string.IsNullOrEmpty(mac))
+                    {
+                        _defaultWatchName = name;
+                        _defaultWatchMac = mac;
+
+                        MainThread.BeginInvokeOnMainThread(() =>
+                        {
+                            DefaultWatchStack.IsVisible = true;
+                            DefaultWatchButton.Text = $"Connect to {name}";
+                        });
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error loading default watch: {ex.Message}");
             }
         }
         private void OnWatchJsonReceived(object? sender, string json)
@@ -339,6 +375,16 @@ namespace Cellular
                     IsConnected = true;
                     StatusLabel.Text = $"Connected to {SelectedDevice.Name}";
 
+                    // Ask if user wants this as default watch
+                    bool makeDefault = await DisplayAlert("Default Watch", 
+                        $"Make {SelectedDevice.Name} your default watch?", 
+                        "Yes", "No");
+
+                    if (makeDefault)
+                    {
+                        await SetAsDefaultWatch(SelectedDevice.Name, SelectedDevice.Id);
+                    }
+
                     await SendUserDataToWatch();
                 }
                 else
@@ -370,34 +416,9 @@ namespace Cellular
                     return;
                 }
 
-                var sessions = await _sessionRepository.GetSessionsByUserIdAsync(userId);
-                var balls = await _ballRepository.GetBallsByUserIdAsync(userId);
+                System.Diagnostics.Debug.WriteLine($"PHONE BLE SEND → Sending binary packet for user {user.UserName}");
 
-                var sessionData = sessions.Select(s => new
-                {
-                    sessionId = s.SessionId,
-                    sessionNumber = s.SessionNumber
-                }).ToList();
-
-                var ballData = balls.Select(b => new
-                {
-                    ballId = b.BallId,
-                    name = b.Name
-                }).ToList();
-
-                var userData = new
-                {
-                    cmd = "userData",
-                    username = user.UserName,
-                    hand = user.Hand,
-                    sessions = sessionData,
-                    balls = ballData
-                };
-
-                var jsonString = System.Text.Json.JsonSerializer.Serialize(userData);
-                System.Diagnostics.Debug.WriteLine($"PHONE BLE SEND → {jsonString}");
-
-                bool success = await _watchBleService.SendJsonToWatch(userData);
+                bool success = await _watchBleService.SendJsonToWatch(userId, _sessionRepository, _ballRepository, _eventRepository, _gameRepository, user);
 
                 if (success)
                 {
@@ -440,12 +461,25 @@ namespace Cellular
                 return;
             }
 
-            var json = new { message = "6" };
+            try
+            {
+                int userId = Preferences.Get("UserId", -1);
+                if (userId == -1)
+                {
+                    await DisplayAlertAsync("BLE", "No user logged in", "OK");
+                    return;
+                }
 
-            bool success = await _watchBleService.SendJsonToWatch(json);
+                var user = await _userRepository.GetUserByIdAsync(userId);
+                bool success = await _watchBleService.SendJsonToWatch(userId, _sessionRepository, _ballRepository, _eventRepository, _gameRepository, user);
 
-            if (!success)
-                await DisplayAlertAsync("BLE", "Failed to send JSON", "OK");
+                if (!success)
+                    await DisplayAlertAsync("BLE", "Failed to send data", "OK");
+            }
+            catch (Exception ex)
+            {
+                await DisplayAlertAsync("BLE", $"Error: {ex.Message}", "OK");
+            }
         }
 
         protected override void OnDisappearing()
@@ -457,6 +491,139 @@ namespace Cellular
             BlankPageStore.SavedSelected = SelectedDevice;
             BlankPageStore.SavedIsConnected = IsConnected;
             BlankPageStore.SavedDeviceInfo = DeviceInfoLabel.Text;
+        }
+
+        private async Task SetAsDefaultWatch(string watchName, string watchMac)
+        {
+            try
+            {
+                int userId = Preferences.Get("UserId", -1);
+                if (userId != -1)
+                {
+                    await _userRepository.SetDefaultWatchAsync(userId, watchName, watchMac);
+
+                    _defaultWatchName = watchName;
+                    _defaultWatchMac = watchMac;
+
+                    MainThread.BeginInvokeOnMainThread(() =>
+                    {
+                        DefaultWatchStack.IsVisible = true;
+                        DefaultWatchButton.Text = $"Connect to {watchName}";
+                    });
+
+                    await DisplayAlert("Default Watch", $"{watchName} is now your default watch!", "OK");
+                }
+            }
+            catch (Exception ex)
+            {
+                await DisplayAlert("Error", $"Failed to set default watch: {ex.Message}", "OK");
+            }
+        }
+
+        private async void OnDefaultWatchConnectClicked(object sender, EventArgs e)
+        {
+            if (string.IsNullOrEmpty(_defaultWatchMac))
+            {
+                await DisplayAlert("Error", "No default watch set", "OK");
+                return;
+            }
+
+            try
+            {
+                StatusLabel.Text = "Scanning for default watch...";
+
+                // Show connecting state
+                DefaultWatchButton.IsEnabled = false;
+
+                // Scan for the default watch device
+                bool deviceFound = false;
+                IDevice? targetDevice = null;
+
+                EventHandler<DeviceEventArgs> handler = null;
+                handler = (s, e) =>
+                {
+                    if (e.Device != null && e.Device.Id.ToString().Equals(_defaultWatchMac, StringComparison.OrdinalIgnoreCase))
+                    {
+                        deviceFound = true;
+                        targetDevice = e.Device;
+                        _adapter.DeviceDiscovered -= handler;
+                    }
+                };
+
+                _adapter.DeviceDiscovered += handler;
+
+                await _adapter.StartScanningForDevicesAsync();
+
+                // Wait up to 5 seconds for device discovery
+                for (int i = 0; i < 50 && !deviceFound; i++)
+                {
+                    await Task.Delay(100);
+                }
+
+                await _adapter.StopScanningForDevicesAsync();
+
+                if (targetDevice != null)
+                {
+                    // Connect to the device
+                    bool connected = await _watchBleService.ConnectAsync(targetDevice);
+
+                    if (connected)
+                    {
+                        IsConnected = true;
+                        StatusLabel.Text = $"Connected to {_defaultWatchName}";
+                        SelectedDevice = new BluetoothDeviceWatch
+                        {
+                            Id = targetDevice.Id.ToString(),
+                            Name = targetDevice.Name ?? _defaultWatchName ?? "Unknown",
+                            Device = targetDevice
+                        };
+
+                        await SendUserDataToWatch();
+                    }
+                    else
+                    {
+                        StatusLabel.Text = "Connection failed";
+                        await DisplayAlert("Error", "Failed to connect to default watch", "OK");
+                    }
+                }
+                else
+                {
+                    StatusLabel.Text = "Default watch not found";
+                    await DisplayAlert("Error", $"Could not find {_defaultWatchName}. Make sure it's powered on and nearby.", "OK");
+                }
+
+                DefaultWatchButton.IsEnabled = true;
+            }
+            catch (Exception ex)
+            {
+                StatusLabel.Text = "Connection error";
+                await DisplayAlert("Error", ex.Message, "OK");
+                DefaultWatchButton.IsEnabled = true;
+            }
+        }
+
+        private async void OnChangeDefaultWatchClicked(object sender, EventArgs e)
+        {
+            bool confirm = await DisplayAlert("Remove Default Watch", 
+                "Remove as default watch?", 
+                "Yes", "No");
+
+            if (confirm)
+            {
+                // Reset default watch
+                int userId = Preferences.Get("UserId", -1);
+                if (userId != -1)
+                {
+                    await _userRepository.SetDefaultWatchAsync(userId, "", "");
+                }
+
+                _defaultWatchName = null;
+                _defaultWatchMac = null;
+
+                DefaultWatchStack.IsVisible = false;
+
+                await DisplayAlert("Success", "Default watch removed", "OK");
+            }
         }
     }
 

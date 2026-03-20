@@ -2,11 +2,15 @@ using System;
 using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
+using System.Collections.Generic;
+using System.IO;
 using Plugin.BLE;
 using Plugin.BLE.Abstractions.Contracts;
 using Plugin.BLE.Abstractions.EventArgs;
 using Plugin.BLE.Abstractions;
 using System.Diagnostics;
+using Cellular.Data;
+using Cellular.ViewModel;
 namespace Cellular.Services
 {
     public class WatchBleService : IWatchBleService
@@ -27,6 +31,8 @@ namespace Cellular.Services
 
         public event EventHandler<string>? WatchDisconnected;
         public event EventHandler<string>? WatchJsonReceived;
+        public event EventHandler? WatchStartRecordingRequested;
+        public event EventHandler? WatchStopRecordingRequested;
 
         public WatchBleService()
         {
@@ -120,27 +126,26 @@ namespace Cellular.Services
                 // Check for BLE commands from the Watch
                 if (root.TryGetProperty("cmd", out var cmdProp))
                 {
-                    string cmd = cmdProp.GetString();
+                    string cmd = cmdProp.GetString() ?? "";
 
                     if (cmd == "startRec")
                     {
-                        // Notify Video.xaml.cs to start recording
-                        //MessagingCenter.Send<object>(this, "WatchStartRecording");
+                        Debug.WriteLine("PHONE BLE → Watch requested start recording");
+                        WatchStartRecordingRequested?.Invoke(this, EventArgs.Empty);
                     }
-
-                    if (cmd == "stopRec")
+                    else if (cmd == "stopRec")
                     {
-                        // Notify Video.xaml.cs to stop recording
-                        //MessagingCenter.Send<object>(this, "WatchStopRecording");
+                        Debug.WriteLine("PHONE BLE → Watch requested stop recording");
+                        WatchStopRecordingRequested?.Invoke(this, EventArgs.Empty);
                     }
                 }
 
                 // Keep original callback for debugging or logging
                 WatchJsonReceived?.Invoke(this, jsonStr);
             }
-            catch
+            catch (Exception ex)
             {
-                // Ignore malformed JSON or errors
+                Debug.WriteLine($"OnWatchNotification error: {ex.Message}");
             }
         }
 
@@ -161,7 +166,156 @@ namespace Cellular.Services
             IsConnected = false;
         }
 
-        public async Task<bool> SendJsonToWatch(object json)
+        private async Task<byte[]> BuildUserDataPacket(int userId, SessionRepository? sessionRepo, BallRepository? ballRepo, EventRepository? eventRepo, GameRepository? gameRepo, User? user)
+        {
+            using var ms = new System.IO.MemoryStream();
+            using var writer = new System.IO.BinaryWriter(ms);
+
+            // Header
+            byte packetType = 0x01; // User Data packet
+            byte version = 0x01;    // V1 (bit 7 = 0)
+            writer.Write(packetType);
+            writer.Write(version);
+
+            // Placeholder for length (will be calculated and filled in later)
+            long lengthPosition = ms.Position;
+            writer.Write((byte)0);
+
+            // Session Data - query database for most recent session
+            uint sessionId = 0;
+            string eventName = "";
+            bool sessionActive = false;
+            uint frameNumber = 0;
+            ushort gameNumber = 0;
+            ushort shotNumber = 0;
+
+            if (sessionRepo != null)
+            {
+                try
+                {
+                    var sessions = await sessionRepo.GetSessionsByUserIdAsync(userId);
+                    if (sessions != null && sessions.Count > 0)
+                    {
+                        var mostRecent = sessions.OrderByDescending(s => s.SessionId).FirstOrDefault();
+                        if (mostRecent != null)
+                        {
+                            sessionId = (uint)mostRecent.SessionId;
+
+                            // Get the actual event name from EventRepository
+                            if (eventRepo != null)
+                            {
+                                var eventData = await eventRepo.GetEventByIdAsync(mostRecent.EventId);
+                                eventName = eventData?.Name ?? "";
+                            }
+
+                            // Check if session has games (active session)
+                            if (gameRepo != null)
+                            {
+                                try
+                                {
+                                    var games = await gameRepo.GetGamesListBySessionAsync((int)sessionId, userId);
+                                    if (games != null && games.Count > 0)
+                                    {
+                                        sessionActive = true;
+                                        // Get the most recent game
+                                        var mostRecentGame = games.OrderByDescending(g => g.GameId).FirstOrDefault();
+                                        if (mostRecentGame != null)
+                                        {
+                                            gameNumber = (ushort)(mostRecentGame.GameNumber ?? 0);
+                                            frameNumber = 0; // Default to frame 0 for now
+                                            shotNumber = 0;  // Default to shot 0 for now
+                                            Debug.WriteLine($"BuildUserDataPacket: Found active game {gameNumber}");
+                                        }
+                                    }
+                                }
+                                catch (Exception ex)
+                                {
+                                    Debug.WriteLine($"BuildUserDataPacket: Error querying games: {ex.Message}");
+                                }
+                            }
+
+                            Debug.WriteLine($"BuildUserDataPacket: Found session {sessionId}, event {eventName}, active={sessionActive}");
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine($"BuildUserDataPacket: Error querying sessions: {ex.Message}");
+                }
+            }
+
+            // Write Session ID
+            writer.Write(sessionId);
+
+            // Write Event Name (null-terminated string)
+            var eventNameBytes = System.Text.Encoding.UTF8.GetBytes(eventName);
+            writer.Write(eventNameBytes);
+            writer.Write((byte)0); // null terminator
+
+            // Write session active flag and conditional fields
+            byte primaryHand = 0;
+            if (user?.Hand?.ToLower() == "right")
+                primaryHand = 1;
+            else if (user?.Hand?.ToLower() == "left")
+                primaryHand = 0;
+
+            writer.Write(primaryHand);
+
+            // Write game/frame/shot data (all 0s if session not active)
+            writer.Write(frameNumber);  // 4 bytes
+            writer.Write(gameNumber);   // 2 bytes
+            writer.Write(shotNumber);   // 2 bytes
+
+            // Ball Data
+            List<Ball> balls = new List<Ball>();
+            if (ballRepo != null)
+            {
+                try
+                {
+                    balls = await ballRepo.GetBallsByUserIdAsync(userId);
+                    if (balls == null) balls = new List<Ball>();
+                    Debug.WriteLine($"BuildUserDataPacket: Found {balls.Count} balls");
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine($"BuildUserDataPacket: Error querying balls: {ex.Message}");
+                }
+            }
+
+            byte ballCount = (byte)Math.Min(balls.Count, 255);
+            writer.Write(ballCount);
+
+            foreach (var ball in balls.Take(ballCount))
+            {
+                writer.Write((uint)ball.BallId);
+                var ballNameBytes = System.Text.Encoding.UTF8.GetBytes(ball.Name ?? "");
+                writer.Write(ballNameBytes);
+                writer.Write((byte)0); // null terminator
+            }
+
+            // User Data
+            var username = user?.UserName ?? "";
+            var usernameBytes = System.Text.Encoding.UTF8.GetBytes(username);
+            writer.Write(usernameBytes);
+            writer.Write((byte)0); // null terminator
+
+            writer.Write((uint)userId);
+
+            // Calculate and write packet length (excluding the header itself)
+            long endPosition = ms.Position;
+            byte packetLength = (byte)(endPosition - 3); // Length excludes header bytes
+
+            // Seek back to length position and write it
+            ms.Seek(lengthPosition, System.IO.SeekOrigin.Begin);
+            writer.Write(packetLength);
+
+            byte[] packet = ms.ToArray();
+            Debug.WriteLine($"BuildUserDataPacket: Built packet of {packet.Length} bytes, sessionId={sessionId}, gameNumber={gameNumber}, frameNumber={frameNumber}, shotNumber={shotNumber}");
+
+            return packet;
+        }
+
+        public async Task<bool> SendJsonToWatch(int userId, SessionRepository? sessionRepo, BallRepository? ballRepo, EventRepository? eventRepo, GameRepository? gameRepo, User? user)
         {
             if (!IsConnected || _commandChar == null)
             {
@@ -169,11 +323,9 @@ namespace Cellular.Services
                 return false;
             }
 
-            string payload = JsonSerializer.Serialize(json);
-            byte[] bytes = System.Text.Encoding.UTF8.GetBytes(payload);
+            byte[] bytes = await BuildUserDataPacket(userId, sessionRepo, ballRepo, eventRepo, gameRepo, user);
 
             Debug.WriteLine($"SendJsonToWatch: Payload size = {bytes.Length} bytes");
-            Debug.WriteLine($"SendJsonToWatch: Payload = {payload}");
 
             try
             {

@@ -34,5 +34,10 @@ namespace Cellular.Data
         {
             return await _conn.Table<Event>().FirstOrDefaultAsync(u => u.UserId == userID && u.Name == name);
         }
+
+        public async Task<Event?> GetEventByIdAsync(int eventId)
+        {
+            return await _conn.Table<Event>().FirstOrDefaultAsync(u => u.EventId == eventId);
+        }
     }
 }

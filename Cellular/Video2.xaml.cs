@@ -36,16 +36,41 @@ namespace Cellular
         private string currentVideoPath = string.Empty;
         private System.IO.FileStream? _videoFileStream;
 
+        // Watch BLE service for external recording control
+        private IWatchBleService _watchBleService;
+
         protected override async void OnAppearing()
         {
             base.OnAppearing();
             await Permissions.RequestAsync<Permissions.Camera>();
             await Permissions.RequestAsync<Permissions.Microphone>();
         }
+
+        protected override void OnDisappearing()
+        {
+            base.OnDisappearing();
+
+            // Unsubscribe from watch recording events
+            _watchBleService.WatchStartRecordingRequested -= async (s, e) => await BeginExternalRecording();
+            _watchBleService.WatchStopRecordingRequested -= async (s, e) => await EndExternalRecording();
+
+            // Clean up stream if recording
+            CleanupStream();
+        }
         
         public Video2()
         {
             InitializeComponent();
+
+            // Get MetaWear service from dependency injection
+            _watchBleService = Handler?.MauiContext?.Services?.GetService<IWatchBleService>()
+                ?? Application.Current?.Handler?.MauiContext?.Services?.GetService<IWatchBleService>()
+                ?? Microsoft.Maui.Controls.Application.Current?.Handler?.MauiContext?.Services?.GetService<IWatchBleService>()
+                ?? new WatchBleService(); // Last resort - but this should not happen with proper DI
+
+            // Subscribe to watch recording commands
+            _watchBleService.WatchStartRecordingRequested += async (s, e) => await BeginExternalRecording();
+            _watchBleService.WatchStopRecordingRequested += async (s, e) => await EndExternalRecording();
 
             cameraView.SizeChanged += CameraView_SizeChanged;
 
@@ -204,6 +229,81 @@ namespace Cellular
             {
                 System.Diagnostics.Debug.WriteLine($"Save failed: {ex.Message}");
             }
+        }
+
+        /// <summary>
+        /// Starts video recording when triggered by watch external command
+        /// </summary>
+        public async Task BeginExternalRecording()
+        {
+            if (!isCameraStarted || isRecording)
+                return;
+
+            await MainThread.InvokeOnMainThreadAsync(async () =>
+            {
+                try
+                {
+                    // Prepare Folder and Path
+                    string targetFolder = Path.Combine(FileSystem.CacheDirectory, "Videos");
+                    Directory.CreateDirectory(targetFolder);
+                    string fileName = $"rm_{DateTime.Now:yyyyMMdd_HHmmss}.mp4";
+                    currentVideoPath = Path.Combine(targetFolder, fileName);
+
+                    // Open Stream (Use Create to overwrite if exists)
+                    _videoFileStream = File.Create(currentVideoPath);
+
+                    // Start Recording
+                    await cameraView.StartVideoRecording(_videoFileStream, CancellationToken.None);
+
+                    isRecording = true;
+                    RecordBtn.Text = "Stop Recording";
+                    RecordBtn.BackgroundColor = Colors.Red;
+
+                    System.Diagnostics.Debug.WriteLine("[Video2] External recording started from watch command");
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[Video2] BeginExternalRecording failed: {ex.Message}");
+                    CleanupStream();
+                    isRecording = false;
+                    RecordBtn.Text = "Record";
+                    RecordBtn.BackgroundColor = Colors.DeepSkyBlue;
+                }
+            });
+        }
+
+        /// <summary>
+        /// Stops video recording when triggered by watch external command
+        /// </summary>
+        public async Task EndExternalRecording()
+        {
+            if (!isRecording)
+                return;
+
+            await MainThread.InvokeOnMainThreadAsync(async () =>
+            {
+                try
+                {
+                    // Stop Recording
+                    await cameraView.StopVideoRecording(CancellationToken.None);
+
+                    // Cleanup the stream to flush data to disk
+                    CleanupStream();
+
+                    // Save to Public Gallery/Folder
+                    await SaveVideoToGallery();
+
+                    isRecording = false;
+                    RecordBtn.Text = "Record";
+                    RecordBtn.BackgroundColor = Colors.DeepSkyBlue;
+
+                    System.Diagnostics.Debug.WriteLine("[Video2] External recording stopped from watch command");
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[Video2] EndExternalRecording failed: {ex.Message}");
+                }
+            });
         }
     }
 }
