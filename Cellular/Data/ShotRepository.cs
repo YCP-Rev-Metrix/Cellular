@@ -53,6 +53,20 @@ namespace Cellular.Data
             }
         }
 
+        // Deletes a shot
+        public async Task DeleteShotAsync(Shot shot)
+        {
+            try
+            {
+                await _conn.DeleteAsync(shot);
+                Console.WriteLine($"Shot deleted: Frame {shot.Frame}, Shot {shot.ShotNumber}");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error deleting shot: {ex.Message}");
+            }
+        }
+
         // Retrieves all shots for a specific game
         public async Task<Shot?> GetShotById(int shotId)
         {
@@ -60,6 +74,5 @@ namespace Cellular.Data
                                   .Where(s => s.ShotId == shotId)
                                   .FirstOrDefaultAsync();
         }
-
     }
 }

@@ -83,7 +83,7 @@ namespace Cellular.ViewModel
 
         public ICommand FrameTappedCommand { get; private set; }
 
-        // New: separate commands for shot 1 and shot 2 taps so VM receives the ShotPageFrame instance directly.
+        // Separate commands for shot 1 and shot 2 taps so VM receives the ShotPageFrame instance directly.
         public ICommand ShotOneTappedCommand { get; private set; }
         public ICommand ShotTwoTappedCommand { get; private set; }
 
@@ -279,7 +279,7 @@ namespace Cellular.ViewModel
             var frame = await _database.Table<BowlingFrame>().Where(f => f.GameId == gameId && f.FrameNumber == CurrentFrame).FirstOrDefaultAsync();
             if (frame != null)
             {
-                var shot1 = await _database.Table<Shot>().Where(f => f.ShotId == firstShotId).FirstOrDefaultAsync();
+                var shot1 = await _database.Table<Shot>().Where(f => f.ShotId == frame.Shot1).FirstOrDefaultAsync();
 
                 if (shot1 != null)
                 {
@@ -289,14 +289,14 @@ namespace Cellular.ViewModel
                         shot1PinStates = pinStates;
                         StrikeBallId = (int)shot1.Ball;
                         Comment = shot1.Comment ?? "";
-                        string result = Convert.ToString((ushort)pinStates, 2).PadLeft(16, '0');
-                        Debug.WriteLine($"{result}");
+                        string pins = Convert.ToString((ushort)shot1PinStates, 2).PadLeft(16, '0');
+                        Debug.WriteLine($"{pins}");
                     }
                 }
 
                 if (shotnum == 2)
                 {
-                    var shot2 = await _database.Table<Shot>().Where(f => f.ShotId == secondShotId).FirstOrDefaultAsync();
+                    var shot2 = await _database.Table<Shot>().Where(f => f.ShotId == frame.Shot2).FirstOrDefaultAsync();
                     if (shot2 != null)
                     {
                         if (shot2.LeaveType != null)
@@ -304,8 +304,8 @@ namespace Cellular.ViewModel
                             pinStates = (short)(shot2.LeaveType);
                             StrikeBallId = (int)shot2.Ball;
                             Comment = shot2.Comment ?? "";
-                            string result = Convert.ToString((ushort)pinStates, 2).PadLeft(16, '0');
-                            Debug.WriteLine($"{result}");
+                            string pins = Convert.ToString((ushort)pinStates, 2).PadLeft(16, '0');
+                            Debug.WriteLine($"{pins}");
                         }
                     }
                 }
@@ -318,7 +318,7 @@ namespace Cellular.ViewModel
         private void OnFrameTapped(ShotPageFrame frame)
         {
             if (frame == null) return;
-            if (frame.ShotOneBox == "") return; //Only allow editing if the frame has a shot recorded
+            if (frame.FrameNumber > FrameCounter) return; //Only allow editing if the frame has a shot recorded
 
             EditMode = true;
             CurrentFrame = frame.FrameNumber;
@@ -345,7 +345,7 @@ namespace Cellular.ViewModel
         // New: handler for tapping shot 2 box
         private void OnShotTwoTapped(ShotPageFrame frame)
         {
-            if (frame == null) return;
+            if (frame == null || frame.ShotOneBox == "X") return;
 
             // require EditMode as before
             if (!EditMode) return;
@@ -368,9 +368,10 @@ namespace Cellular.ViewModel
             {
                 // selected frame gets a highlight; others are default white
                 f.BackgroundColor = (f.FrameNumber == CurrentFrame)
-                    ? (EditMode ? Colors.Orange : Color.FromArgb("#e89e99"))
+                    ? (Color.FromArgb("#e89e99"))
                     : Colors.White;
             }
+            OnPropertyChanged(nameof(FrameDisplay));
         }
     }
 
