@@ -38,6 +38,8 @@ namespace Cellular
                 _hasAppeared = true;
                 _ = CheckIfFramesExistForGame();
                 _ = viewModel.LoadUserHand();
+                // Ensure frame backgrounds are computed on initial load
+                viewModel.RefreshFrameBackgrounds();
                 Debug.WriteLine("Hand: " + viewModel.Hand);
                 Debug.WriteLine("Date: " + viewModel.CurrentDate);
             }
@@ -252,6 +254,7 @@ namespace Cellular
             }
             viewModel.Comment = "";
             await UpdateScore();
+            viewModel.RefreshFrameBackgrounds();
             viewModel.OnPropertyChanged(nameof(viewModel.FrameDisplay));
             currentFrame.OnPropertyChanged(nameof(currentFrame.CenterPinColors));
             currentFrame.OnPropertyChanged(nameof(currentFrame.PinColors));
@@ -1043,7 +1046,7 @@ namespace Cellular
                 viewModel.Frames.Add(new ShotPageFrame(1));
             }
 
-            while (viewModel.Frames.Count < frameIds.Count)
+            while (viewModel.Frames.Count <= frameIds.Count)
             {
                 viewModel.Frames.Add(new ShotPageFrame(viewModel.Frames.Count + 1));
             }
@@ -1154,6 +1157,8 @@ namespace Cellular
             await UpdateScore();
             // Notify the viewModel of frame updates
             viewModel.OnPropertyChanged(nameof(viewModel.Frames));
+            // Recalculate UI frame backgrounds now that frames and current frame are loaded
+            viewModel.RefreshFrameBackgrounds();
         }
 
         private void HandleEditFrame()

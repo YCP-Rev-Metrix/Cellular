@@ -153,6 +153,12 @@ namespace Cellular.ViewModel
             }
         }
 
+        // Public wrapper so views can request a refresh of frame backgrounds
+        public void RefreshFrameBackgrounds()
+        {
+            UpdateFrameBackgrounds();
+        }
+
         public string Comment
         {
             get => _comment;
