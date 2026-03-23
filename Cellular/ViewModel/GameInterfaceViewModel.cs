@@ -22,7 +22,6 @@ namespace Cellular.ViewModel
         public short pinStates = 0;
         public short shot1PinStates = 0;
         public int _currentFrame = 1;
-        public int _frameCounter = 1;
         public int _currentShot = 1;
         public int currentSession { get; set; } = Preferences.Get("SessionNumber", 0);
         public int currentGame { get; set; } = Preferences.Get("GameNumber", 0);
@@ -94,16 +93,7 @@ namespace Cellular.ViewModel
 
             frames =
             [
-                new (1),
-                new (2),
-                new (3),
-                new (4),
-                new (5),
-                new (6),
-                new (7),
-                new (8),
-                new (9),
-                new (10)
+                new (1)
             ];
 
             LoadUsers();
@@ -145,19 +135,6 @@ namespace Cellular.ViewModel
                     _currentFrame = value;
                     OnPropertyChanged(nameof(CurrentFrame));
                     UpdateFrameBackgrounds();
-                }
-            }
-        }
-
-        public int FrameCounter
-        {
-            get => _frameCounter;
-            set
-            {
-                if (_frameCounter != value)
-                {
-                    _frameCounter = value;
-                    OnPropertyChanged(nameof(_frameCounter));
                 }
             }
         }
@@ -318,7 +295,6 @@ namespace Cellular.ViewModel
         private void OnFrameTapped(ShotPageFrame frame)
         {
             if (frame == null) return;
-            if (frame.FrameNumber > FrameCounter) return; //Only allow editing if the frame has a shot recorded
 
             EditMode = true;
             CurrentFrame = frame.FrameNumber;
