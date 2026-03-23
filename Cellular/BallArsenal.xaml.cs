@@ -23,9 +23,6 @@ namespace Cellular
 
             // forward UI selection into the VM (if XAML doesn't bind SelectedItem)
             BallsListView.SelectionChanged += OnBallsListViewSelectionChanged;
-
-            // react when the VM reports SelectedIndex change
-            _viewModel.SelectedIndexChanged += OnViewModelSelectedIndexChanged;
         }
 
         protected override async void OnAppearing()
@@ -56,12 +53,6 @@ namespace Cellular
             {
                 _viewModel.SelectedBall = null;
             }
-        }
-
-        // react to VM selection changes
-        private void OnViewModelSelectedIndexChanged(object? sender, EventArgs e)
-        {
-            
         }
     }
 }

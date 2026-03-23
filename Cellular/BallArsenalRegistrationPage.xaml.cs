@@ -34,11 +34,16 @@ public partial class BallArsenalRegistrationPage : ContentPage
     private async void OnRegisterBallClicked(object sender, EventArgs e)
     {
         // Get the entered data
-        string ballName = BallName.Text.Trim();
-        string? ballWeight = BallWeight.Text.Trim();
-        string? ballCore = BallCoreType.Text.Trim();
+        string ballName = BallName.Text?.Trim() ?? string.Empty;
+        string ballMFG = BallMFG.Text?.Trim() ?? string.Empty;
+        string ballMFGName = BallMFGName.Text?.Trim() ?? string.Empty;
+        string? ballSerial = SerialNumber.Text?.Trim();
+        string? ballWeight = BallWeight.Text?.Trim();
+        string? ballCore = BallCoreType.Text?.Trim();
+        string? ballCoverstock = Coverstock.Text?.Trim();
         string? ballColor = BallColor.SelectedItem?.ToString();
-        // Validation to ensure all fields are filled
+        string? comment = Comment.Text?.Trim();
+        // Validation to ensure required fields are filled
         if (string.IsNullOrWhiteSpace(ballName))
         {
             await DisplayAlertAsync("Error", "Please enter a Ball name.", "OK");
@@ -52,13 +57,18 @@ public partial class BallArsenalRegistrationPage : ContentPage
                 $"You already have a ball named '{ballName}' in your arsenal.", "OK");
             return;
         }
-        if (string.IsNullOrEmpty(ballWeight))
+        if (string.IsNullOrEmpty(ballMFG))
         {
-            await DisplayAlertAsync("Error", "Please enter a Ball weight.", "OK");
+            await DisplayAlertAsync("Error", "Please enter a Ball MFG.", "OK");
             return;
         }
-        // If custom was selected, ensure a hex color is provided
-        if (string.Equals(ballColor, "Custom", StringComparison.OrdinalIgnoreCase))
+        if (string.IsNullOrEmpty(ballMFGName))
+        {
+            await DisplayAlertAsync("Error", "Please enter a Ball MFG Name.", "OK");
+            return;
+        }
+            // If custom was selected, ensure a hex color is provided
+            if (string.Equals(ballColor, "Custom", StringComparison.OrdinalIgnoreCase))
         {
             var hex = BallHexColor.Text;
             if (string.IsNullOrWhiteSpace(hex))
@@ -79,10 +89,14 @@ public partial class BallArsenalRegistrationPage : ContentPage
             ballColor = hex;
         }
 
-        if (!int.TryParse(ballWeight, out int weight))
+        int weight = 0;
+        if (!string.IsNullOrWhiteSpace(ballWeight))
         {
-            await DisplayAlertAsync("Error", "Ball weight must be a valid number.", "OK");
-            return;
+            if (!int.TryParse(ballWeight, out weight))
+            {
+                await DisplayAlertAsync("Error", "Ball weight must be a valid number.", "OK");
+                return;
+            }
         }
 
         // You can further process the data here (e.g., save it to a database or display a success message)
@@ -90,10 +104,14 @@ public partial class BallArsenalRegistrationPage : ContentPage
         {
             UserId = Preferences.Get("UserId", 0),
             Name = ballName,
-            //SerialNumber = serial,
+            BallMFG = ballMFG,
+            BallMFGName = ballMFGName,
+            SerialNumber = ballSerial,
             Weight = weight,
             Core = ballCore,
-            ColorString = ballColor ?? string.Empty
+            Coverstock = ballCoverstock,
+            Comment = comment,
+            ColorString = ballColor ?? null
         };
 
         await _BallRepository.AddAsync(newBall); // Saves to SQLite
@@ -102,8 +120,13 @@ public partial class BallArsenalRegistrationPage : ContentPage
         await DisplayAlertAsync("Ball", "The Ball was Added", "OK");
         // Optionally, clear the form
         BallName.Text = string.Empty;
+        BallMFG.Text = string.Empty;
+        BallMFGName.Text = string.Empty;
+        SerialNumber.Text = string.Empty;
         BallWeight.Text = string.Empty;
         BallCoreType.Text = string.Empty;
+        Coverstock.Text = string.Empty;
+        Comment.Text = string.Empty;
         BallColor.SelectedIndex = -1;
         BallHexColor.Text = string.Empty;
         BallHexColor.IsVisible = false;
