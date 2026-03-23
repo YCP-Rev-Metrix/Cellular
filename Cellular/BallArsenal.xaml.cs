@@ -54,5 +54,15 @@ namespace Cellular
                 _viewModel.SelectedBall = null;
             }
         }
+
+        // Handle Edit button in the ItemTemplate. The Button's BindingContext will be the Ball.
+        private async void OnEditBallBtnClicked(object sender, EventArgs e)
+        {
+            if (sender is Button btn && btn.BindingContext is Ball ball)
+            {
+                // Navigate to registration page in edit mode
+                await Navigation.PushAsync(new BallArsenalRegistrationPage(ball));
+            }
+        }
     }
 }

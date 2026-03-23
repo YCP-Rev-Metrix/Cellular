@@ -51,7 +51,7 @@
                     StrokeThickness="2">
                     <Editor x:Name="Comment" Placeholder="Enter comments here" MinimumHeightRequest="100"/>
                 </Border>
-                <Button Text="Register Ball" Clicked="OnRegisterBallClicked" />
+                <Button x:Name="RegisterBallButton" Text="Register Ball" Clicked="OnRegisterBallClicked" />
             </StackLayout>
         </ScrollView>
     </Grid>

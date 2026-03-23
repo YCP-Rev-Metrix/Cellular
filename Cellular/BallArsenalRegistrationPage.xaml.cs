@@ -10,6 +10,7 @@ public partial class BallArsenalRegistrationPage : ContentPage
 {
     private readonly BallRepository _BallRepository;
     public ObservableCollection<Ball> Balls { get; set; }
+    private Ball? _editingBall;
     public BallArsenalRegistrationPage()
     {
         InitializeComponent();
@@ -18,6 +19,37 @@ public partial class BallArsenalRegistrationPage : ContentPage
 
         // ensure initial visibility matches any pre-selected value (usually none)
         UpdateHexVisibility();
+    }
+
+    public BallArsenalRegistrationPage(Ball ballToEdit) : this()
+    {
+        _editingBall = ballToEdit;
+        // Populate fields from the existing ball
+        BallName.Text = _editingBall.Name;
+        BallMFG.Text = _editingBall.BallMFG;
+        BallMFGName.Text = _editingBall.BallMFGName;
+        SerialNumber.Text = _editingBall.SerialNumber;
+        BallWeight.Text = _editingBall.Weight > 0 ? _editingBall.Weight.ToString() : string.Empty;
+        BallCoreType.Text = _editingBall.Core;
+        Coverstock.Text = _editingBall.Coverstock;
+        Comment.Text = _editingBall.Comment;
+        if (!string.IsNullOrEmpty(_editingBall.ColorString))
+        {
+            // If the color matches one of the picker items, select it; otherwise select Custom and fill hex
+            var color = _editingBall.ColorString;
+            int idx = BallColor.Items.IndexOf(color);
+            if (idx >= 0)
+            {
+                BallColor.SelectedIndex = idx;
+            }
+            else
+            {
+                BallColor.SelectedItem = "Custom";
+                BallHexColor.Text = color;
+                BallHexColor.IsVisible = true;
+            }
+        }
+        RegisterBallButton.Text = "Save";
     }
 
     private void OnBallColorSelectedIndexChanged(object sender, EventArgs e)
@@ -51,7 +83,9 @@ public partial class BallArsenalRegistrationPage : ContentPage
         }
         var existingBall = await _BallRepository.GetBallByNameAndUserAsync(ballName, Preferences.Get("UserId", 0));
 
-        if (existingBall != null)
+        // If creating a new ball and a ball with this name exists, block. If editing, allow the same
+        // name if it belongs to the ball being edited.
+        if (existingBall != null && (_editingBall == null || existingBall.BallId != _editingBall.BallId))
         {
             await DisplayAlertAsync("Duplicate Name",
                 $"You already have a ball named '{ballName}' in your arsenal.", "OK");
@@ -113,11 +147,30 @@ public partial class BallArsenalRegistrationPage : ContentPage
             Comment = comment,
             ColorString = ballColor ?? null
         };
+        if (_editingBall != null)
+        {
+            // Update existing
+            _editingBall.Name = newBall.Name;
+            _editingBall.BallMFG = newBall.BallMFG;
+            _editingBall.BallMFGName = newBall.BallMFGName;
+            _editingBall.SerialNumber = newBall.SerialNumber;
+            _editingBall.Weight = newBall.Weight;
+            _editingBall.Core = newBall.Core;
+            _editingBall.Coverstock = newBall.Coverstock;
+            _editingBall.Comment = newBall.Comment;
+            _editingBall.ColorString = newBall.ColorString;
 
-        await _BallRepository.AddAsync(newBall); // Saves to SQLite
-        Balls.Add(newBall);
-
-        await DisplayAlertAsync("Ball", "The Ball was Added", "OK");
+            await _BallRepository.UpdateBallAsync(_editingBall);
+            await DisplayAlertAsync("Ball", "The Ball was Updated", "OK");
+            await Navigation.PopAsync();
+        }
+        else
+        {
+            await _BallRepository.AddAsync(newBall); // Saves to SQLite
+            Balls.Add(newBall);
+            await DisplayAlertAsync("Ball", "The Ball was Added", "OK");
+            await Navigation.PopAsync();
+        }
         // Optionally, clear the form
         BallName.Text = string.Empty;
         BallMFG.Text = string.Empty;
@@ -130,6 +183,7 @@ public partial class BallArsenalRegistrationPage : ContentPage
         BallColor.SelectedIndex = -1;
         BallHexColor.Text = string.Empty;
         BallHexColor.IsVisible = false;
+        _editingBall = null;
     }
 
 }

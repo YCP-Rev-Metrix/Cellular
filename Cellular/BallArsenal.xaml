@@ -47,6 +47,8 @@
                             <Grid Padding="15" ColumnDefinitions="*, *">
                                 <VerticalStackLayout Grid.Column="0" Spacing="2">
                                     <Label Text="{Binding Name}" FontAttributes="Bold" TextColor="Black" FontSize="16"/>
+                                    <Label Text="{Binding BallMFG, StringFormat='MFG: {0}'}" TextColor="Black"/>
+                                    <Label Text="{Binding BallMFGName, StringFormat='MFG Name: {0}'}" TextColor="Black"/>
                                     <Label Text="{Binding Weight, StringFormat='Weight: {0} lbs'}" TextColor="Black" />
                                     <Label Text="{Binding Core, StringFormat='Core: {0}'}" TextColor="Black"/>
                                     <Label Text="{Binding ColorString, StringFormat='Color: {0}'}" TextColor="Black" />
@@ -56,9 +58,16 @@
                                        HeightRequest="80" 
                                        WidthRequest="80" 
                                        Grid.Column="1" 
-                                       HorizontalOptions="End" 
+                                       HorizontalOptions="End"
+                                       VerticalOptions="Start"
                                        BackgroundColor="{Binding ColorString, Converter={StaticResource ColorConverter}}">
                                 </Image>
+                                <Button Text="Edit" 
+                                        Grid.Column="1"
+                                        WidthRequest="80"
+                                        HorizontalOptions="End" 
+                                        VerticalOptions="End" 
+                                        Clicked="OnEditBallBtnClicked"/>
                             </Grid>
                         </Border>
                     </Grid>
