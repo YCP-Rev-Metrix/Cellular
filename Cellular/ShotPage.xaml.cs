@@ -682,6 +682,18 @@ namespace Cellular
                                 {
                                     Debug.WriteLine("Trying to delete old shot 2");
                                     await shotRepository.DeleteShotAsync(shot2);
+                                    // Make sure the frame no longer references the deleted shot
+                                    try
+                                    {
+                                        reloadFrame.Shot2 = null;
+                                        reloadFrame.Result = viewModel.frameResult;
+                                        await frameRepository.UpdateFrameAsync(reloadFrame);
+                                        Debug.WriteLine($"Cleared Shot2 reference from frame {reloadFrame.FrameId}");
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        Debug.WriteLine($"Error clearing Shot2 on frame update: {ex.Message}");
+                                    }
                                 }
                             }
                         }
