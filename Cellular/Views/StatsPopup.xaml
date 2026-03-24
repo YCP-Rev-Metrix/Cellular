@@ -34,6 +34,16 @@
                    TextColor="Black"
                    FontSize="16" />
 
+            <Label Text="{Binding SplitPercent, StringFormat='Split: {0:P0}'}"
+               HorizontalOptions="Center" 
+               TextColor="Black"
+               FontSize="16" />
+
+            <Label Text="{Binding WashoutPercent, StringFormat='Washout: {0:P0}'}"
+               HorizontalOptions="Center" 
+               TextColor="Black"
+               FontSize="16" />
+
             <Label Text="{Binding GameAverage, StringFormat='GameAverage: {0:N2}'}"
                    HorizontalOptions="Center" 
                    TextColor="Black"

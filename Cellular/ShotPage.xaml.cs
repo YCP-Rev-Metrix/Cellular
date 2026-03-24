@@ -125,6 +125,8 @@ namespace Cellular
                 {
                     viewModel.frameResult = "Strike";
                 }
+                //Caclulate the shot type and save
+                viewModel.pinStates = ShotCalculator.CalculateShotType(viewModel.pinStates, 1);
                 //Save shot to DB
                 viewModel.firstShotId = await SaveShotAsync(1);
 
@@ -184,6 +186,8 @@ namespace Cellular
                     viewModel.pinStates |= (short)(0 << 10); // Make sure the bit is saved as a 0 if foul was selected and no longer is
                     foul = false;
                 }
+                //Caclulate the shot type and save
+                viewModel.pinStates = ShotCalculator.CalculateShotType(viewModel.pinStates, 2);
                 //Save shot to DB
                 viewModel.secondShotId = await SaveShotAsync(2);
 
