@@ -90,7 +90,7 @@
                                            VerticalTextAlignment="Center"/>
                                 </Grid>
                             </Border>
-                            <!-- Lane Coverage -->
+                            <!-- Entry Angle -->
                             <Border Grid.Row="1" Grid.Column="0"
                                     StrokeShape="RoundRectangle 10" StrokeThickness="0"
                                     Padding="0" HeightRequest="100">
@@ -105,17 +105,17 @@
                                             <GradientStop Color="White" Offset="1.0"/>
                                         </LinearGradientBrush>
                                     </Grid.Background>
-                                    <Label Grid.Row="0" Text="Lane Coverage" FontSize="10" FontAttributes="Bold"
+                                    <Label Grid.Row="0" Text="Entry Angle" FontSize="10" FontAttributes="Bold"
                                            TextColor="#6b5b95" Margin="8,6,8,2"/>
                                     <BoxView Grid.Row="0" HeightRequest="1" Color="#d8d0eb"
                                              VerticalOptions="End" Margin="6,0"/>
-                                    <Label x:Name="StatCoverage" Grid.Row="1" Text="--"
+                                    <Label x:Name="StatEntryAngle" Grid.Row="1" Text="--"
                                            FontSize="18" FontAttributes="Bold"
                                            TextColor="#1f1f1f" HorizontalTextAlignment="Center"
                                            VerticalTextAlignment="Center"/>
                                 </Grid>
                             </Border>
-                            <!-- Lateral Drift -->
+                            <!-- Breakpoint Dist -->
                             <Border Grid.Row="1" Grid.Column="1"
                                     StrokeShape="RoundRectangle 10" StrokeThickness="0"
                                     Padding="0" HeightRequest="100">
@@ -130,11 +130,11 @@
                                             <GradientStop Color="White" Offset="1.0"/>
                                         </LinearGradientBrush>
                                     </Grid.Background>
-                                    <Label Grid.Row="0" Text="Lateral Drift" FontSize="10" FontAttributes="Bold"
+                                    <Label Grid.Row="0" Text="Breakpoint Dist" FontSize="10" FontAttributes="Bold"
                                            TextColor="#6b5b95" Margin="8,6,8,2"/>
                                     <BoxView Grid.Row="0" HeightRequest="1" Color="#d8d0eb"
                                              VerticalOptions="End" Margin="6,0"/>
-                                    <Label x:Name="StatDrift" Grid.Row="1" Text="--"
+                                    <Label x:Name="StatBreakpoint" Grid.Row="1" Text="--"
                                            FontSize="18" FontAttributes="Bold"
                                            TextColor="#1f1f1f" HorizontalTextAlignment="Center"
                                            VerticalTextAlignment="Center"/>
@@ -282,19 +282,19 @@
 
                                 <!-- Plot panels stacked, toggled via IsVisible -->
                                 <Grid x:Name="PlotSpeedPanel" Grid.Row="0" IsVisible="True">
-                                    <Label Text="Speed by Quarter" FontSize="9" FontAttributes="Bold"
+                                    <Label Text="Speed by Quarter (mph)" FontSize="9" FontAttributes="Bold"
                                            TextColor="#7a7a9a" Margin="8,4,0,0"
                                            VerticalOptions="Start"/>
                                     <GraphicsView x:Name="SpeedPlotView" Margin="0,18,0,0"/>
                                 </Grid>
                                 <Grid x:Name="PlotAccelPanel" Grid.Row="0" IsVisible="False">
-                                    <Label Text="Accel by Quarter" FontSize="9" FontAttributes="Bold"
+                                    <Label Text="Accel by Quarter (ft/s&#x00B2;)" FontSize="9" FontAttributes="Bold"
                                            TextColor="#7a7a9a" Margin="8,4,0,0"
                                            VerticalOptions="Start"/>
                                     <GraphicsView x:Name="AccelPlotView" Margin="0,18,0,0"/>
                                 </Grid>
                                 <Grid x:Name="PlotLateralPanel" Grid.Row="0" IsVisible="False">
-                                    <Label Text="Lateral Position" FontSize="9" FontAttributes="Bold"
+                                    <Label Text="Lateral Position (in)" FontSize="9" FontAttributes="Bold"
                                            TextColor="#7a7a9a" Margin="8,4,0,0"
                                            VerticalOptions="Start"/>
                                     <GraphicsView x:Name="LateralPlotView" Margin="0,18,0,0"/>
@@ -349,6 +349,25 @@
                   Padding="10">
 
                 <views:CiclopesPoseView x:Name="PoseView" Grid.Row="0"/>
+
+                <!-- Loading overlay for pose data -->
+                <Grid x:Name="PoseLoadingOverlay" Grid.Row="0"
+                      BackgroundColor="#E0f8f7fc"
+                      IsVisible="True">
+                    <VerticalStackLayout VerticalOptions="Center"
+                                         HorizontalOptions="Center"
+                                         Spacing="12">
+                        <ActivityIndicator IsRunning="True"
+                                           Color="#512BD4"
+                                           WidthRequest="48"
+                                           HeightRequest="48"/>
+                        <Label x:Name="PoseLoadingLabel"
+                               Text="Loading pose estimation..."
+                               FontSize="14"
+                               TextColor="#6b5b95"
+                               HorizontalTextAlignment="Center"/>
+                    </VerticalStackLayout>
+                </Grid>
 
                 <Grid Grid.Row="1"
                       Margin="0,6,0,0"

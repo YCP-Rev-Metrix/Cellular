@@ -106,6 +106,38 @@ public class ApiExecutor
                     throw new NotImplementedException("CiclopesAggRun only supports POST.");
                 }
                 break;
+            case EntityType.CiclopesLaneBallsRun:
+                if (OperationType == OperationType.Post)
+                {
+                    string? laneBallsBaseUrl = CiclopesSettings.BaseUrl;
+                    if (string.IsNullOrWhiteSpace(laneBallsBaseUrl))
+                    {
+                        throw new InvalidOperationException("CICLOPES_IP and CICLOPES_PORT must be configured.");
+                    }
+
+                    url = laneBallsBaseUrl + "laneballs/run";
+                }
+                else
+                {
+                    throw new NotImplementedException("CiclopesLaneBallsRun only supports POST.");
+                }
+                break;
+            case EntityType.CiclopesFourDBodyRun:
+                if (OperationType == OperationType.Post)
+                {
+                    string? fourDBodyBaseUrl = CiclopesSettings.BaseUrl;
+                    if (string.IsNullOrWhiteSpace(fourDBodyBaseUrl))
+                    {
+                        throw new InvalidOperationException("CICLOPES_IP and CICLOPES_PORT must be configured.");
+                    }
+
+                    url = fourDBodyBaseUrl + "fourdbody/run";
+                }
+                else
+                {
+                    throw new NotImplementedException("CiclopesFourDBodyRun only supports POST.");
+                }
+                break;
             default:
                 throw new NotImplementedException("This obj type is not implemented yet.");
         }

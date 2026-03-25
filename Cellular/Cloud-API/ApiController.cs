@@ -18,7 +18,9 @@ public enum EntityType
     Game,
     Session,
     Shot,
-    CiclopesAggRun
+    CiclopesAggRun,
+    CiclopesLaneBallsRun,
+    CiclopesFourDBodyRun
 }
 
 public enum OperationType
@@ -172,6 +174,70 @@ public class ApiController
             Debug.WriteLine(responseBody);
 
             return JsonSerializer.Deserialize<CiclopesRunResponse>(responseBody, JsonOptions);
+        }
+        catch (HttpRequestException httpEx)
+        {
+            Debug.WriteLine("HTTP Request failed: " + httpEx);
+            throw;
+        }
+        catch (JsonException jsonEx)
+        {
+            Debug.WriteLine("JSON parse failed: " + jsonEx);
+            throw;
+        }
+    }
+
+    public async Task<LaneBallsRunResponse?> ExecuteLaneBallsRunRequest(CiclopesRunRequest requestData)
+    {
+        using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(120) };
+        ApiExecutor executor = new ApiExecutor(EntityType.CiclopesLaneBallsRun, OperationType.Post);
+        string requestUrl = executor.GetUrl();
+
+        var requestBody = JsonSerializer.Serialize(requestData);
+        var content = new StringContent(requestBody, Encoding.UTF8, "application/json");
+
+        HttpResponseMessage response = await client.PostAsync(requestUrl, content).ConfigureAwait(false);
+
+        try
+        {
+            response.EnsureSuccessStatusCode();
+            var responseBody = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+
+            Debug.WriteLine(responseBody);
+
+            return JsonSerializer.Deserialize<LaneBallsRunResponse>(responseBody, JsonOptions);
+        }
+        catch (HttpRequestException httpEx)
+        {
+            Debug.WriteLine("HTTP Request failed: " + httpEx);
+            throw;
+        }
+        catch (JsonException jsonEx)
+        {
+            Debug.WriteLine("JSON parse failed: " + jsonEx);
+            throw;
+        }
+    }
+
+    public async Task<FourDBodyRunResponse?> ExecuteFourDBodyRunRequest(CiclopesRunRequest requestData)
+    {
+        using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(120) };
+        ApiExecutor executor = new ApiExecutor(EntityType.CiclopesFourDBodyRun, OperationType.Post);
+        string requestUrl = executor.GetUrl();
+
+        var requestBody = JsonSerializer.Serialize(requestData);
+        var content = new StringContent(requestBody, Encoding.UTF8, "application/json");
+
+        HttpResponseMessage response = await client.PostAsync(requestUrl, content).ConfigureAwait(false);
+
+        try
+        {
+            response.EnsureSuccessStatusCode();
+            var responseBody = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+
+            Debug.WriteLine(responseBody);
+
+            return JsonSerializer.Deserialize<FourDBodyRunResponse>(responseBody, JsonOptions);
         }
         catch (HttpRequestException httpEx)
         {

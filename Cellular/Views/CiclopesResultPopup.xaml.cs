@@ -1,14 +1,21 @@
 using Cellular.Cloud_API.Models;
 using CommunityToolkit.Maui.Views;
+using System.Diagnostics;
 
 namespace Cellular.Views;
 
 public partial class CiclopesResultPopup : Popup
 {
+    // Unit conversion constants
+    private const double MetersToInches = 39.3701;
+    private const double MetersToFeet = 3.28084;
+    private const double MpsToMph = 2.23694;
+    private const double Mps2ToFtps2 = 3.28084;
+
     private readonly CiclopesBallPointsDrawable _ballDrawable;
     private int _currentPaneIndex;
     private int _currentPlotIndex;
-    private readonly int _maxPoseFrameIndex;
+    private int _maxPoseFrameIndex;
     private bool _isPlaying;
     private IDispatcherTimer? _playbackTimer;
 
@@ -17,7 +24,7 @@ public partial class CiclopesResultPopup : Popup
     private Grid[] _plotPanels = [];
     private Border[] _plotDots = [];
 
-    public CiclopesResultPopup(CiclopesRunResponse response)
+    public CiclopesResultPopup(LaneBallsRunResponse laneBallsResponse, Task<FourDBodyRunResponse?> fourDBodyTask)
     {
         InitializeComponent();
 
@@ -25,25 +32,62 @@ public partial class CiclopesResultPopup : Popup
         _plotPanels = [PlotSpeedPanel, PlotAccelPanel, PlotLateralPanel];
         _plotDots = [PlotDot0, PlotDot1, PlotDot2];
 
-        _ballDrawable = new CiclopesBallPointsDrawable(response.BallPoints);
+        _ballDrawable = new CiclopesBallPointsDrawable(laneBallsResponse.BallPoints);
         BallPlotView.Drawable = _ballDrawable;
         BallPlotView.Invalidate();
 
-        _maxPoseFrameIndex = Math.Max(0, response.SkeletonPoints.Count - 1);
-        FrameSlider.Maximum = _maxPoseFrameIndex;
+        _maxPoseFrameIndex = 0;
+        FrameSlider.Maximum = 0;
         FrameSlider.Value = 0;
 
-        PopulateStats(response);
-        PopulatePlots(response);
-
-        // Load skeleton frames into the pose view
-        PoseView.LoadFrames(response.SkeletonPoints);
+        PopulateStats(laneBallsResponse);
+        PopulatePlots(laneBallsResponse);
 
         SetPane(0, false);
         SetPlotPanel(0, false);
+
+        // Fire-and-forget: load pose data when it arrives
+        _ = LoadPoseDataAsync(fourDBodyTask);
     }
 
-    private void PopulateStats(CiclopesRunResponse response)
+    private async Task LoadPoseDataAsync(Task<FourDBodyRunResponse?> fourDBodyTask)
+    {
+        try
+        {
+            var poseResponse = await fourDBodyTask;
+
+            if (poseResponse?.SkeletonPoints is { Count: > 0 })
+            {
+                MainThread.BeginInvokeOnMainThread(() =>
+                {
+                    _maxPoseFrameIndex = Math.Max(0, poseResponse.SkeletonPoints.Count - 1);
+                    FrameSlider.Maximum = _maxPoseFrameIndex;
+                    FrameSlider.Value = 0;
+
+                    PoseView.LoadFrames(poseResponse.SkeletonPoints);
+
+                    PoseLoadingOverlay.IsVisible = false;
+                });
+            }
+            else
+            {
+                MainThread.BeginInvokeOnMainThread(() =>
+                {
+                    PoseLoadingLabel.Text = "No pose data available.";
+                });
+            }
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine("Pose estimation failed: " + ex);
+            MainThread.BeginInvokeOnMainThread(() =>
+            {
+                PoseLoadingLabel.Text = "Pose estimation failed.";
+            });
+        }
+    }
+
+    private void PopulateStats(LaneBallsRunResponse response)
     {
         var pts = response.BallPoints;
         var kin = response.KinematicsTable;
@@ -52,38 +96,39 @@ public partial class CiclopesResultPopup : Popup
         {
             var first = pts[0];
             var last = pts[^1];
-            StatEntryX.Text = $"{first.X:F2} m";
-            StatExitX.Text = $"{last.X:F2} m";
-            StatCoverage.Text = $"{Math.Abs(last.Y - first.Y):F2} m";
-            StatDrift.Text = $"{last.X - first.X:+0.00;-0.00;0.00} m";
+            StatEntryX.Text = $"{first.X * MetersToInches:F1} in";
+            StatExitX.Text = $"{last.X * MetersToInches:F1} in";
+
+            StatEntryAngle.Text = $"{ComputeEntryAngle(pts):F1}\u00B0";
+            StatBreakpoint.Text = $"{ComputeBreakpointDistance(pts) * MetersToFeet:F1} ft";
         }
 
         if (kin.Count > 0)
         {
-            var avgSpeed = kin.Average(k => k.MeanSpeedMps);
-            var avgAccel = kin.Average(k => k.MeanAccelerationMps2);
-            var entrySpeed = kin[0].MeanSpeedMps;
-            var exitSpeed = kin[^1].MeanSpeedMps;
+            var avgSpeed = kin.Average(k => k.MeanSpeedMps) * MpsToMph;
+            var avgAccel = kin.Average(k => k.MeanAccelerationMps2) * Mps2ToFtps2;
+            var entrySpeed = kin[0].MeanSpeedMps * MpsToMph;
+            var exitSpeed = kin[^1].MeanSpeedMps * MpsToMph;
 
-            StatAvgSpeed.Text = $"{avgSpeed:F2} m/s";
-            StatAvgAccel.Text = $"{avgAccel:F2} m/s\u00B2";
-            StatEntrySpeed.Text = $"{entrySpeed:F2} m/s";
-            StatExitSpeed.Text = $"{exitSpeed:F2} m/s";
+            StatAvgSpeed.Text = $"{avgSpeed:F1} mph";
+            StatAvgAccel.Text = $"{avgAccel:F1} ft/s\u00B2";
+            StatEntrySpeed.Text = $"{entrySpeed:F1} mph";
+            StatExitSpeed.Text = $"{exitSpeed:F1} mph";
         }
     }
 
-    private void PopulatePlots(CiclopesRunResponse response)
+    private void PopulatePlots(LaneBallsRunResponse response)
     {
         var kin = response.KinematicsTable;
 
         if (kin.Count > 0)
         {
-            var speedValues = kin.Select(k => (float)k.MeanSpeedMps).ToArray();
+            var speedValues = kin.Select(k => (float)(k.MeanSpeedMps * MpsToMph)).ToArray();
             var speedLabels = kin.Select(k => $"Q{k.Quarter}").ToArray();
             SpeedPlotView.Drawable = new CiclopesBarPlotDrawable(speedValues, speedLabels,
                 Color.FromArgb("#7c6bc4"), Color.FromArgb("#a594e0"));
 
-            var accelValues = kin.Select(k => (float)k.MeanAccelerationMps2).ToArray();
+            var accelValues = kin.Select(k => (float)(k.MeanAccelerationMps2 * Mps2ToFtps2)).ToArray();
             var accelLabels = kin.Select(k => $"Q{k.Quarter}").ToArray();
             AccelPlotView.Drawable = new CiclopesBarPlotDrawable(accelValues, accelLabels,
                 Color.FromArgb("#4a6fa5"), Color.FromArgb("#7a9fd4"));
@@ -92,8 +137,85 @@ public partial class CiclopesResultPopup : Popup
         var pts = response.BallPoints;
         if (pts.Count > 1)
         {
-            LateralPlotView.Drawable = new CiclopesLinePlotDrawable(pts);
+            // Convert lateral positions from meters to inches for the plot
+            var imperialPts = pts.Select(p => new CiclopesBallPoint
+            {
+                X = p.X * MetersToInches,
+                Y = p.Y * MetersToFeet
+            }).ToList();
+            LateralPlotView.Drawable = new CiclopesLinePlotDrawable(imperialPts);
         }
+    }
+
+    // ── Ball trajectory analysis ──
+
+    private const double LaneCenterX = 1.0541 / 2.0; // meters
+
+    /// <summary>
+    /// Finds the breakpoint — the down-lane distance (Y) at which the ball reaches
+    /// its maximum lateral displacement from the lane center before hooking back.
+    /// Returns the Y distance in meters from the foul line.
+    /// </summary>
+    private static double ComputeBreakpointDistance(IReadOnlyList<CiclopesBallPoint> pts)
+    {
+        if (pts.Count == 0) return 0;
+
+        var breakpointIdx = 0;
+        var maxDeviation = 0.0;
+
+        for (var i = 0; i < pts.Count; i++)
+        {
+            var deviation = Math.Abs(pts[i].X - LaneCenterX);
+            if (deviation > maxDeviation)
+            {
+                maxDeviation = deviation;
+                breakpointIdx = i;
+            }
+        }
+
+        return pts[breakpointIdx].Y;
+    }
+
+    /// <summary>
+    /// Computes the entry angle in degrees — the angle between the ball's direction
+    /// of travel and the lane axis (Y) as it approaches the pins.
+    /// Uses the trajectory from the breakpoint to the final point:
+    ///   angle = arctan(|deltaX| / deltaY)
+    /// where deltaX is the lateral movement and deltaY is the forward movement
+    /// from the breakpoint to the pin end.
+    /// </summary>
+    private static double ComputeEntryAngle(IReadOnlyList<CiclopesBallPoint> pts)
+    {
+        if (pts.Count < 2) return 0;
+
+        // Find breakpoint index
+        var breakpointIdx = 0;
+        var maxDeviation = 0.0;
+        for (var i = 0; i < pts.Count; i++)
+        {
+            var deviation = Math.Abs(pts[i].X - LaneCenterX);
+            if (deviation > maxDeviation)
+            {
+                maxDeviation = deviation;
+                breakpointIdx = i;
+            }
+        }
+
+        // Use breakpoint to last point for the entry angle calculation
+        // If breakpoint is the last point, fall back to using a few trailing points
+        var fromIdx = breakpointIdx;
+        if (fromIdx >= pts.Count - 1)
+            fromIdx = Math.Max(0, pts.Count - 4);
+
+        var from = pts[fromIdx];
+        var to = pts[^1];
+
+        var deltaX = Math.Abs(to.X - from.X);
+        var deltaY = to.Y - from.Y;
+
+        if (deltaY <= 0) return 0;
+
+        return Math.Atan(deltaX / deltaY) * (180.0 / Math.PI);
     }
 
     // ── Main pane switching (Ball / Pose) with animation ──

@@ -23,6 +23,21 @@ public class CiclopesRunResponse
     public List<List<CiclopesSkeletonPoint>> SkeletonPoints { get; set; } = [];
 }
 
+public class LaneBallsRunResponse
+{
+    [JsonPropertyName("ball_points")]
+    public List<CiclopesBallPoint> BallPoints { get; set; } = [];
+
+    [JsonPropertyName("kinematics_table")]
+    public List<CiclopesKinematicsRow> KinematicsTable { get; set; } = [];
+}
+
+public class FourDBodyRunResponse
+{
+    [JsonPropertyName("skeleton_points")]
+    public List<List<CiclopesSkeletonPoint>> SkeletonPoints { get; set; } = [];
+}
+
 public class CiclopesBallPoint
 {
     [JsonPropertyName("x")]

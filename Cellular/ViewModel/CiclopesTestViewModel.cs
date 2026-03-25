@@ -5,7 +5,7 @@ namespace Cellular.ViewModel;
 
 public class CiclopesTestViewModel
 {
-    public async Task<CiclopesRunResponse?> RunTestAsync()
+    public (Task<LaneBallsRunResponse?> LaneBallsTask, Task<FourDBodyRunResponse?> FourDBodyTask) RunTestAsync()
     {
         var controller = new ApiController();
         var request = new CiclopesRunRequest
@@ -14,6 +14,9 @@ public class CiclopesTestViewModel
             SdKey = "key"
         };
 
-        return await controller.ExecuteCiclopesRunRequest(request);
+        var laneBallsTask = controller.ExecuteLaneBallsRunRequest(request);
+        var fourDBodyTask = controller.ExecuteFourDBodyRunRequest(request);
+
+        return (laneBallsTask, fourDBodyTask);
     }
 }

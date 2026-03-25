@@ -21,15 +21,17 @@ public partial class CiclopesTestPage : ContentPage
 
         try
         {
-            var response = await _viewModel.RunTestAsync();
+            var (laneBallsTask, fourDBodyTask) = _viewModel.RunTestAsync();
 
-            if (response is null)
+            var laneBallsResponse = await laneBallsTask;
+
+            if (laneBallsResponse is null)
             {
-                await DisplayAlert("Ciclopes", "No response data returned.", "OK");
+                await DisplayAlert("Ciclopes", "No lane/balls data returned.", "OK");
                 return;
             }
 
-            this.ShowPopup(new CiclopesResultPopup(response));
+            this.ShowPopup(new CiclopesResultPopup(laneBallsResponse, fourDBodyTask));
         }
         catch (Exception ex)
         {
