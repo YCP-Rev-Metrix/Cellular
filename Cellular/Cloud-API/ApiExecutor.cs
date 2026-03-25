@@ -1,98 +1,41 @@
-﻿using System.Runtime.InteropServices.JavaScript;
-
 namespace Cellular.Cloud_API;
 
 public class ApiExecutor
 {
     public EntityType EntityType { get; set; }
     public OperationType OperationType { get; set; }
-    
+
     public ApiExecutor(EntityType entityType, OperationType operationType)
     {
         EntityType = entityType;
         OperationType = operationType;
     }
-    
-    public String GetUrl()
+
+    /// <param name="id">For Frame Get: gameId to append as ?gameId=id</param>
+    public string GetUrl(int id = -1)
     {
-        string url = "https://api.revmetrix.io/api/";
-        
-        // Use constructor args to execute endpoints
-        switch (EntityType)
+        string relative = EntityType switch
         {
-            case EntityType.Ball:
-                if (OperationType == OperationType.Get)
-                {
-                    url += "gets/GetBallsByUsername";
-                }
-                else if (OperationType == OperationType.Post)
-                {
-                    url += "posts/PostBalls";
-                }
-                break;
-            case EntityType.Establishment:
-                if (OperationType == OperationType.Get)
-                {
-                    url += "gets/GetAppEstablishments";
-                }
-                else if (OperationType == OperationType.Post)
-                {
-                    url += "posts/PostEstablishmentApp";
-                }
-                break;
-            case EntityType.Event:
-                if (OperationType == OperationType.Get)
-                {
-                    url += "gets/GetEventsByUsername";
-                }
-                else if (OperationType == OperationType.Post)
-                {
-                    url += "posts/PostEvents";
-                }
-                break;
-            case EntityType.Frame:
-                if (OperationType == OperationType.Get)
-                {
-                    url += "gets/GetFramesByGameId";
-                }
-                else if (OperationType == OperationType.Post)
-                {
-                    url += "posts/PostFrames";
-                }
-                break;
-            case EntityType.Game:
-                if (OperationType == OperationType.Get)
-                {
-                    url += "gets/GetAppGames";
-                }
-                else if (OperationType == OperationType.Post)
-                {
-                    url += "posts/PostAppGame";
-                }
-                break;
-            case EntityType.Session:
-                if (OperationType == OperationType.Get)
-                {
-                    url += "gets/GetAppSessions";
-                }
-                else if (OperationType == OperationType.Post)
-                {
-                    url += "posts/PostAppSession";
-                }
-                break;
-            case EntityType.Shot:
-                if (OperationType == OperationType.Get)
-                {
-                    url += "gets/GetAppShots";
-                }
-                else if (OperationType == OperationType.Post)
-                {
-                    url += "posts/PostAppShots";
-                }
-                break;
-            default:
-                throw new NotImplementedException("This obj type is not implemented yet.");
-        }
+            EntityType.Ball => OperationType == OperationType.Get ? "GetBallsByUsername" : OperationType == OperationType.Delete ? "DeleteBallsByUsername" : "PostBalls",
+            EntityType.Establishment => OperationType == OperationType.Get ? "GetAppEstablishments" : OperationType == OperationType.Delete ? "DeleteAppEstablishments" : "PostEstablishmentApp",
+            EntityType.Event => OperationType == OperationType.Get ? "GetEventsByUsername" : OperationType == OperationType.Delete ? "DeleteEventsByUsername" : "PostEvent",
+            EntityType.Frame => OperationType == OperationType.Get ? "GetFramesByGameId" : OperationType == OperationType.Delete ? "DeleteAppFrames" : "PostFrames",
+            EntityType.Game => OperationType == OperationType.Get ? "GetAppGames" : OperationType == OperationType.Delete ? "DeleteAppGames" : "PostAppGame",
+            EntityType.Session => OperationType == OperationType.Get ? "GetAppSessions" : OperationType == OperationType.Delete ? "DeleteAppSessions" : "PostAppSession",
+            EntityType.Shot => OperationType == OperationType.Get ? "GetAppShots" : OperationType == OperationType.Delete ? "DeleteAppShots" : "PostAppShot",
+            _ => throw new NotImplementedException("This obj type is not implemented yet.")
+        };
+
+        string url = OperationType switch
+        {
+            OperationType.Get => RevMetrixApi.Gets(relative),
+            OperationType.Delete => RevMetrixApi.Deletes(relative),
+            OperationType.Post => RevMetrixApi.Posts(relative),
+            _ => throw new ArgumentOutOfRangeException()
+        };
+
+        if (EntityType == EntityType.Frame && OperationType == OperationType.Get && id >= 0)
+            url += "?gameId=" + id;
 
         return url;
     }

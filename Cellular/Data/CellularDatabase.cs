@@ -1,5 +1,6 @@
-﻿using SQLite;
+using SQLite;
 using System;
+using System.Linq;
 using System.IO;
 using System.Threading.Tasks;
 using System.Collections.Generic;
@@ -36,6 +37,28 @@ namespace Cellular.Data
 
             await _database.CreateTableAsync<BowlingFrame>();
             await _database.CreateTableAsync<Shot>();
+
+            await EnsureCloudIdColumnsAsync(_database);
+        }
+
+        /// <summary>Adds CloudID to existing installs (SQLite CreateTable does not add new columns).</summary>
+        private static async Task EnsureCloudIdColumnsAsync(SQLiteAsyncConnection db)
+        {
+            await EnsureColumnAsync(db, "ball", "CloudID");
+            await EnsureColumnAsync(db, "establishment", "CloudID");
+            await EnsureColumnAsync(db, "event", "CloudID");
+            await EnsureColumnAsync(db, "session", "CloudID");
+            await EnsureColumnAsync(db, "game", "CloudID");
+            await EnsureColumnAsync(db, "bowlingFrame", "CloudID");
+            await EnsureColumnAsync(db, "shot", "CloudID");
+        }
+
+        private static async Task EnsureColumnAsync(SQLiteAsyncConnection db, string table, string column)
+        {
+            var info = await db.GetTableInfoAsync(table);
+            if (info.Any(c => string.Equals(c.Name, column, StringComparison.OrdinalIgnoreCase)))
+                return;
+            await db.ExecuteAsync($"ALTER TABLE [{table}] ADD COLUMN {column} INTEGER NULL");
         }
 
         private async Task ImportEstabishmentsFromCsvAsync()

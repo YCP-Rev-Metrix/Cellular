@@ -66,6 +66,9 @@ namespace Cellular
 
         private async void OnGuestClicked(object sender, EventArgs e)
         {
+            // Test account path: ensure Guest app-user exists in cloud once.
+            await CloudSyncService.EnsureGuestCloudUserExistsAsync();
+
             var user = await _userRepository.GetUserByUsernameAsync("Guest");
            
             if (user != null)

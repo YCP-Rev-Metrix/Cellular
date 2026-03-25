@@ -1,6 +1,7 @@
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
+using Cellular.Cloud_API;
 
 namespace Cellular.Services;
 
@@ -10,7 +11,6 @@ namespace Cellular.Services;
 /// </summary>
 public class RevMetrixUploadService
 {
-    private const string BaseUrl = "https://api.revmetrix.io";
     private readonly HttpClient _client = new HttpClient { Timeout = TimeSpan.FromSeconds(60) };
 
     /// <summary>
@@ -19,11 +19,12 @@ public class RevMetrixUploadService
     public async Task<string?> GetTokenAsync(string username, string password, CancellationToken cancellationToken = default)
     {
         var body = new { username, password };
-        var content = new StringContent(JsonSerializer.Serialize(body), Encoding.UTF8, "application/json");
-        var response = await _client.PostAsync($"{BaseUrl}/api/posts/Authorize", content, cancellationToken).ConfigureAwait(false);
+        var json = JsonSerializer.Serialize(body, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
+        var content = new StringContent(json, Encoding.UTF8, "application/json");
+        var response = await _client.PostAsync(RevMetrixApi.Posts("Authorize"), content, cancellationToken).ConfigureAwait(false);
         response.EnsureSuccessStatusCode();
-        var json = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
-        using var doc = JsonDocument.Parse(json);
+        var responseJson = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
+        using var doc = JsonDocument.Parse(responseJson);
         if (doc.RootElement.TryGetProperty("tokenA", out var tokenProp))
             return tokenProp.GetString();
         return null;
@@ -58,7 +59,7 @@ public class RevMetrixUploadService
         fileContent.Headers.ContentType = new MediaTypeHeaderValue(contentType);
         form.Add(fileContent, "file", fileName);
 
-        var request = new HttpRequestMessage(HttpMethod.Post, $"{BaseUrl}/api/videos/upload?folder={Uri.EscapeDataString(folder)}");
+        var request = new HttpRequestMessage(HttpMethod.Post, $"{RevMetrixApi.Origin}/api/videos/upload?folder={Uri.EscapeDataString(folder)}");
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", bearerToken);
         request.Content = form;
 

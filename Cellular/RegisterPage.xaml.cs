@@ -1,4 +1,5 @@
-﻿using Cellular.Data;
+using Cellular.Data;
+using Cellular.Services;
 using Cellular.ViewModel;
 using Microsoft.Maui.Storage;
 using System;
@@ -87,6 +88,9 @@ namespace Cellular
 
                 // Add the new user to the database
                 await userRepository.AddAsync(newUser);
+
+                // First-time registration flow: best-effort create matching app user in cloud.
+                await CloudSyncService.EnsureCloudAppUserExistsAsync(newUser.UserName ?? username, password, newUser.UserId);
 
                 // Set the user as logged in
                 Preferences.Set("IsLoggedIn", false);

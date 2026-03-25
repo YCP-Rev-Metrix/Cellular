@@ -1,4 +1,4 @@
-﻿using SQLite;
+using SQLite;
 namespace Cellular.ViewModel;
 
 
@@ -13,5 +13,6 @@ public class Establishment
     public string Type { get; set; }
     public string Location { get; set; }
 
-
+    /// <summary>Server-assigned row id from the cloud API. Used to correlate local rows across devices.</summary>
+    public int? CloudID { get; set; }
 }

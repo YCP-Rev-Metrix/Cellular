@@ -1,7 +1,10 @@
-﻿// csharp
+// csharp
 using Cellular.Cloud_API.Endpoints;
 using Cellular.Cloud_API.Models;
+using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
+using System.Net;
 using System.Net.Http.Headers;
 using System.Reflection;
 using System.Text;
@@ -23,117 +26,182 @@ public enum EntityType
 public enum OperationType
 {
     Get,
-    Post
+    Post,
+    Delete
 }
 
 public class ApiController
 {
     /// <summary>
-    /// Executes the API request and returns the authorization response body as a string.
+    /// Executes the API request and returns the response body as a string.
     /// Optionally invokes onAuthResponse when the authorization response is received.
+    /// When username/password are provided, they are used for auth; otherwise placeholder credentials are used.
     /// </summary>
     public async Task<string?> ExecuteRequest(
         EntityType entityType,
         OperationType operationType,
         List<Object>? data = null,
         int id = -1,
-        Action<string>? onAuthResponse = null
+        Action<string>? onAuthResponse = null,
+        string? username = null,
+        string? password = null,
+        IReadOnlyDictionary<string, string>? getQuery = null
     )
     {
         using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(30) };
         ApiExecutor executor = new ApiExecutor(entityType, operationType);
 
-        string requestUrl = executor.GetUrl();
-
-        if (data == null)
+        if (operationType == OperationType.Post && (data == null || data.Count == 0))
         {
-            Debug.WriteLine("Data was null");
+            Debug.WriteLine("Data was null or empty for POST");
             return null;
         }
 
-        var requestBody = JsonSerializer.Serialize(data);
-        var content = new StringContent(requestBody, Encoding.UTF8, "application/json");
+        string tokenUrl = RevMetrixApi.Posts("Authorize");
 
-        // First get validation token
-        string tokenUrl = "https://api.revmetrix.io/api/posts/Authorize";
-
-        var authData = new {
-            username = "string",
-            password = "string"
-        };
-
-        var authBody = JsonSerializer.Serialize(authData);
-
-        // Use explicit username/password and UTF8 for Basic auth
-        string username = "string";
-        string password = "string";
-        string authenticationString = $"{username}:{password}";
-        string base64EncodedAuthenticationString = Convert.ToBase64String(Encoding.UTF8.GetBytes(authenticationString));
-
-        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", base64EncodedAuthenticationString);
+        var jsonOptions = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
 
         try
         {
-            HttpResponseMessage authResponse = await client
-                .PostAsync(tokenUrl, new StringContent(authBody, Encoding.UTF8, "application/json"))
-                .ConfigureAwait(false);
+            // Try provided credentials first, then fall back to known defaults.
+            var credentialAttempts = new List<(string Username, string Password)>();
+            if (!string.IsNullOrWhiteSpace(username) && !string.IsNullOrWhiteSpace(password))
+                credentialAttempts.Add((username!, password!));
+            credentialAttempts.Add(("Guest", "Guest"));
+            credentialAttempts.Add(("string", "string"));
 
-            Debug.WriteLine(authResponse);
-
-            // Read the authorization response body
-            var authResponseBody = await authResponse.Content.ReadAsStringAsync().ConfigureAwait(false);
-
-            Debug.WriteLine(authResponseBody);
-            onAuthResponse?.Invoke(authResponseBody);
-
-            // Try to extract a token from common JSON fields and set Authorization header
             string? tokenValue = null;
-            try
+            string? lastAuthBody = null;
+            int lastAuthStatus = 0;
+            foreach (var cred in credentialAttempts.Distinct())
             {
-                using var doc = JsonDocument.Parse(authResponseBody);
-                if (doc.RootElement.ValueKind == JsonValueKind.Object)
+                var authData = new { username = cred.Username, password = cred.Password };
+                var authBody = JsonSerializer.Serialize(authData, jsonOptions);
+                string basic = Convert.ToBase64String(Encoding.UTF8.GetBytes($"{cred.Username}:{cred.Password}"));
+                client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", basic);
+
+                using var authContent = new StringContent(authBody, Encoding.UTF8, "application/json");
+                HttpResponseMessage authResponse = await client
+                    .PostAsync(tokenUrl, authContent)
+                    .ConfigureAwait(false);
+                var authResponseBody = await authResponse.Content.ReadAsStringAsync().ConfigureAwait(false);
+                lastAuthBody = authResponseBody;
+                lastAuthStatus = (int)authResponse.StatusCode;
+                Debug.WriteLine(authResponse);
+                Debug.WriteLine(authResponseBody);
+
+                try
                 {
-                    JsonElement root = doc.RootElement;
-                    if (root.TryGetProperty("tokenA", out var p)) tokenValue = p.GetString();
-                    else if (root.TryGetProperty("accessToken", out p)) tokenValue = p.GetString();
-                    else if (root.TryGetProperty("access_token", out p)) tokenValue = p.GetString();
-                    else if (root.TryGetProperty("data", out p) && p.ValueKind == JsonValueKind.Object && p.TryGetProperty("token", out var q))
-                        tokenValue = q.GetString();
+                    using var doc = JsonDocument.Parse(authResponseBody);
+                    if (doc.RootElement.ValueKind == JsonValueKind.Object)
+                    {
+                        var root = doc.RootElement;
+                        if (root.TryGetProperty("tokenA", out var p)) tokenValue = p.GetString();
+                        else if (root.TryGetProperty("accessToken", out p)) tokenValue = p.GetString();
+                        else if (root.TryGetProperty("access_token", out p)) tokenValue = p.GetString();
+                        else if (root.TryGetProperty("data", out p) && p.ValueKind == JsonValueKind.Object && p.TryGetProperty("token", out var q))
+                            tokenValue = q.GetString();
+                    }
+                }
+                catch (JsonException) { }
+
+                if (!string.IsNullOrWhiteSpace(tokenValue))
+                {
+                    client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", tokenValue);
+                    break;
                 }
             }
-            catch (JsonException) { /* ignore parse errors and proceed without token */ }
 
-            if (!string.IsNullOrEmpty(tokenValue))
-            {
-                client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", tokenValue);
-            }
-            // If no tokenValue, the Basic header set earlier remains and will be sent with the next request
+            onAuthResponse?.Invoke(lastAuthBody ?? string.Empty);
+            if (string.IsNullOrWhiteSpace(tokenValue))
+                return $"Request did not succeed: {lastAuthStatus} Unauthorized for auth {tokenUrl}";
 
-            // Send original request with Authorization header (if present)
-            HttpResponseMessage response;
             if (operationType == OperationType.Get)
             {
-                response = await client.GetAsync(requestUrl).ConfigureAwait(false);
-            }
-            else
-            {
-                response = await client.PostAsync(requestUrl, content).ConfigureAwait(false);
+                string getUrl = executor.GetUrl(id);
+                if (getQuery != null && getQuery.Count > 0)
+                {
+                    var qs = string.Join("&", getQuery
+                        .Where(kv => !string.IsNullOrWhiteSpace(kv.Key))
+                        .Select(kv => $"{WebUtility.UrlEncode(kv.Key)}={WebUtility.UrlEncode(kv.Value ?? string.Empty)}"));
+                    if (!string.IsNullOrWhiteSpace(qs))
+                        getUrl += (getUrl.Contains('?', StringComparison.Ordinal) ? "&" : "?") + qs;
+                }
+                HttpResponseMessage response = await client.GetAsync(getUrl).ConfigureAwait(false);
+                var responseBody = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+                Debug.WriteLine(responseBody);
+                if (!response.IsSuccessStatusCode)
+                {
+                    Debug.WriteLine("HTTP Request failed: " + (int)response.StatusCode + " " + response.ReasonPhrase + " for " + getUrl);
+                    return "Request did not succeed: " + (int)response.StatusCode + " " + response.ReasonPhrase + " for " + operationType + " " + getUrl;
+                }
+                return responseBody;
             }
 
-            try
+            if (operationType == OperationType.Delete)
             {
-                response.EnsureSuccessStatusCode();
-                            var responseBody = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-                
-                            Debug.WriteLine(responseBody);
-                
-                            return responseBody;
-            } catch(HttpRequestException httpEx)
-            {
-                Debug.WriteLine("HTTP Request failed: " + httpEx);
-                return "Request did not succeed: " + httpEx.Message;
+                string deleteUrl = executor.GetUrl(id);
+                // TestServer.py / production: DELETE with JSON body { "username": "<login>", "mobileID": <app user id> }.
+                // Use default property names (anonymous types use lowercase username + mobileID) so keys stay mobileID not mobileId.
+                if (data != null && data.Count > 0)
+                {
+                    string? lastDeleteOkBody = null;
+                    var deleteJsonOptions = new JsonSerializerOptions { PropertyNamingPolicy = null };
+
+                    for (int i = 0; i < data.Count; i++)
+                    {
+                        var one = data[i];
+                        var requestBody = JsonSerializer.Serialize(one, one.GetType(), deleteJsonOptions);
+                        using var request = new HttpRequestMessage(HttpMethod.Delete, deleteUrl)
+                        {
+                            Content = new StringContent(requestBody, Encoding.UTF8, "application/json")
+                        };
+
+                        HttpResponseMessage response = await client.SendAsync(request).ConfigureAwait(false);
+                        lastDeleteOkBody = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+                        Debug.WriteLine(lastDeleteOkBody);
+
+                        if (!response.IsSuccessStatusCode)
+                        {
+                            Debug.WriteLine("HTTP Request failed: " + (int)response.StatusCode + " " + response.ReasonPhrase + " for " + deleteUrl);
+                            return "Request did not succeed: " + (int)response.StatusCode + " " + response.ReasonPhrase + " for " + operationType + " " + deleteUrl;
+                        }
+                    }
+
+                    return lastDeleteOkBody;
+                }
+                else
+                {
+                    HttpResponseMessage response = await client.DeleteAsync(deleteUrl).ConfigureAwait(false);
+                    var responseBody = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+                    Debug.WriteLine(responseBody);
+                    if (!response.IsSuccessStatusCode)
+                    {
+                        Debug.WriteLine("HTTP Request failed: " + (int)response.StatusCode + " " + response.ReasonPhrase + " for " + deleteUrl);
+                        return "Request did not succeed: " + (int)response.StatusCode + " " + response.ReasonPhrase + " for " + operationType + " " + deleteUrl;
+                    }
+                    return responseBody;
+                }
             }
-            
+
+            // POST: server expects one JSON object per request (per TestServer.py)
+            string? lastOkBody = null;
+            for (int i = 0; i < data!.Count; i++)
+            {
+                var one = data[i];
+                string requestUrl = executor.GetUrl(id);
+                string requestBody = JsonSerializer.Serialize(one, one.GetType(), jsonOptions);
+                using var content = new StringContent(requestBody, Encoding.UTF8, "application/json");
+                HttpResponseMessage response = await client.PostAsync(requestUrl, content).ConfigureAwait(false);
+                lastOkBody = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+                Debug.WriteLine(lastOkBody);
+                if (!response.IsSuccessStatusCode)
+                {
+                    Debug.WriteLine("HTTP Request failed: " + (int)response.StatusCode + " " + response.ReasonPhrase + " for " + requestUrl);
+                    return "Request did not succeed: " + (int)response.StatusCode + " " + response.ReasonPhrase + " for " + operationType + " " + requestUrl;
+                }
+            }
+            return lastOkBody;
         }
         catch (TaskCanceledException ex) when (!ex.CancellationToken.IsCancellationRequested)
         {

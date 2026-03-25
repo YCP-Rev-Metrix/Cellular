@@ -15,5 +15,8 @@ namespace Cellular.ViewModel
         public int SessionId { get; set; }
         public int? TeamResult { get; set; }
         public int? IndividualResult { get; set; }
+
+        /// <summary>Server-assigned row id from the cloud API. Used to correlate local rows across devices.</summary>
+        public int? CloudID { get; set; }
     }
 }
