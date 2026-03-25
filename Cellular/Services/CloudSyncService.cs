@@ -429,7 +429,9 @@ public class CloudSyncService
     /// </summary>
     public async Task<string?> ReplaceCloudWithLocalAsync(int userId, string? apiUsername = null, string? apiPassword = null)
     {
-        var effectiveUsername = ResolveDeleteUsername(apiUsername);
+        // Body username must match the app user tied to mobileID on the server (see BuildBallEventCloudGetQuery).
+        // Using "Guest" here when apiUsername is null caused DELETE to succeed while leaving registered users' rows.
+        var effectiveUsername = await ResolveApiUsernameAsync(userId, apiUsername).ConfigureAwait(false);
         // Leaf -> root, then entities sessions reference (events, establishments), then balls (referenced by shots).
         var deleteOrder = new[]
         {
@@ -451,7 +453,7 @@ public class CloudSyncService
     /// </summary>
     public async Task<string?> ClearCloudDataAsync(int userId, string? apiUsername = null, string? apiPassword = null)
     {
-        var effectiveUsername = ResolveDeleteUsername(apiUsername);
+        var effectiveUsername = await ResolveApiUsernameAsync(userId, apiUsername).ConfigureAwait(false);
         var deleteOrder = new[]
         {
             EntityType.Shot, EntityType.Frame, EntityType.Game, EntityType.Session, EntityType.Event,
@@ -522,14 +524,6 @@ public class CloudSyncService
         }
 
         return DefaultCloudUsername;
-    }
-
-    /// <summary>
-    /// For delete payload filtering, match API tests/default auth username behavior.
-    /// </summary>
-    private static string ResolveDeleteUsername(string? apiUsername)
-    {
-        return !string.IsNullOrWhiteSpace(apiUsername) ? apiUsername : DefaultCloudUsername;
     }
 
     private static int ResolveDeleteMobileId(int userId)
