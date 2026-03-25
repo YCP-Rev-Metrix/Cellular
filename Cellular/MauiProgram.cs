@@ -9,6 +9,7 @@ using CommunityToolkit.Maui;
 using CommunityToolkit.Maui.Core;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using SkiaSharp.Views.Maui.Controls.Hosting;
 
 namespace Cellular
 {
@@ -24,6 +25,7 @@ namespace Cellular
                 .UseMauiCommunityToolkitCore()
                 .UseMauiCommunityToolkit()
                 .UseMauiCommunityToolkitCamera()
+                .UseSkiaSharp()
                 .ConfigureFonts(fonts =>
             {
                 fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");

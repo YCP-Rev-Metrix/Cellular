@@ -1,13 +1,14 @@
 using Cellular.Cloud_API.Models;
 using CellularCore.Rendering;
+using SkiaSharp;
+using SkiaSharp.Views.Maui;
 
 namespace Cellular.Views;
 
 public partial class CiclopesPoseView : ContentView
 {
-    // Distance is auto-computed per frame by the drawable; initial value doesn't matter
     private readonly Camera3D _camera = new(azimuth: 0f, elevation: 0.15f);
-    private readonly CiclopesSkeletonDrawable _drawable;
+    private readonly CiclopesSkeletonRenderer _renderer;
     private IReadOnlyList<List<CiclopesSkeletonPoint>> _allFrames = [];
     private double _lastPanX;
     private double _lastPanY;
@@ -15,8 +16,7 @@ public partial class CiclopesPoseView : ContentView
     public CiclopesPoseView()
     {
         InitializeComponent();
-        _drawable = new CiclopesSkeletonDrawable(_camera);
-        SkeletonView.Drawable = _drawable;
+        _renderer = new CiclopesSkeletonRenderer(_camera);
     }
 
     /// <summary>
@@ -45,8 +45,8 @@ public partial class CiclopesPoseView : ContentView
             joints[pt.JointId] = ((float)pt.X, -(float)pt.Y, (float)pt.Z);
         }
 
-        _drawable.Joints = joints;
-        SkeletonView.Invalidate();
+        _renderer.Joints = joints;
+        SkeletonView.InvalidateSurface();
     }
 
     /// <summary>
@@ -54,8 +54,17 @@ public partial class CiclopesPoseView : ContentView
     /// </summary>
     public void ToggleLabels()
     {
-        _drawable.ShowJointLabels = !_drawable.ShowJointLabels;
-        SkeletonView.Invalidate();
+        _renderer.ShowJointLabels = !_renderer.ShowJointLabels;
+        SkeletonView.InvalidateSurface();
+    }
+
+    private void OnPaintSurface(object? sender, SKPaintSurfaceEventArgs e)
+    {
+        var canvas = e.Surface.Canvas;
+        var width = e.Info.Width;
+        var height = e.Info.Height;
+
+        _renderer.Draw(canvas, width, height);
     }
 
     private void OnPanUpdated(object? sender, PanUpdatedEventArgs e)
@@ -68,14 +77,13 @@ public partial class CiclopesPoseView : ContentView
                 break;
 
             case GestureStatus.Running:
-                // TotalX/TotalY are cumulative from gesture start, so compute delta
                 var deltaX = e.TotalX - _lastPanX;
                 var deltaY = e.TotalY - _lastPanY;
                 _lastPanX = e.TotalX;
                 _lastPanY = e.TotalY;
 
                 _camera.Rotate((float)deltaX, (float)deltaY);
-                SkeletonView.Invalidate();
+                SkeletonView.InvalidateSurface();
 
                 var azDeg = _camera.Azimuth * 180f / MathF.PI;
                 var elDeg = _camera.Elevation * 180f / MathF.PI;

@@ -30,12 +30,18 @@ public class LaneBallsRunResponse
 
     [JsonPropertyName("kinematics_table")]
     public List<CiclopesKinematicsRow> KinematicsTable { get; set; } = [];
+
+    [JsonPropertyName("fps")]
+    public float Fps { get; set; }
 }
 
 public class FourDBodyRunResponse
 {
     [JsonPropertyName("skeleton_points")]
     public List<List<CiclopesSkeletonPoint>> SkeletonPoints { get; set; } = [];
+
+    [JsonPropertyName("fps")]
+    public float Fps { get; set; }
 }
 
 public class CiclopesBallPoint

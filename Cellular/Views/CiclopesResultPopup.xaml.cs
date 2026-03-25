@@ -19,6 +19,12 @@ public partial class CiclopesResultPopup : Popup
     private bool _isPlaying;
     private IDispatcherTimer? _playbackTimer;
 
+    // Playback speed
+    private float _poseFps = 30f;
+    private static readonly double[] SpeedMultipliers = [1.0, 0.75, 0.5, 0.25];
+    private static readonly string[] SpeedLabels = ["1x", "0.75x", "0.5x", "0.25x"];
+    private double _speedMultiplier = 1.0;
+
     // The pane containers for animation
     private Grid[] _mainPanes = [];
     private Grid[] _plotPanels = [];
@@ -31,6 +37,11 @@ public partial class CiclopesResultPopup : Popup
         _mainPanes = [BallPane, PosePane];
         _plotPanels = [PlotSpeedPanel, PlotAccelPanel, PlotLateralPanel];
         _plotDots = [PlotDot0, PlotDot1, PlotDot2];
+
+        // Speed picker setup
+        foreach (var label in SpeedLabels)
+            SpeedPicker.Items.Add(label);
+        SpeedPicker.SelectedIndex = 0;
 
         _ballDrawable = new CiclopesBallPointsDrawable(laneBallsResponse.BallPoints);
         BallPlotView.Drawable = _ballDrawable;
@@ -61,6 +72,7 @@ public partial class CiclopesResultPopup : Popup
                 MainThread.BeginInvokeOnMainThread(() =>
                 {
                     _maxPoseFrameIndex = Math.Max(0, poseResponse.SkeletonPoints.Count - 1);
+                    _poseFps = poseResponse.Fps > 0 ? poseResponse.Fps : 30f;
                     FrameSlider.Maximum = _maxPoseFrameIndex;
                     FrameSlider.Value = 0;
 
@@ -346,6 +358,15 @@ public partial class CiclopesResultPopup : Popup
         PoseView.SetFrame(frame);
     }
 
+    private void OnSpeedPickerChanged(object? sender, EventArgs e)
+    {
+        var idx = SpeedPicker.SelectedIndex;
+        if (idx < 0 || idx >= SpeedMultipliers.Length) return;
+
+        _speedMultiplier = SpeedMultipliers[idx];
+        UpdateTimerInterval();
+    }
+
     private void OnPlayStopClicked(object? sender, EventArgs e)
     {
         if (_isPlaying)
@@ -359,15 +380,24 @@ public partial class CiclopesResultPopup : Popup
             if (_maxPoseFrameIndex <= 0) return;
             _isPlaying = true;
             _playbackTimer ??= CreatePlaybackTimer();
+            UpdateTimerInterval();
             _playbackTimer.Start();
             PlayStopButton.Text = "\u25A0";
         }
     }
 
+    private void UpdateTimerInterval()
+    {
+        if (_playbackTimer == null) return;
+        var intervalMs = 1000.0 / (_poseFps * _speedMultiplier);
+        _playbackTimer.Interval = TimeSpan.FromMilliseconds(intervalMs);
+    }
+
     private IDispatcherTimer CreatePlaybackTimer()
     {
         var timer = Dispatcher.CreateTimer();
-        timer.Interval = TimeSpan.FromMilliseconds(120);
+        var intervalMs = 1000.0 / (_poseFps * _speedMultiplier);
+        timer.Interval = TimeSpan.FromMilliseconds(intervalMs);
         timer.Tick += (_, _) =>
         {
             if (!_isPlaying) return;

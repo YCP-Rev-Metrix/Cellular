@@ -53,39 +53,22 @@ public static class SkeletonTopology
         (10, 12), // right hip → right knee
         (12, 14), // right knee → right ankle
 
-        // ── Left foot ──
-        (13, 15), // left ankle → left big toe
-        (13, 16), // left ankle → left small toe
-        (13, 17), // left ankle → left heel
-        (15, 16), // big toe → small toe
+    ];
 
-        // ── Right foot ──
-        (14, 18), // right ankle → right big toe
-        (14, 19), // right ankle → right small toe
-        (14, 20), // right ankle → right heel
-        (18, 19), // big toe → small toe
-
-        // ── Right hand (wrist=21) ──
-        (21, 22), (22, 23), (23, 24), (24, 25),         // thumb
-        (21, 26), (26, 27), (27, 28), (28, 29),         // index
-        (21, 30), (30, 31), (31, 32), (32, 33),         // middle
-        (21, 34), (34, 35), (35, 36), (36, 37),         // ring
-        (21, 38), (38, 39), (39, 40), (40, 41),         // pinky
-
-        // ── Left hand (wrist=42) ──
-        (42, 43), (43, 44), (44, 45), (45, 46),         // thumb
-        (42, 47), (47, 48), (48, 49), (49, 50),         // index
-        (42, 51), (51, 52), (52, 53), (53, 54),         // middle
-        (42, 55), (55, 56), (56, 57), (57, 58),         // ring
-        (42, 59), (59, 60), (60, 61), (61, 62),         // pinky
-
-        // ── Extras: anatomical detail ──
-        (8, 63),  // right elbow → right olecranon
-        (7, 64),  // left elbow → left olecranon
-        (8, 65),  // right elbow → right cubital fossa
-        (7, 66),  // left elbow → left cubital fossa
-        (6, 67),  // right shoulder → right acromion
-        (5, 68),  // left shoulder → left acromion
+    /// <summary>
+    /// Joint IDs to exclude from rendering (hands, feet, extras).
+    /// Wrists (21, 42) and ankles (13, 14) are kept as endpoints.
+    /// </summary>
+    public static readonly HashSet<int> ExcludedJoints =
+    [
+        // Feet
+        15, 16, 17, 18, 19, 20,
+        // Right hand fingers
+        22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41,
+        // Left hand fingers
+        43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62,
+        // Extras (olecranon, cubital fossa, acromion)
+        63, 64, 65, 66, 67, 68,
     ];
 
     /// <summary>
@@ -94,12 +77,10 @@ public static class SkeletonTopology
     public static string GetJointColor(int jointId) => jointId switch
     {
         >= 0 and <= 4 => "#FF6B6B",     // Head: coral
-        5 or 7 or 42 or 64 or 66 or 68 => "#2EC4B6",  // Left arm side: teal
-        6 or 8 or 21 or 63 or 65 or 67 => "#FF9F1C",  // Right arm side: orange
-        9 or 11 or 13 or >= 15 and <= 17 => "#4A90D9", // Left leg: blue
-        10 or 12 or 14 or >= 18 and <= 20 => "#6BCB77",// Right leg: green
-        >= 22 and <= 41 => "#FF9F1C",   // Right hand: orange
-        >= 43 and <= 62 => "#2EC4B6",   // Left hand: teal
+        5 or 7 or 42 => "#2EC4B6",      // Left arm side: teal
+        6 or 8 or 21 => "#FF9F1C",      // Right arm side: orange
+        9 or 11 or 13 => "#4A90D9",     // Left leg: blue
+        10 or 12 or 14 => "#6BCB77",    // Right leg: green
         69 => "#7C6BC4",                 // Neck: purple
         _ => "#AAAAAA"
     };
