@@ -17,6 +17,6 @@ namespace Cellular.Services
 
         Task<bool> ConnectAsync(object device);
         Task DisconnectAsync();
-        Task<bool> SendJsonToWatch(int userId, SessionRepository? sessionRepo, BallRepository? ballRepo, EventRepository? eventRepo, GameRepository? gameRepo, User? user);
+        Task<bool> SendJsonToWatch(int userId, SessionRepository? sessionRepo, BallRepository? ballRepo, EventRepository? eventRepo, GameRepository? gameRepo, User? user, FrameRepository? frameRepo, ShotRepository? shotRepo);
     }
 }

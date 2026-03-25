@@ -40,6 +40,8 @@ namespace Cellular
         private readonly BallRepository _ballRepository;
         private readonly EventRepository _eventRepository;
         private readonly GameRepository _gameRepository;
+        private readonly FrameRepository _frameRepository;
+        private readonly ShotRepository _shotRepository;
 
         private ObservableCollection<BluetoothDeviceWatch> _devices;
         private BluetoothDeviceWatch? _selectedDevice;
@@ -108,6 +110,8 @@ namespace Cellular
             _ballRepository = new BallRepository(dbConnection);
             _eventRepository = new EventRepository(dbConnection);
             _gameRepository = new GameRepository(dbConnection);
+            _frameRepository = new FrameRepository(dbConnection);
+            _shotRepository = new ShotRepository(dbConnection);
 
             Devices = BlankPageStore.SavedDevices ?? new ObservableCollection<BluetoothDeviceWatch>();
             _selectedDevice = BlankPageStore.SavedSelected;
@@ -418,7 +422,7 @@ namespace Cellular
 
                 System.Diagnostics.Debug.WriteLine($"PHONE BLE SEND → Sending binary packet for user {user.UserName}");
 
-                bool success = await _watchBleService.SendJsonToWatch(userId, _sessionRepository, _ballRepository, _eventRepository, _gameRepository, user);
+                bool success = await _watchBleService.SendJsonToWatch(userId, _sessionRepository, _ballRepository, _eventRepository, _gameRepository, user, _frameRepository, _shotRepository);
 
                 if (success)
                 {
@@ -471,7 +475,7 @@ namespace Cellular
                 }
 
                 var user = await _userRepository.GetUserByIdAsync(userId);
-                bool success = await _watchBleService.SendJsonToWatch(userId, _sessionRepository, _ballRepository, _eventRepository, _gameRepository, user);
+                bool success = await _watchBleService.SendJsonToWatch(userId, _sessionRepository, _ballRepository, _eventRepository, _gameRepository, user, _frameRepository, _shotRepository);
 
                 if (!success)
                     await DisplayAlertAsync("BLE", "Failed to send data", "OK");
