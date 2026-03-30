@@ -4,6 +4,7 @@ using Cellular.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.DependencyInjection;
 using CommunityToolkit.Maui;
+using Camera.MAUI;
 using Cellular.Services;
 using CommunityToolkit.Maui;
 using CommunityToolkit.Maui.Core;
@@ -21,7 +22,7 @@ namespace Cellular
 
             var builder = MauiApp.CreateBuilder();
             builder
-                .UseMauiApp<App>()
+                .UseMauiApp<App>().UseMauiCameraView()
                 .UseMauiCommunityToolkitCore()
                 .UseMauiCommunityToolkit()
                 .UseMauiCommunityToolkitCamera()
@@ -40,7 +41,7 @@ namespace Cellular
 #if DEBUG
             builder.Logging.AddDebug();
 #endif
-            builder.Logging.AddDebug();
+
             var app = builder.Build();
             // Initialize the database asynchronously
             using (var scope = app.Services.CreateScope())

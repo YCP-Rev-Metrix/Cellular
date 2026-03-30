@@ -31,10 +31,11 @@
                 </Grid.ColumnDefinitions>
 
                 <!-- Frames Scroll -->
-                <StackLayout Grid.Row="0" Grid.Column="1" HorizontalOptions="Center" Padding="0, -10, 0, 30">
+                <StackLayout Grid.Row="0" Grid.Column="1" HorizontalOptions="Center" Padding="0, -10, 0, 30" WidthRequest="350">
                     <CollectionView x:Name="FramesCollectionView" ItemsSource="{Binding Frames}"
                            HorizontalScrollBarVisibility="Always"
                            HeightRequest = "135"
+                           HorizontalOptions="Center"
                            VerticalScrollBarVisibility="Never">
                         <CollectionView.ItemsLayout>
                             <LinearItemsLayout Orientation="Horizontal"  />
@@ -196,23 +197,6 @@
                     <FlexLayout Direction="Row" JustifyContent="Center" Wrap="Wrap" HorizontalOptions="Center">
                         <Button x:Name="pin1" Text="1" Scale = "0.9" CornerRadius="25" Clicked="OnPinClicked" BackgroundColor="LightSlateGrey" Margin="1"/>
                     </FlexLayout>
-
-
-                    <!-- Board Selector -->
-                    <StackLayout HorizontalOptions="Center">
-                        <Slider x:Name="CustomSlider" 
-                            Maximum="40" 
-                            Minimum="0" 
-                            ValueChanged="BoardChanged" 
-                            Value="20.5" 
-                            WidthRequest="200" 
-                            HorizontalOptions="Center" 
-                            VerticalOptions="Center" 
-                            MinimumTrackColor="Transparent" 
-                            MaximumTrackColor="White" 
-                            ThumbColor="White" />
-                        <Label Text="Select a Board" x:Name="TestingLabel" HorizontalOptions="Center"/>
-                    </StackLayout>
                 </StackLayout>
 
                 <!-- Right Side: Quick Scoring Buttons -->
@@ -225,7 +209,7 @@
 
                 <StackLayout Grid.Row="2" Grid.Column="1" Orientation="Horizontal" Padding="0, 10" Spacing="10" HorizontalOptions="Center">
                     <Button Text="Comment" WidthRequest="100" HeightRequest="40" CornerRadius="3" BackgroundColor="LightGray" Clicked="OnCommentClicked"/>
-                    <Button Text="Next" WidthRequest="100" HeightRequest="40" CornerRadius="3" BackgroundColor="LightGray" Clicked="OnNextClicked"/>
+                    <Button Text="Next" x:Name="nextButton"  WidthRequest="100" HeightRequest="40" CornerRadius="3" BackgroundColor="LightGray" Clicked="OnNextClicked"/>
                 </StackLayout>
 
             </Grid>

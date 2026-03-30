@@ -55,7 +55,7 @@ namespace Cellular
             {
                 // Surface unexpected errors for debugging — consider replacing with user-friendly UI alert
                 System.Diagnostics.Debug.WriteLine($"LoadStats error: {ex.Message}");
-                await DisplayAlert("Error", $"Failed to load stats: {ex.Message}", "OK");
+                await DisplayAlertAsync("Error", $"Failed to load stats: {ex.Message}", "OK");
             }
         }
     }

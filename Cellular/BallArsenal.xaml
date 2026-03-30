@@ -8,6 +8,7 @@
 
     <ContentPage.Resources>
         <core:StringToColorConverter x:Key="ColorConverter" />
+        <core:EmptyToNAConverter x:Key="EmptyToNA" />
     </ContentPage.Resources>
 
     <Grid RowDefinitions="Auto, *">
@@ -47,18 +48,30 @@
                             <Grid Padding="15" ColumnDefinitions="*, *">
                                 <VerticalStackLayout Grid.Column="0" Spacing="2">
                                     <Label Text="{Binding Name}" FontAttributes="Bold" TextColor="Black" FontSize="16"/>
-                                    <Label Text="{Binding Weight, StringFormat='Weight: {0} lbs'}" TextColor="Black" />
-                                    <Label Text="{Binding Core, StringFormat='Core: {0}'}" TextColor="Black"/>
-                                    <Label Text="{Binding ColorString, StringFormat='Color: {0}'}" TextColor="Black" />
+                                    <Label Text="{Binding BallMFG, StringFormat='MFG: {0}'}" TextColor="Black"/>
+                                    <Label Text="{Binding BallMFGName, StringFormat='MFG Name: {0}'}" TextColor="Black"/>
+                                    <Label Text="{Binding SerialNumber, Converter={StaticResource EmptyToNA}, StringFormat='Serial Number: {0}'}" TextColor="Black"/>
+                                    <Label Text="{Binding Weight, Converter={StaticResource EmptyToNA}, StringFormat='Weight: {0} lbs'}" TextColor="Black" />
+                                    <Label Text="{Binding Coverstock, Converter={StaticResource EmptyToNA}, StringFormat='Coverstock: {0}'}" TextColor="Black"/>
+                                    <Label Text="{Binding Core, Converter={StaticResource EmptyToNA}, StringFormat='Core: {0}'}" TextColor="Black"/>
+                                    <Label Text="{Binding ColorString, Converter={StaticResource EmptyToNA}, StringFormat='Color: {0}'}" TextColor="Black" />
+                                    <Label Text="{Binding Comment, Converter={StaticResource EmptyToNA}, StringFormat='Comment: {0}'}" TextColor="Black"/>
                                 </VerticalStackLayout>
 
                                 <Image Source="bowling_ball.png" 
                                        HeightRequest="80" 
                                        WidthRequest="80" 
                                        Grid.Column="1" 
-                                       HorizontalOptions="End" 
+                                       HorizontalOptions="End"
+                                       VerticalOptions="Start"
                                        BackgroundColor="{Binding ColorString, Converter={StaticResource ColorConverter}}">
                                 </Image>
+                                <Button Text="Edit" 
+                                        Grid.Column="1"
+                                        WidthRequest="80"
+                                        HorizontalOptions="End" 
+                                        VerticalOptions="End" 
+                                        Clicked="OnEditBallBtnClicked"/>
                             </Grid>
                         </Border>
                     </Grid>
