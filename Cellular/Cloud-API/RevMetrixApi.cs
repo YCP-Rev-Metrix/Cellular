@@ -3,6 +3,7 @@ namespace Cellular.Cloud_API;
 /// <summary>
 /// Layout matches TestServer.py / production: one origin (no trailing slash), all routes under <c>/api</c>.
 /// Authenticated calls use <c>Authorization: Bearer</c> with JWT from <c>POST /api/posts/Authorize</c> response field <c>tokenA</c>.
+/// Mobile sync POSTs should also send <c>?mobileID=</c> (app user PK) per TestServer.py / production WebApi.
 /// <para>
 /// HttpClient uses default TLS certificate validation. Do not ship handlers that disable verification;
 /// use a local base URL only for dev with trusted certs or platform debug settings.

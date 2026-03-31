@@ -3,6 +3,7 @@ using System;
 using System.Linq;
 using System.Collections.ObjectModel;
 using System.Collections.Generic;
+using Cellular.Services;
 using Microsoft.Maui.Controls;
 using Microsoft.Maui.ApplicationModel;
 
@@ -80,6 +81,13 @@ namespace Cellular
                     return;
                 }
 
+                var (credOk, apiUsername, apiPassword) = await CloudSyncCredentialStore.TryGetAsync();
+                if (!credOk)
+                {
+                    await DisplayAlert("Info", "Sign in on the Login page first. API tests use the same credentials as cloud sync.", "OK");
+                    return;
+                }
+
                 var controller = new Cellular.Cloud_API.ApiController();
 
                 // call ExecuteRequest for each selected combination, await result and show it
@@ -99,7 +107,9 @@ namespace Cellular
                                 {
                                     _ = DisplayAlert("Auth Response", authResp ?? "No auth response", "OK");
                                 });
-                            }
+                            },
+                            apiUsername,
+                            apiPassword
                         );
 
                         // show the returned response from ExecuteRequest

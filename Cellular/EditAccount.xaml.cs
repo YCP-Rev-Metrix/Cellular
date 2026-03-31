@@ -1,6 +1,7 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using System.Text.RegularExpressions;
 using Cellular.Data;
+using Cellular.Services;
 using Cellular.ViewModel;
 
 namespace Cellular
@@ -92,6 +93,14 @@ namespace Cellular
             }
 
             await _userRepository.UpdateUserAsync(user);
+
+            if (!string.IsNullOrEmpty(newPasswordEntry.Text))
+                await CloudSyncCredentialStore.StoreAsync(entryUsername.Text, newPasswordEntry.Text);
+            else
+            {
+                var (ok, _, pass) = await CloudSyncCredentialStore.TryGetAsync();
+                if (ok) await CloudSyncCredentialStore.StoreAsync(entryUsername.Text, pass!);
+            }
 
             // Update ViewModel
             _viewModel.UserName = user.UserName;

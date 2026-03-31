@@ -3,7 +3,9 @@ using System.Text.Json.Serialization;
 namespace Cellular.Cloud_API.Models;
 
 /// <summary>
-/// POST/GET: send mobileID (our local id); eventId/establishmentId reference other entities' mobileIDs.
+/// POST/GET: send mobileID (our local session id). eventId/establishmentId are the cloud server's row ids
+/// for the linked event/establishment (see TestServer flow: PostEvent then PostSession with resolved id).
+/// GET returns the same shape; the app maps these ids back to local mobile IDs when applying to SQLite.
 /// </summary>
 public class Session
 {

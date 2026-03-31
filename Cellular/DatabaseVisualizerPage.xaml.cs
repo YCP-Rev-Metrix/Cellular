@@ -158,9 +158,15 @@ public partial class DatabaseVisualizerPage : ContentPage
                 return;
             }
 
+            RowCountLabel.Text = "Running server orphan cleanup...";
+            var orphanErr = await syncService.DeleteOrphanedAppDataAsync(userId);
+
             _cloudCache = null;
             _cloudCacheLoadedAtUtc = DateTime.MinValue;
-            await DisplayAlert("Done", "Cloud data deleted (users kept).", "OK");
+            var doneMsg = orphanErr == null
+                ? "Cloud data deleted (users kept). Orphan cleanup completed."
+                : $"Cloud data deleted (users kept). Orphan cleanup failed: {orphanErr}";
+            await DisplayAlert("Done", doneMsg, "OK");
             if (TablePicker.SelectedIndex >= 0)
                 LoadTableData(TablePicker.SelectedIndex);
         }

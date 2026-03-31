@@ -50,12 +50,14 @@ namespace Cellular
             // Ensure the table exists before querying it
             await userRepository.InitAsync();
 
-            // Check if a user with the given username or email already exists
+            // Check if a user with the given username or email already exists locally
             var existingUserByUsername = await userRepository.GetUserByUsernameAsync(username);
             var existingUserByEmail = await userRepository.GetUserByEmailAsync(email);
 
-            // Check if the username or email already exists in the database
-            if (existingUserByUsername != null)
+            // Also check cloud so two devices can't register the same username
+            bool cloudUserExists = await CloudSyncService.CloudUsernameExistsAsync(username);
+
+            if (existingUserByUsername != null || cloudUserExists)
             {
                 await DisplayAlert("Registration Error", "Username already exists", "OK");
             }
@@ -88,6 +90,8 @@ namespace Cellular
 
                 // Add the new user to the database
                 await userRepository.AddAsync(newUser);
+
+                await CloudSyncCredentialStore.StoreAsync(newUser.UserName ?? username, password);
 
                 // First-time registration flow: best-effort create matching app user in cloud.
                 await CloudSyncService.EnsureCloudAppUserExistsAsync(newUser.UserName ?? username, password, newUser.UserId);

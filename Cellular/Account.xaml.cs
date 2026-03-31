@@ -158,7 +158,10 @@ namespace Cellular
 
             // Update menu and navigate to Home after logging out
             ((AppShell)Shell.Current).UpdateMenuForLoginStatus(false);
-            Preferences.Default.Clear();
+            await CloudSyncCredentialStore.ClearAsync();
+            Preferences.Remove("UserId");
+            Preferences.Remove("IsLoggedIn");
+            Preferences.Remove(CloudSyncService.SyncLastCheckedUtcKey);
 
             await Shell.Current.GoToAsync("//MainPage");
         }

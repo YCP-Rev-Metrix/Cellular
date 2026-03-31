@@ -94,13 +94,13 @@ public static class CloudSyncMappers
         CloudID = cloud.Id > 0 ? cloud.Id : null
     };
 
-    // --- Session (send/retrieve mobileID = our local SessionId; establishmentId/eventId are other entities' mobileIDs) ---
-    public static CloudSession ToCloud(this Cellular.ViewModel.Session local, int _) => new CloudSession
+    // --- Session (mobileID = local SessionId; establishmentId/eventId = cloud server ids for FK) ---
+    public static CloudSession ToCloud(this Cellular.ViewModel.Session local, int establishmentServerId, int eventServerId) => new CloudSession
     {
         MobileID = local.SessionId,
         SessionNumber = local.SessionNumber,
-        EstablishmentID = local.Establishment ?? 0,
-        EventID = local.EventId,
+        EstablishmentID = establishmentServerId,
+        EventID = eventServerId,
         DateTime = local.DateTime.HasValue ? (int)local.DateTime.Value.Subtract(DateTime.UnixEpoch).TotalSeconds : 0,
         TeamOpponent = local.TeamOpponent ?? "",
         IndividualOpponent = local.IndividualOpponent ?? "",
@@ -110,13 +110,30 @@ public static class CloudSyncMappers
         IndividualRecord = local.IndividualRecord ?? 0
     };
 
-    public static Cellular.ViewModel.Session ToLocal(this CloudSession cloud, int userId) => new Cellular.ViewModel.Session
+    /// <param name="eventServerIdToLocalMobileId">Cloud event PK → local event mobileID (EventId).</param>
+    /// <param name="establishmentServerIdToLocalMobileId">Cloud establishment PK → local EstaID.</param>
+    public static Cellular.ViewModel.Session ToLocal(
+        this CloudSession cloud,
+        int userId,
+        IReadOnlyDictionary<int, int>? eventServerIdToLocalMobileId = null,
+        IReadOnlyDictionary<int, int>? establishmentServerIdToLocalMobileId = null)
     {
+        var localEventId = cloud.EventID;
+        if (eventServerIdToLocalMobileId != null && eventServerIdToLocalMobileId.TryGetValue(cloud.EventID, out var le))
+            localEventId = le;
+
+        int? localEst = cloud.EstablishmentID > 0 ? cloud.EstablishmentID : null;
+        if (localEst is > 0 && establishmentServerIdToLocalMobileId != null &&
+            establishmentServerIdToLocalMobileId.TryGetValue(cloud.EstablishmentID, out var lest))
+            localEst = lest;
+
+        return new Cellular.ViewModel.Session
+        {
         SessionId = cloud.MobileID ?? cloud.ID,
         UserId = userId,
         SessionNumber = cloud.SessionNumber,
-        EventId = cloud.EventID,
-        Establishment = cloud.EstablishmentID,
+        EventId = localEventId,
+        Establishment = localEst > 0 ? localEst : null,
         DateTime = DateTime.UnixEpoch.AddSeconds(cloud.DateTime),
         TeamOpponent = cloud.TeamOpponent ?? "",
         IndividualOpponent = cloud.IndividualOpponent ?? "",
@@ -125,7 +142,8 @@ public static class CloudSyncMappers
         TeamRecord = cloud.TeamRecord,
         IndividualRecord = cloud.IndividualRecord,
         CloudID = cloud.ID > 0 ? cloud.ID : null
-    };
+        };
+    }
 
     // --- Game (send/retrieve mobileID = our local GameId; sessionId = Session mobileID) ---
     public static CloudGame ToCloud(this Cellular.ViewModel.Game local, int _) => new CloudGame
