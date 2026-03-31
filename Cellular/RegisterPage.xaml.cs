@@ -40,7 +40,7 @@ namespace Cellular
                 string.IsNullOrWhiteSpace(cemail) ||
                 string.IsNullOrWhiteSpace(phoneNumber))
             {
-                await DisplayAlert("Registration Error", "Please fill in all fields", "OK");
+                await DisplayAlertAsync("Registration Error", "Please fill in all fields", "OK");
                 return;
             }
 

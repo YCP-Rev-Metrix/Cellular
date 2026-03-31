@@ -31,18 +31,19 @@
                 </Grid.ColumnDefinitions>
 
                 <!-- Frames Scroll -->
-                <StackLayout Grid.Row="0" Grid.Column="1" HorizontalOptions="Center" Padding="0, -10, 0, 30">
+                <StackLayout Grid.Row="0" Grid.Column="1" HorizontalOptions="Center" Padding="0, -10, 0, 30" WidthRequest="350">
                     <CollectionView x:Name="FramesCollectionView" ItemsSource="{Binding Frames}"
                            HorizontalScrollBarVisibility="Always"
                            HeightRequest = "135"
+                           HorizontalOptions="Center"
                            VerticalScrollBarVisibility="Never">
                         <CollectionView.ItemsLayout>
                             <LinearItemsLayout Orientation="Horizontal"  />
                         </CollectionView.ItemsLayout>
                         <CollectionView.ItemTemplate>
                             <DataTemplate x:DataType="local:ShotPageFrame">
-                                <Border Stroke="DarkGray" StrokeThickness="1" Padding="0"
-                                    BackgroundColor="White" WidthRequest="80">
+                                <Border Stroke="LightSlateGray" StrokeThickness="1" Padding="0"
+                                    BackgroundColor="{Binding BackgroundColor}" WidthRequest="80">
                                     <Border.GestureRecognizers>
                                         <TapGestureRecognizer 
                                             NumberOfTapsRequired="1"
@@ -57,18 +58,30 @@
                                                TextColor="Black"
                                                HorizontalOptions="Center"/>
                                         </StackLayout>
-                                        <!-- Two Score Boxes at the Top. Third one is hidden for frame 10 -->
+                                        <!-- Two Score Boxes at the Top-->
                                         <FlexLayout Direction="Row" JustifyContent="Center" AlignItems="Center" Padding="0, 10, 0, 5">
                                             <Border Stroke="Black" StrokeThickness="1" Margin="0,0">
+                                                <Border.GestureRecognizers>
+                                                    <TapGestureRecognizer 
+                                                        NumberOfTapsRequired="1"
+                                                        Command="{Binding Source={RelativeSource AncestorType={x:Type local:GameInterfaceViewModel}}, Path=ShotOneTappedCommand}"
+                                                        CommandParameter="{Binding .}" />
+                                                </Border.GestureRecognizers>
                                                 <Grid>
-                                                    <BoxView HeightRequest="20" WidthRequest="20" BackgroundColor="LightGray" x:Name="shot1Box"/>
-                                                    <Label Text="{Binding ShotOneBox}" HorizontalOptions="Center" VerticalOptions="Center" FontSize="12" TextColor="Black"/>
+                                                    <BoxView HeightRequest="30" WidthRequest="30" BackgroundColor="LightGray" x:Name="shot1Box"/>
+                                                    <Label Text="{Binding ShotOneBox}" HorizontalOptions="Center" VerticalOptions="Center" FontSize="14" TextColor="Black"/>
                                                 </Grid>
                                             </Border>
                                             <Border Stroke="Black" StrokeThickness="1" Margin="0,0">
+                                                <Border.GestureRecognizers>
+                                                    <TapGestureRecognizer
+                                                        NumberOfTapsRequired="1"
+                                                        Command="{Binding Source={RelativeSource AncestorType={x:Type local:GameInterfaceViewModel}}, Path=ShotTwoTappedCommand}"
+                                                        CommandParameter="{Binding .}" />
+                                                </Border.GestureRecognizers>
                                                 <Grid>
-                                                    <BoxView HeightRequest="20" WidthRequest="20" BackgroundColor="LightGray" x:Name="shot2Box"/>
-                                                    <Label Text="{Binding ShotTwoBox}" HorizontalOptions="Center" VerticalOptions="Center" FontSize="12" TextColor="Black"/>
+                                                    <BoxView HeightRequest="30" WidthRequest="30" BackgroundColor="LightGray" x:Name="shot2Box"/>
+                                                    <Label Text="{Binding ShotTwoBox}" HorizontalOptions="Center" VerticalOptions="Center" FontSize="14" TextColor="Black"/>
                                                 </Grid>
                                             </Border>
                                         </FlexLayout>
@@ -184,23 +197,6 @@
                     <FlexLayout Direction="Row" JustifyContent="Center" Wrap="Wrap" HorizontalOptions="Center">
                         <Button x:Name="pin1" Text="1" Scale = "0.9" CornerRadius="25" Clicked="OnPinClicked" BackgroundColor="LightSlateGrey" Margin="1"/>
                     </FlexLayout>
-
-
-                    <!-- Board Selector -->
-                    <StackLayout HorizontalOptions="Center">
-                        <Slider x:Name="CustomSlider" 
-                            Maximum="40" 
-                            Minimum="0" 
-                            ValueChanged="BoardChanged" 
-                            Value="20.5" 
-                            WidthRequest="200" 
-                            HorizontalOptions="Center" 
-                            VerticalOptions="Center" 
-                            MinimumTrackColor="Transparent" 
-                            MaximumTrackColor="White" 
-                            ThumbColor="White" />
-                        <Label Text="Select a Board" x:Name="TestingLabel" HorizontalOptions="Center"/>
-                    </StackLayout>
                 </StackLayout>
 
                 <!-- Right Side: Quick Scoring Buttons -->
@@ -213,7 +209,7 @@
 
                 <StackLayout Grid.Row="2" Grid.Column="1" Orientation="Horizontal" Padding="0, 10" Spacing="10" HorizontalOptions="Center">
                     <Button Text="Comment" WidthRequest="100" HeightRequest="40" CornerRadius="3" BackgroundColor="LightGray" Clicked="OnCommentClicked"/>
-                    <Button Text="Next" WidthRequest="100" HeightRequest="40" CornerRadius="3" BackgroundColor="LightGray" Clicked="OnNextClicked"/>
+                    <Button Text="Next" x:Name="nextButton"  WidthRequest="100" HeightRequest="40" CornerRadius="3" BackgroundColor="LightGray" Clicked="OnNextClicked"/>
                 </StackLayout>
 
             </Grid>

@@ -23,9 +23,6 @@ namespace Cellular
 
             // forward UI selection into the VM (if XAML doesn't bind SelectedItem)
             BallsListView.SelectionChanged += OnBallsListViewSelectionChanged;
-
-            // react when the VM reports SelectedIndex change
-            _viewModel.SelectedIndexChanged += OnViewModelSelectedIndexChanged;
         }
 
         protected override async void OnAppearing()
@@ -58,10 +55,14 @@ namespace Cellular
             }
         }
 
-        // react to VM selection changes
-        private void OnViewModelSelectedIndexChanged(object? sender, EventArgs e)
+        // Handle Edit button in the ItemTemplate. The Button's BindingContext will be the Ball.
+        private async void OnEditBallBtnClicked(object sender, EventArgs e)
         {
-            
+            if (sender is Button btn && btn.BindingContext is Ball ball)
+            {
+                // Navigate to registration page in edit mode
+                await Navigation.PushAsync(new BallArsenalRegistrationPage(ball));
+            }
         }
     }
 }

@@ -23,14 +23,16 @@
                 Placeholder="Username"
                 MaxLength="20"
                 Style="{DynamicResource CommonEntryStyle}"/>
+            <Grid>
+                <Entry
+                    x:Name="entryPassword"
+                    Placeholder="Password"
+                    IsPassword="{Binding Source={x:Reference hideCheckbox}, Path=IsChecked}"
+                    MaxLength="20"
+                    Style="{DynamicResource CommonEntryStyle}"/>
 
-            <Entry
-                x:Name="entryPassword"
-                Placeholder="Password"
-                IsPassword="True"
-                MaxLength="20"
-                Style="{DynamicResource CommonEntryStyle}"/>
-
+                <CheckBox x:Name="hideCheckbox" IsChecked="True" HorizontalOptions="End"/>
+            </Grid>
             <Button
                 x:Name="login"
                 Text="Login" 

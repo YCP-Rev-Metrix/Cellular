@@ -7,32 +7,52 @@
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
-
+        
         <StackLayout Orientation="Horizontal" Padding="10" Grid.Row="0">
-            <Label Text="Ball Registration" FontSize="24" HorizontalOptions="StartAndExpand" />
+            <Label Text="Ball Registration" FontSize="24"/>
         </StackLayout>
 
-        <StackLayout Padding="20" Grid.Row="1">
-            <Entry x:Name="BallName" Placeholder="Enter Ball Name" />
-            <Entry x:Name="BallWeight" Placeholder="Enter Balls Weight" />
-            <Entry x:Name="BallCoreType" Placeholder="Enter Balls Core Type" />
-            <Picker x:Name="BallColor" Title="Select Ball Color"
-                    SelectedIndexChanged="OnBallColorSelectedIndexChanged">
-                <Picker.Items>
-                    <x:String>Red</x:String>
-                    <x:String>Orange</x:String>
-                    <x:String>Yellow</x:String>
-                    <x:String>Green</x:String>
-                    <x:String>Blue</x:String>
-                    <x:String>Purple</x:String>
-                    <x:String>Black</x:String>
-                    <x:String>White</x:String>
-                    <x:String>Silver</x:String>
-                    <x:String>Custom</x:String>
-                </Picker.Items>
-            </Picker>
-            <Entry x:Name="BallHexColor" Placeholder="Enter Hex Color Value (#FFFFFF)" IsVisible="False"/>
-            <Button Text="Register Ball" Clicked="OnRegisterBallClicked" />
-        </StackLayout>
+        <ScrollView Grid.Row="1">
+            <StackLayout Padding="20" Spacing="5">
+                <Label TextColor="White" Text="Name" />
+                <Entry x:Name="BallName" Placeholder="Enter name"/>
+                <Label TextColor="White" Text="MFG" />
+                <Entry x:Name="BallMFG" Placeholder="Enter MFG" />
+                <Label TextColor="White" Text="MFG Name" />
+                <Entry x:Name="BallMFGName" Placeholder="Enter MFG Name" />
+                <Label TextColor="White" Text="Serial Number" />
+                <Entry x:Name="SerialNumber" Placeholder="Enter Serial Number" />
+                <Label TextColor="White" Text="Weight" />
+                <Entry x:Name="BallWeight" Placeholder="Enter Weight" />
+                <Label TextColor="White" Text="Core" />
+                <Entry x:Name="BallCoreType" Placeholder="Enter Core Type" />
+                <Label TextColor="White" Text="Coverstock" />
+                <Entry x:Name="Coverstock" Placeholder="Enter Coverstock" />
+                <Label TextColor="White" Text="Color" />
+                <Picker x:Name="BallColor" Title="Select Color" TitleColor="Gray"
+            SelectedIndexChanged="OnBallColorSelectedIndexChanged">
+                    <Picker.Items>
+                        <x:String>Red</x:String>
+                        <x:String>Orange</x:String>
+                        <x:String>Yellow</x:String>
+                        <x:String>Green</x:String>
+                        <x:String>Blue</x:String>
+                        <x:String>Purple</x:String>
+                        <x:String>Black</x:String>
+                        <x:String>White</x:String>
+                        <x:String>Silver</x:String>
+                        <x:String>Custom</x:String>
+                    </Picker.Items>
+                </Picker>
+                <Entry x:Name="BallHexColor" Placeholder="Enter Hex Color Value (#FFFFFF)" IsVisible="False"/>
+
+                <Label TextColor="White" Text="Comments" />
+                <Border Stroke="Gray"
+                    StrokeThickness="2">
+                    <Editor x:Name="Comment" Placeholder="Enter comments here" MinimumHeightRequest="100"/>
+                </Border>
+                <Button x:Name="RegisterBallButton" Text="Register Ball" Clicked="OnRegisterBallClicked" />
+            </StackLayout>
+        </ScrollView>
     </Grid>
 </ContentPage>

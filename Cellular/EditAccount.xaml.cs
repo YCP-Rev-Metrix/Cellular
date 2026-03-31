@@ -49,7 +49,7 @@ namespace Cellular
             if (_viewModel.UserID == null || _viewModel.UserID == 0)
             {
                 Debug.WriteLine("UserID is null or invalid.");
-                await DisplayAlert("Error", "Invalid user ID.", "OK");
+                await DisplayAlertAsync("Error", "Invalid user ID.", "OK");
                 return;
             }
 
@@ -57,7 +57,7 @@ namespace Cellular
 
             if (user == null)
             {
-                await DisplayAlert("Error", "User not found.", "OK");
+                await DisplayAlertAsync("Error", "User not found.", "OK");
                 return;
             }
 
@@ -66,7 +66,7 @@ namespace Cellular
             {
                 if (newPasswordEntry.Text != confirmPasswordEntry.Text)
                 {
-                    await DisplayAlert("Error", "New passwords do not match.", "OK");
+                    await DisplayAlertAsync("Error", "New passwords do not match.", "OK");
                     return;
                 }
             }
@@ -76,7 +76,7 @@ namespace Cellular
             {
                 if (entryEmail.Text != confirmEntryEmail.Text)
                 {
-                    await DisplayAlert("Error", "Emails do not match.", "OK");
+                    await DisplayAlertAsync("Error", "Emails do not match.", "OK");
                     return;
                 }
             }
@@ -112,7 +112,7 @@ namespace Cellular
             Preferences.Set("UserName", user.UserName);
             _viewModel.NotifyUserDetailsChanged();
 
-            await DisplayAlert("Success", "Your account has been updated.", "OK");
+            await DisplayAlertAsync("Success", "Your account has been updated.", "OK");
             await Shell.Current.GoToAsync("..");
         }
 

@@ -41,7 +41,7 @@ namespace Cellular
             }
             else
             {
-                await DisplayAlert("Login Failed", "Invalid username or password", "OK");
+                await DisplayAlertAsync("Login Failed", "Invalid username or password", "OK");
             }
         }
 

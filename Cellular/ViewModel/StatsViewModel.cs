@@ -17,6 +17,7 @@ namespace Cellular.ViewModel
     internal partial class StatsViewModel : INotifyPropertyChanged
     {
         private readonly SessionRepository _sessionRepo;
+        private readonly EventRepository _eventRepo;
         private readonly GameRepository _gameRepo;
         private readonly BallRepository _ballRepo;
         private readonly FrameRepository _frameRepo;
@@ -61,6 +62,7 @@ namespace Cellular.ViewModel
         {
             var conn = new CellularDatabase().GetConnection();
             _sessionRepo = new SessionRepository(conn);
+            _eventRepo = new EventRepository(conn);
             _gameRepo = new GameRepository(conn);
             _ballRepo = new BallRepository(conn);
             _frameRepo = new FrameRepository(conn);
@@ -98,6 +100,8 @@ namespace Cellular.ViewModel
         public double StrikePercent { get; set; }
         public double SparePercent { get; set; }
         public double OpenPercent { get; set; }
+        public double SplitPercent { get; set; }
+        public double WashoutPercent { get; set; }
         public double GameAverage { get; set; }
 
         // Suppress flag used when repopulating Games to avoid binding recursion/null-write that clears saved id
@@ -109,6 +113,7 @@ namespace Cellular.ViewModel
         // Useful ids for queries
         // -1 indicates "none selected"
         private int _selectedSessionId = -1;
+        private int _selectedEventId = -1;
         private int _selectedGameId = -1;
         private int _selectedBallId = -1;
         private int _selectedLaneInt = -1;
@@ -122,6 +127,19 @@ namespace Cellular.ViewModel
                 if (_selectedSessionId != value)
                 {
                     _selectedSessionId = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
+        public int SelectedEventId
+        {
+            get => _selectedEventId;
+            private set
+            {
+                if (_selectedEventId != value)
+                {
+                    _selectedEventId = value;
                     OnPropertyChanged();
                 }
             }
@@ -235,6 +253,23 @@ namespace Cellular.ViewModel
             }
         }
 
+
+        public Event SelectedEvent
+        {
+            get => _selectedEvent;
+            set
+            {
+                if (_selectedEvent != value)
+                {
+                    _selectedEvent = value;
+                    OnPropertyChanged();
+                    SelectedEventId = _selectedEvent?.EventId ?? -1;
+                    // refresh everything using the active filters
+                    _ = LoadFilteredDataAsync();
+                }
+            }
+        }
+
         public Game SelectedGame
         {
             get => _selectedGame;
@@ -256,20 +291,6 @@ namespace Cellular.ViewModel
                     SelectedGameId = _selectedGame?.GameId ?? -1;
 
                     // When a specific game is selected we still want frames/shots limited to current filters.
-                    _ = LoadFilteredDataAsync();
-                }
-            }
-        }
-
-        public Event SelectedEvent
-        {
-            get => _selectedEvent;
-            set
-            {
-                if (_selectedEvent != value)
-                {
-                    _selectedEvent = value;
-                    OnPropertyChanged();
                     _ = LoadFilteredDataAsync();
                 }
             }
@@ -310,6 +331,9 @@ namespace Cellular.ViewModel
             SelectedSession = null;
             SelectedSessionId = -1;
 
+            SelectedEvent = null;
+            SelectedEventId = -1;
+
             Games.Clear();
             SelectedGame = null;
             SelectedGameId = -1;
@@ -342,6 +366,7 @@ namespace Cellular.ViewModel
 
             StatTypes.Clear();
             StatTypes.Add("Default");
+            StatTypes.Add("Shot Stats");
         }
 
         // Public initialization to load DB-backed collections
@@ -349,6 +374,7 @@ namespace Cellular.ViewModel
         {
             await LoadSessionsAsync(); // respects SelectedStartDate/SelectedEndDate
             await LoadGamesAsync(); // loads all games for user (before session selection)
+            await LoadEventsAsync();
             await LoadBallsAsync();
         }
 
@@ -379,7 +405,23 @@ namespace Cellular.ViewModel
 
             var gamesFromDb = await _gameRepo.GetGamesByUserIdAsync(UserId);
             foreach (var g in gamesFromDb.OrderByDescending(g => g.GameNumber))
-                Games.Add(g);
+            {
+                // Skip if we already have this exact game id or a game with the same game number
+                // (prevents duplicate display entries like "1, 1, 2, 2" when multiple sessions
+                // contain games with the same game number).
+                if (!Games.Any(x => x.GameId == g.GameId || x.GameNumber == g.GameNumber))
+                    Games.Add(g);
+            }
+        }
+
+        public async Task LoadEventsAsync()
+        {
+            Events.Clear();
+            if (UserId == 0) return;
+
+            var eventsFromDb = await _eventRepo.GetEventsByUserIdAsync(UserId);
+            foreach (var e in eventsFromDb.OrderBy(e => e.EventId))
+                Events.Add(e);
         }
 
         public async Task LoadBallsAsync()
@@ -403,36 +445,75 @@ namespace Cellular.ViewModel
             // Track how many sessions we considered for this load so we can log it later
             int sessionsConsideredCount = 0;
 
-            // Capture the game id the UI currently wants selected so we can restore it even if the UI clears SelectedItem during collection updates
+            // Capture the game and event ids the UI currently wants selected so we can restore them
+            // even if the UI clears SelectedItem during collection updates
             var desiredSelectedGameId = SelectedGameId;
+            var desiredSelectedEventId = SelectedEventId;
 
             // Suppress SelectedGame setter side-effects while we clear/repopulate Games to avoid the UI writing null back into the VM and clearing our saved id.
             _suppressSelectedGameSetter = true;
             try
             {
+                // Events loaded separately (LoadAsync / LoadEventsAsync). Do not reload here to avoid
+                // clearing the user's selection on every filter change.
+
                 Games.Clear();
                 BowlingFrames.Clear();
                 Shots.Clear();
 
                 // Determine sessions to consider
                 List<Session> sessionsToConsider;
-                if (SelectedSessionId != -1)
+                // If an event is selected, prefer sessions under that event
+                if (SelectedEventId != -1)
                 {
-                    // prefer already-loaded Sessions collection
-                    var s = Sessions.FirstOrDefault(x => x.SessionId == SelectedSessionId);
-                    if (s != null)
-                        sessionsToConsider = new List<Session> { s };
+                    var sessionsForEvent = await _sessionRepo.GetSessionsByUserIdAndEventAsync(UserId, SelectedEventId);
+
+                    // apply optional date range filter
+                    if (SelectedStartDate.HasValue || SelectedEndDate.HasValue)
+                    {
+                        sessionsForEvent = sessionsForEvent.Where(s => s.DateTime.HasValue)
+                                                           .Where(s => (!SelectedStartDate.HasValue || s.DateTime.Value.Date >= SelectedStartDate.Value.Date) &&
+                                                                       (!SelectedEndDate.HasValue || s.DateTime.Value.Date <= SelectedEndDate.Value.Date))
+                                                           .ToList();
+                    }
+
+                    // If a specific session id is selected, prefer that one (still scoped to event)
+                    if (SelectedSessionId != -1)
+                    {
+                        var s = sessionsForEvent.FirstOrDefault(x => x.SessionId == SelectedSessionId);
+                        sessionsToConsider = s != null ? new List<Session> { s } : new List<Session>();
+                    }
                     else
-                        sessionsToConsider = (await _sessionRepo.GetSessionsByUserIdAndDateRangeAsync(UserId, SelectedStartDate, SelectedEndDate))
-                                              .Where(x => x.SessionId == SelectedSessionId).ToList();
+                    {
+                        sessionsToConsider = sessionsForEvent;
+                    }
                 }
                 else
                 {
-                    sessionsToConsider = await _sessionRepo.GetSessionsByUserIdAndDateRangeAsync(UserId, SelectedStartDate, SelectedEndDate);
+                    // No event constraint: fall back to selected-session or date-range selection
+                    if (SelectedSessionId != -1)
+                    {
+                        // prefer already-loaded Sessions collection
+                        var s = Sessions.FirstOrDefault(x => x.SessionId == SelectedSessionId);
+                        if (s != null)
+                            sessionsToConsider = new List<Session> { s };
+                        else
+                            sessionsToConsider = (await _sessionRepo.GetSessionsByUserIdAndDateRangeAsync(UserId, SelectedStartDate, SelectedEndDate))
+                                                  .Where(x => x.SessionId == SelectedSessionId).ToList();
+                    }
+                    else
+                    {
+                        sessionsToConsider = await _sessionRepo.GetSessionsByUserIdAndDateRangeAsync(UserId, SelectedStartDate, SelectedEndDate);
+                    }
                 }
 
                 // capture count for logging
                 sessionsConsideredCount = sessionsToConsider?.Count ?? 0;
+
+                // Update Sessions collection so UI shows sessions for the selected event/date range
+                Sessions.Clear();
+                foreach (var sess in sessionsToConsider.OrderByDescending(s => s.SessionNumber))
+                    Sessions.Add(sess);
 
                 // iterate sessions -> games -> frames -> shots, applying filters at each step
                 await _frameRepo.InitAsync();
@@ -463,7 +544,9 @@ namespace Cellular.ViewModel
                             continue;
 
                         // Add game to viewmodel (only valid games after lane/frame filters)
-                        Games.Add(game);
+                        // Prevent duplicate display entries: skip if same GameId or same GameNumber already present
+                        if (!Games.Any(g => g.GameId == game.GameId || g.GameNumber == game.GameNumber))
+                            Games.Add(game);
 
                         // load frames for game
                         var frameIds = await _frameRepo.GetFrameIdsByGameIdAsync(game.GameId);
@@ -505,6 +588,18 @@ namespace Cellular.ViewModel
                         SelectedGameId = restored.GameId;
                     }
                 }
+
+                // Restore SelectedEvent to the instance in the newly-populated Events collection using the captured id
+                if (desiredSelectedEventId != -1)
+                {
+                    var restoredEv = Events.FirstOrDefault(ev => ev.EventId == desiredSelectedEventId);
+                    if (restoredEv != null)
+                    {
+                        _selectedEvent = restoredEv;
+                        SelectedEventId = restoredEv.EventId;
+                        OnPropertyChanged(nameof(SelectedEvent));
+                    }
+                }
             }
             finally
             {
@@ -524,6 +619,8 @@ namespace Cellular.ViewModel
                 StrikePercent = CalculateStrikePercentage(BowlingFrames);
                 SparePercent = CalculateSparePercentage(BowlingFrames);
                 OpenPercent = CalculateOpenPercentage(BowlingFrames);
+                SplitPercent = CalculateSplitPercentage(Shots);
+                WashoutPercent = CalculateWashoutPercentage(Shots);
                 GameAverage = CalculateScoreAverage(Games);
                 //Debug.WriteLine($"Calculated strike percentage: {StrikePercent:N2}");
                 //Debug.WriteLine($"Calculated spare percentage: {SparePercent:N2}");
@@ -590,6 +687,41 @@ namespace Cellular.ViewModel
             int totalFrames = frames.Count();
             int opens = frames.Count(f => f.Result == "Open");
             return StatsCalculator.CalculatePercentage(opens, totalFrames);
+        }
+
+        public static double CalculateSplitPercentage(IEnumerable<Shot> shots)
+        {
+            if (shots == null || !shots.Any()) return 0.0;
+
+            // The 13th bit (Split) = 2^12 = 4096
+            const short SplitMask = 4096;
+
+            // We only count Shot 1 because a split can't happen on Shot 2
+            var shot1Only = shots.Where(s => s.ShotNumber == 1).ToList();
+
+            if (!shot1Only.Any()) return 0.0;
+
+            int totalShot1s = shot1Only.Count;
+            int splitCount = shot1Only.Count(s => (s.LeaveType & SplitMask) != 0);
+
+            return StatsCalculator.CalculatePercentage(splitCount, totalShot1s);
+        }
+
+        public static double CalculateWashoutPercentage(IEnumerable<Shot> shots)
+        {
+            if (shots == null) return 0.0;
+
+            // Filter to only include the first shot of each frame
+            var firstShots = shots.Where(s => s.ShotNumber == 1).ToList();
+            if (!firstShots.Any()) return 0.0;
+
+            // Bit 14 (Washout) = 2^13 = 8192
+            const short WashoutMask = 8192;
+
+            int totalFirstShots = firstShots.Count;
+            int washoutCount = firstShots.Count(s => (s.LeaveType & WashoutMask) != 0);
+
+            return StatsCalculator.CalculatePercentage(washoutCount, totalFirstShots);
         }
 
         public static double CalculateScoreAverage(IEnumerable<Game> games)

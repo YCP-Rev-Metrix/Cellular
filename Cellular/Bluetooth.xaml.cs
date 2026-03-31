@@ -542,7 +542,7 @@ namespace Cellular
             // Check Bluetooth state (cross-platform)
             if (!_ble.IsOn)
             {
-                await DisplayAlert("Bluetooth", "Please enable Bluetooth", "OK");
+                await DisplayAlertAsync("Bluetooth", "Please enable Bluetooth", "OK");
                 return;
             }
 
@@ -589,7 +589,7 @@ namespace Cellular
                                 
                                 if (!scanGranted || !connectGranted)
                                 {
-                                    await DisplayAlert("Permission Required", 
+                                    await DisplayAlertAsync("Permission Required", 
                                         "Bluetooth permission is required to scan for Bluetooth devices. Please grant BLUETOOTH_SCAN and BLUETOOTH_CONNECT permissions in your device settings.\n\nYou can do this by going to:\nSettings > Apps > Cellular > Permissions", 
                                         "OK");
                                     return;
@@ -599,7 +599,7 @@ namespace Cellular
                         catch (Exception permEx)
                         {
                             System.Diagnostics.Debug.WriteLine($"Permission request exception: {permEx.Message}");
-                            await DisplayAlert("Permission Error", 
+                            await DisplayAlertAsync("Permission Error", 
                                 "Unable to request Bluetooth permissions. Please grant BLUETOOTH_SCAN and BLUETOOTH_CONNECT permissions manually in your device settings.", 
                                 "OK");
                             return;
@@ -658,7 +658,7 @@ namespace Cellular
             }
             catch (Exception ex)
             {
-                await DisplayAlert("Scan Error", ex.Message, "OK");
+                await DisplayAlertAsync("Scan Error", ex.Message, "OK");
                 IsScanning = false;
                 ScanButton.Text = "Scan";
                 StatusLabel.Text = "Scan failed";
@@ -738,7 +738,7 @@ namespace Cellular
         {
             if (SelectedDevice == null)
             {
-                await DisplayAlert("Connect", "Please select a device first", "OK");
+                await DisplayAlertAsync("Connect", "Please select a device first", "OK");
                 return;
             }
 
@@ -746,7 +746,7 @@ namespace Cellular
             {
                 if (SelectedDevice.Device == null)
                 {
-                    await DisplayAlert("Connect", "Device object is not available. Please scan for devices again.", "OK");
+                    await DisplayAlertAsync("Connect", "Device object is not available. Please scan for devices again.", "OK");
                     StatusLabel.Text = "Device not available";
                     return;
                 }
@@ -792,13 +792,13 @@ namespace Cellular
                         "• MetaWear service or characteristics not found\n" +
                         "• Device may be in use by another app\n" +
                         "• Check Debug output for detailed error messages";
-                    await DisplayAlert("Connection Failed", errorMessage, "OK");
+                    await DisplayAlertAsync("Connection Failed", errorMessage, "OK");
                     StatusLabel.Text = "Connection failed - check Debug logs";
                 }
             }
             catch (Exception ex)
             {
-                await DisplayAlert("Connect Error", ex.Message, "OK");
+                await DisplayAlertAsync("Connect Error", ex.Message, "OK");
                 StatusLabel.Text = "Connection error";
             }
         }
@@ -826,7 +826,7 @@ namespace Cellular
             }
             catch (Exception ex)
             {
-                await DisplayAlert("Disconnect Error", ex.Message, "OK");
+                await DisplayAlertAsync("Disconnect Error", ex.Message, "OK");
             }
         }
 
@@ -839,7 +839,7 @@ namespace Cellular
             }
             catch (Exception ex)
             {
-                await DisplayAlert("Error", ex.Message, "OK");
+                await DisplayAlertAsync("Error", ex.Message, "OK");
             }
         }
 
@@ -853,7 +853,7 @@ namespace Cellular
             }
             catch (Exception ex)
             {
-                await DisplayAlert("Error", ex.Message, "OK");
+                await DisplayAlertAsync("Error", ex.Message, "OK");
             }
         }
 
@@ -866,7 +866,7 @@ namespace Cellular
             }
             catch (Exception ex)
             {
-                await DisplayAlert("Error", ex.Message, "OK");
+                await DisplayAlertAsync("Error", ex.Message, "OK");
             }
         }
 
@@ -880,7 +880,7 @@ namespace Cellular
             }
             catch (Exception ex)
             {
-                await DisplayAlert("Error", ex.Message, "OK");
+                await DisplayAlertAsync("Error", ex.Message, "OK");
             }
         }
 
@@ -893,7 +893,7 @@ namespace Cellular
             }
             catch (Exception ex)
             {
-                await DisplayAlert("Error", ex.Message, "OK");
+                await DisplayAlertAsync("Error", ex.Message, "OK");
             }
         }
 
@@ -907,7 +907,7 @@ namespace Cellular
             }
             catch (Exception ex)
             {
-                await DisplayAlert("Error", ex.Message, "OK");
+                await DisplayAlertAsync("Error", ex.Message, "OK");
             }
         }
 
@@ -920,7 +920,7 @@ namespace Cellular
             }
             catch (Exception ex)
             {
-                await DisplayAlert("Error", ex.Message, "OK");
+                await DisplayAlertAsync("Error", ex.Message, "OK");
             }
         }
 
@@ -934,7 +934,7 @@ namespace Cellular
             }
             catch (Exception ex)
             {
-                await DisplayAlert("Error", ex.Message, "OK");
+                await DisplayAlertAsync("Error", ex.Message, "OK");
             }
         }
 
@@ -948,7 +948,7 @@ namespace Cellular
             }
             catch (Exception ex)
             {
-                await DisplayAlert("Probe Error", ex.Message, "OK");
+                await DisplayAlertAsync("Probe Error", ex.Message, "OK");
                 StatusLabel.Text = "Probe failed";
             }
         }

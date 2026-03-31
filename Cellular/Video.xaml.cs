@@ -105,15 +105,15 @@ namespace Cellular
             cameraView.SizeChanged += CameraView_SizeChanged;
             
             // Don't update icon here - wait for OnAppearing when service is definitely ready
-            MessagingCenter.Subscribe<object>(this, "WatchStartRecording", async (_) =>
-            {
-                await BeginExternalRecording();
-            });
+            //MessagingCenter.Subscribe<object>(this, "WatchStartRecording", async (_) =>
+            //{
+            //    await BeginExternalRecording();
+            //});
 
-            MessagingCenter.Subscribe<object>(this, "WatchStopRecording", async (_) =>
-            {
-                await EndExternalRecording();
-            });
+            //MessagingCenter.Subscribe<object>(this, "WatchStopRecording", async (_) =>
+            //{
+            //    await EndExternalRecording();
+            //});
         }
 
         private void CameraView_CamerasLoaded(object sender, EventArgs e)

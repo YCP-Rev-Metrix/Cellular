@@ -57,7 +57,7 @@ namespace Cellular
 
                 if (!requestSelections.Any() || !objectSelections.Any())
                 {
-                    await DisplayAlert("Info", "Please select request and object types.", "OK");
+                    await DisplayAlertAsync("Info", "Please select request and object types.", "OK");
                     return;
                 }
 
@@ -77,7 +77,7 @@ namespace Cellular
 
                 if (!parsedRequestTypes.Any() || !parsedObjectTypes.Any())
                 {
-                    await DisplayAlert("Info", "Failed to parse selections to enums.", "OK");
+                    await DisplayAlertAsync("Info", "Failed to parse selections to enums.", "OK");
                     return;
                 }
 
@@ -105,7 +105,7 @@ namespace Cellular
                                 // marshal to UI thread and show auth response
                                 MainThread.BeginInvokeOnMainThread(() =>
                                 {
-                                    _ = DisplayAlert("Auth Response", authResp ?? "No auth response", "OK");
+                                    _ = DisplayAlertAsync("Auth Response", authResp ?? "No auth response", "OK");
                                 });
                             },
                             apiUsername,
@@ -115,14 +115,14 @@ namespace Cellular
                         // show the returned response from ExecuteRequest
                         MainThread.BeginInvokeOnMainThread(() =>
                         {
-                            _ = DisplayAlert("API Response", result ?? "No response", "OK");
+                            _ = DisplayAlertAsync("API Response", result ?? "No response", "OK");
                         });
                     }
                 }
             }
             catch (Exception ex)
             {
-                await DisplayAlert("Error", ex.Message, "OK");
+                await DisplayAlertAsync("Error", ex.Message, "OK");
             }
             finally
             {

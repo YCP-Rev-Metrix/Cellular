@@ -82,6 +82,10 @@ namespace Cellular.ViewModel
 
         public ICommand FrameTappedCommand { get; private set; }
 
+        // Separate commands for shot 1 and shot 2 taps so VM receives the ShotPageFrame instance directly.
+        public ICommand ShotOneTappedCommand { get; private set; }
+        public ICommand ShotTwoTappedCommand { get; private set; }
+
         public GameInterfaceViewModel()
         {
             string dbPath = Path.Combine(FileSystem.AppDataDirectory, "appdata.db");
@@ -89,21 +93,16 @@ namespace Cellular.ViewModel
 
             frames =
             [
-                new (1),
-                new (2),
-                new (3),
-                new (4),
-                new (5),
-                new (6),
-                new (7),
-                new (8),
-                new (9),
-                new (10)
+                new (1)
             ];
 
             LoadUsers();
             LoadArsenal();
             FrameTappedCommand = new Command<ShotPageFrame>(OnFrameTapped);
+
+            // Initialize new commands that receive the ShotPageFrame instance directly.
+            ShotOneTappedCommand = new Command<ShotPageFrame>(OnShotOneTapped);
+            ShotTwoTappedCommand = new Command<ShotPageFrame>(OnShotTwoTapped);
         }
 
         public string Hand
@@ -135,6 +134,7 @@ namespace Cellular.ViewModel
                 {
                     _currentFrame = value;
                     OnPropertyChanged(nameof(CurrentFrame));
+                    UpdateFrameBackgrounds();
                 }
             }
         }
@@ -151,6 +151,12 @@ namespace Cellular.ViewModel
                     OnPropertyChanged(nameof(FrameDisplay));
                 }
             }
+        }
+
+        // Public wrapper so views can request a refresh of frame backgrounds
+        public void RefreshFrameBackgrounds()
+        {
+            UpdateFrameBackgrounds();
         }
 
         public string Comment
@@ -250,32 +256,44 @@ namespace Cellular.ViewModel
             Arsenal = new ObservableCollection<Ball>(arsenalList);
         }
 
-        public async void LoadEditInfo()
+        public async void LoadEditInfo(int shotnum)
         {
             Debug.WriteLine($"Game ID: {gameId} Current frame: {CurrentFrame}");
             var frame = await _database.Table<BowlingFrame>().Where(f => f.GameId == gameId && f.FrameNumber == CurrentFrame).FirstOrDefaultAsync();
             if (frame != null)
             {
-                currentFrameId = frame.FrameId;
-                if(frame.Shot1 != null)
-                {
-                    firstShotId = (int)(frame.Shot1);
-                }
-            }
-            var shot = await _database.Table<Shot>().Where(f => f.ShotId == firstShotId).FirstOrDefaultAsync();
+                var shot1 = await _database.Table<Shot>().Where(f => f.ShotId == frame.Shot1).FirstOrDefaultAsync();
 
-            if (shot != null)
-            {
-                if (shot.LeaveType != null)
+                if (shot1 != null)
                 {
-                    pinStates = (short)(shot.LeaveType);
-                    shot1PinStates = pinStates;
-                    StrikeBallId = (int)shot.Ball;
-                    Comment = shot.Comment ?? "";
-                    string result = Convert.ToString((ushort)pinStates, 2).PadLeft(16, '0');
-                    Debug.WriteLine($"{result}");
+                    if (shot1.LeaveType != null)
+                    {
+                        pinStates = (short)(shot1.LeaveType);
+                        shot1PinStates = pinStates;
+                        StrikeBallId = (int)shot1.Ball;
+                        Comment = shot1.Comment ?? "";
+                        string pins = Convert.ToString((ushort)shot1PinStates, 2).PadLeft(16, '0');
+                        Debug.WriteLine($"{pins}");
+                    }
+                }
+
+                if (shotnum == 2)
+                {
+                    var shot2 = await _database.Table<Shot>().Where(f => f.ShotId == frame.Shot2).FirstOrDefaultAsync();
+                    if (shot2 != null)
+                    {
+                        if (shot2.LeaveType != null)
+                        {
+                            pinStates = (short)(shot2.LeaveType);
+                            StrikeBallId = (int)shot2.Ball;
+                            Comment = shot2.Comment ?? "";
+                            string pins = Convert.ToString((ushort)pinStates, 2).PadLeft(16, '0');
+                            Debug.WriteLine($"{pins}");
+                        }
+                    }
                 }
             }
+           
             AlertEditFrame?.Invoke();
         }
 
@@ -284,10 +302,58 @@ namespace Cellular.ViewModel
         {
             if (frame == null) return;
 
+            EditMode = true;
+            CurrentFrame = frame.FrameNumber;
+            OnPropertyChanged();
+        }
+
+        // New: handler for tapping shot 1 box
+        private void OnShotOneTapped(ShotPageFrame frame)
+        {
+            if (frame == null) return;
+
+            // require EditMode as before
+            if (!EditMode) return;
+
             CurrentFrame = frame.FrameNumber;
             CurrentShot = 1;
-            LoadEditInfo();
-            OnPropertyChanged();
+            LoadEditInfo(1);
+
+            OnPropertyChanged(nameof(CurrentFrame));
+            OnPropertyChanged(nameof(CurrentShot));
+            OnPropertyChanged(nameof(FrameDisplay));
+        }
+
+        // New: handler for tapping shot 2 box
+        private void OnShotTwoTapped(ShotPageFrame frame)
+        {
+            if (frame == null || frame.ShotOneBox == "X") return;
+
+            // require EditMode as before
+            if (!EditMode) return;
+
+            CurrentFrame = frame.FrameNumber;
+            CurrentShot = 2;
+            LoadEditInfo(2);
+
+            OnPropertyChanged(nameof(CurrentFrame));
+            OnPropertyChanged(nameof(CurrentShot));
+            OnPropertyChanged(nameof(FrameDisplay));
+        }
+
+        // Update each ShotPageFrame.BackgroundColor according to CurrentFrame.
+        private void UpdateFrameBackgrounds()
+        {
+            if (frames == null) return;
+
+            foreach (var f in frames)
+            {
+                // selected frame gets a highlight; others are default white
+                f.BackgroundColor = (f.FrameNumber == CurrentFrame)
+                    ? (Color.FromArgb("#e89e99"))
+                    : Colors.White;
+            }
+            OnPropertyChanged(nameof(FrameDisplay));
         }
     }
 
@@ -296,6 +362,8 @@ namespace Cellular.ViewModel
         public int FrameNumber { get; set; }
         public int? RollingScore { get; set; }
 
+        private Color _backgroundColor;
+
         private ObservableCollection<Color> _pinColors;
         private ObservableCollection<Color> _centerPinColors;
         public ObservableCollection<Color> PinColors
@@ -303,8 +371,11 @@ namespace Cellular.ViewModel
             get => _pinColors;
             set
             {
-                _pinColors = value;
-                OnPropertyChanged();
+                if (_pinColors != value)
+                {
+                    _pinColors = value;
+                    OnPropertyChanged(nameof(PinColors));
+                }
             }
         }
 
@@ -313,8 +384,11 @@ namespace Cellular.ViewModel
             get => _centerPinColors;
             set
             {
-                _centerPinColors = value;
-                OnPropertyChanged();
+                if (_centerPinColors != value)
+                {
+                    _centerPinColors = value;
+                    OnPropertyChanged(nameof(CenterPinColors));
+                }
             }
         }
 
@@ -327,7 +401,7 @@ namespace Cellular.ViewModel
                 if (_shotOneBox != value)
                 {
                     _shotOneBox = value;
-                    OnPropertyChanged();
+                    OnPropertyChanged(nameof(ShotOneBox));
                 }
             }
         }
@@ -341,7 +415,20 @@ namespace Cellular.ViewModel
                 if (_shotTwoBox != value)
                 {
                     _shotTwoBox = value;
-                    OnPropertyChanged();
+                    OnPropertyChanged(nameof(ShotTwoBox));
+                }
+            }
+        }
+
+        public Color BackgroundColor
+        {
+            get => _backgroundColor;
+            set
+            {
+                if (_backgroundColor != value)
+                {
+                    _backgroundColor = value;
+                    OnPropertyChanged(nameof(BackgroundColor));
                 }
             }
         }
@@ -352,8 +439,9 @@ namespace Cellular.ViewModel
             RollingScore = null;
             ShotOneBox = "";
             ShotTwoBox = "";
-            PinColors = [.. Enumerable.Repeat(Colors.Black, 10)];
-            CenterPinColors = [.. Enumerable.Repeat(Colors.Transparent, 10)];
+            _backgroundColor = Colors.White;
+            PinColors = new ObservableCollection<Color>(Enumerable.Repeat(Colors.Black, 10));
+            CenterPinColors = new ObservableCollection<Color>(Enumerable.Repeat(Colors.Transparent, 10));
         }
 
         public event PropertyChangedEventHandler PropertyChanged;

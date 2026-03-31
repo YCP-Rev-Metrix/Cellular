@@ -1,10 +1,10 @@
 ﻿using Cellular.Data;
-using Cellular.Services;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.DependencyInjection;
 using Camera.MAUI;
-using CommunityToolkit.Maui;
 using Cellular.Services;
+using CommunityToolkit.Maui;
+using CommunityToolkit.Maui.Core;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace Cellular
 {
@@ -13,7 +13,12 @@ namespace Cellular
         public static MauiApp CreateMauiApp()
         {
             var builder = MauiApp.CreateBuilder();
-            builder.UseMauiApp<App>().UseMauiCameraView().UseMauiCommunityToolkit().ConfigureFonts(fonts =>
+            builder
+                .UseMauiApp<App>().UseMauiCameraView()
+                .UseMauiCommunityToolkitCore()
+                .UseMauiCommunityToolkit()
+                .UseMauiCommunityToolkitCamera()
+                .ConfigureFonts(fonts =>
             {
                 fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
                 fonts.AddFont("OpenSans-Semibold.ttf", "OpenSansSemibold");
@@ -27,7 +32,7 @@ namespace Cellular
 #if DEBUG
             builder.Logging.AddDebug();
 #endif
-            builder.Logging.AddDebug();
+
             var app = builder.Build();
             // Initialize the database asynchronously
             using (var scope = app.Services.CreateScope())
