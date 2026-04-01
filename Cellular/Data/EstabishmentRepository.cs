@@ -32,7 +32,7 @@ namespace Cellular.Data
 
         public async Task<Establishment?> GetEstablishmentByNameAsync(String name)
         {
-            return await _conn.Table<Establishment>().FirstOrDefaultAsync(u => u.Name == name);
+            return await _conn.Table<Establishment>().FirstOrDefaultAsync(u => u.NickName == name);
         }
     }
 }

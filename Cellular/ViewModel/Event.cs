@@ -16,10 +16,10 @@ namespace Cellular.ViewModel
         public string? NickName { get; set; }
         public string? Type { get; set; }
         public string? Location { get; set; }
-        public DateOnly? StartDate { get; set; }
-        public DateOnly? EndDate { get; set; }
+        public string? StartDate { get; set; }
+        public string? EndDate { get; set; }
         public string? WeekDay { get; set; }
-        public TimeOnly? StartTime { get; set; }
+        public string? StartTime { get; set; }
         public int NumGamesPerSession { get; set; }
         public int? Average { get; set; }
         public string? Schedule { get; set; }

@@ -24,17 +24,31 @@ public static class CloudSyncMappers
         MobileID = local.BallId,
         UserId = userId,
         Name = local.Name ?? "",
-        Weight = local.Weight.ToString(),
-        CoreType = local.Core ?? ""
+        Weight = local.Weight,
+        Core = local.Core ?? "",
+        BallMFG = local.BallMFG ?? "",
+        BallMFGName = local.BallMFGName ?? "",
+        SerialNumber = local.SerialNumber ?? "",
+        ColorString = local.ColorString ?? "",
+        Coverstock = local.Coverstock ?? "",
+        Comment = local.Comment ?? "",
+        Enabled = local.Enabled
     };
 
-    /// <summary>POST body for PostBalls (mobileID, name, weight, coreType).</summary>
+    /// <summary>POST body for PostBalls — server accepts weight as int and core.</summary>
     public static CloudBallPost ToCloudPost(this Cellular.ViewModel.Ball local) => new CloudBallPost
     {
         MobileID = local.BallId,
         Name = local.Name ?? "",
-        Weight = local.Weight.ToString(),
-        CoreType = local.Core ?? ""
+        BallMFG = local.BallMFG ?? "",
+        BallMFGName = local.BallMFGName ?? "",
+        SerialNumber = local.SerialNumber ?? "",
+        Weight = local.Weight,
+        Core = local.Core ?? "",
+        ColorString = local.ColorString ?? "",
+        Coverstock = local.Coverstock ?? "",
+        Comment = local.Comment ?? "",
+        Enabled = local.Enabled
     };
 
     public static Cellular.ViewModel.Ball ToLocal(this CloudBall cloud, int userId) => new Cellular.ViewModel.Ball
@@ -42,29 +56,51 @@ public static class CloudSyncMappers
         BallId = cloud.MobileID ?? cloud.Id,
         UserId = userId,
         Name = cloud.Name ?? "",
-        Weight = int.TryParse(cloud.Weight, out var w) ? w : 0,
-        Core = cloud.CoreType ?? "",
+        Weight = cloud.Weight,
+        Core = cloud.Core ?? "",
+        BallMFG = cloud.BallMFG ?? "",
+        BallMFGName = cloud.BallMFGName ?? "",
+        SerialNumber = cloud.SerialNumber ?? "",
+        ColorString = cloud.ColorString ?? "",
+        Coverstock = cloud.Coverstock ?? "",
+        Comment = cloud.Comment ?? "",
+        Enabled = cloud.Enabled,
         CloudID = cloud.Id > 0 ? cloud.Id : null
     };
 
     // --- Establishment (send/retrieve mobileID = our local EstaID) ---
-    public static CloudEstablishment ToCloud(this Cellular.ViewModel.Establishment local, int _) => new CloudEstablishment
+    public static CloudEstablishment ToCloud(this Cellular.ViewModel.Establishment local, int userId) => new CloudEstablishment
     {
         MobileID = local.EstaID,
-        Name = local.Name ?? "",
+        UserId = userId,
+        FullName = local.FullName ?? "",
+        NickName = local.NickName ?? "",
+        GPSLocation = local.GPSLocation ?? "",
+        HomeHouse = local.HomeHouse,
+        Reason = local.Reason ?? "",
+        Address = local.Address ?? "",
+        PhoneNumber = local.PhoneNumber ?? "",
         Lanes = local.Lanes ?? "",
         Type = local.Type ?? "",
-        Location = local.Location ?? ""
+        Location = local.Location ?? "",
+        Enabled = local.Enabled
     };
 
     public static Cellular.ViewModel.Establishment ToLocal(this CloudEstablishment cloud, int userId) => new Cellular.ViewModel.Establishment
     {
         EstaID = cloud.MobileID ?? cloud.ID,
         UserId = userId,
-        Name = cloud.Name ?? "",
+        FullName = cloud.FullName ?? "",
+        NickName = cloud.NickName ?? "",
+        GPSLocation = cloud.GPSLocation ?? "",
+        HomeHouse = cloud.HomeHouse,
+        Reason = cloud.Reason ?? "",
+        Address = cloud.Address ?? "",
+        PhoneNumber = cloud.PhoneNumber ?? "",
         Lanes = cloud.Lanes ?? "",
         Type = cloud.Type ?? "",
         Location = cloud.Location ?? "",
+        Enabled = cloud.Enabled,
         CloudID = cloud.ID > 0 ? cloud.ID : null
     };
 
@@ -73,24 +109,40 @@ public static class CloudSyncMappers
     {
         MobileID = local.EventId,
         UserId = userId,
-        Name = local.Name ?? "",
+        LongName = local.LongName ?? "",
+        NickName = local.NickName ?? "",
         Type = local.Type ?? "",
         Location = local.Location ?? "",
+        StartDate = local.StartDate ?? "",
+        EndDate = local.EndDate ?? "",
+        WeekDay = local.WeekDay ?? "",
+        StartTime = local.StartTime ?? "",
+        NumGamesPerSession = local.NumGamesPerSession,
         Average = local.Average ?? 0,
+        Schedule = local.Schedule ?? "",
         Stats = local.Stats ?? 0,
-        Standings = local.Standings ?? ""
+        Standings = local.Standings ?? "",
+        Enabled = local.Enabled
     };
 
     public static Cellular.ViewModel.Event ToLocal(this CloudEvent cloud, int userId) => new Cellular.ViewModel.Event
     {
         EventId = cloud.MobileID ?? cloud.Id,
         UserId = userId,
-        Name = cloud.Name ?? "",
+        LongName = cloud.LongName ?? "",
+        NickName = cloud.NickName ?? "",
         Type = cloud.Type ?? "",
         Location = cloud.Location ?? "",
+        StartDate = cloud.StartDate ?? "",
+        EndDate = cloud.EndDate ?? "",
+        WeekDay = cloud.WeekDay ?? "",
+        StartTime = cloud.StartTime ?? "",
+        NumGamesPerSession = cloud.NumGamesPerSession,
         Average = cloud.Average,
+        Schedule = cloud.Schedule ?? "",
         Stats = cloud.Stats,
         Standings = cloud.Standings ?? "",
+        Enabled = cloud.Enabled,
         CloudID = cloud.Id > 0 ? cloud.Id : null
     };
 

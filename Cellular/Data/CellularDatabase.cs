@@ -81,12 +81,13 @@ namespace Cellular.Data
                     var esta = new Establishment
                     {
                         UserId = int.TryParse(data[0].Trim(), out int UserId) ? UserId : 0,
-                        Name = data[1].Trim(),
+                        FullName = data[1].Trim(),
+                        NickName = data[1].Trim(),
                         Lanes = data[2].Trim(),
                         Type = data[3].Trim(),
                         Location = data[4].Trim(),
                     };
-                    var existingUser = await _database.Table<Establishment>().FirstOrDefaultAsync(u => u.Name == esta.Name);
+                    var existingUser = await _database.Table<Establishment>().FirstOrDefaultAsync(u => u.NickName == esta.NickName);
                     if (existingUser == null)
                     {
                         establishments.Add(esta);
@@ -129,7 +130,8 @@ namespace Cellular.Data
                     var event_ = new Event
                     {
                         UserId = int.TryParse(data[0].Trim(), out int UserId) ? UserId : 0,
-                        Name = data[1].Trim(),
+                        LongName = data[1].Trim(),
+                        NickName = data[1].Trim(),
                         Type = data[2].Trim(),
                         Location = data[3].Trim(),
                         Average = int.TryParse(data[4].Trim(), out int average) ? average : 0,
@@ -137,7 +139,7 @@ namespace Cellular.Data
                         Standings = data[6].Trim(),
 
                     };
-                    var existingUser = await _database.Table<Event>().FirstOrDefaultAsync(u => u.Name == event_.Name);
+                    var existingUser = await _database.Table<Event>().FirstOrDefaultAsync(u => u.LongName == event_.LongName);
                     if (existingUser == null)
                     {
                         events.Add(event_);

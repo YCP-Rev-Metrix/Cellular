@@ -242,7 +242,7 @@ public class CloudSyncService
                 .DistinctBy(GetBallSignature)
                 .ToList();
             var cloudEst = establishments
-                .Select(e => e.ToCloud(0))
+                .Select(e => e.ToCloud(userId))
                 .Where(e => !existingEstSignatures.Contains(GetEstablishmentSignature(e)))
                 .DistinctBy(GetEstablishmentSignature)
                 .ToList();
@@ -1112,10 +1112,10 @@ public class CloudSyncService
     // Signatures for duplicate / content comparison: meaningful fields only — not cloud PK, and not userId
     // (GET returns combined-DB user id; local ToCloud uses app SQLite userId, so including userId caused endless replace loops).
     private static string N(string? s) => (s ?? string.Empty).Trim();
-    private static string GetBallSignature(Cellular.Cloud_API.Models.Ball b) => $"{b.MobileID}|{N(b.Name)}|{N(b.Weight)}|{N(b.CoreType)}";
-    private static string GetBallSignature(Cellular.Cloud_API.Models.BallPostRequest b) => $"{b.MobileID}|{N(b.Name)}|{N(b.Weight)}|{N(b.CoreType)}";
-    private static string GetEstablishmentSignature(Cellular.Cloud_API.Models.Establishment e) => $"{e.MobileID}|{N(e.Name)}|{N(e.Lanes)}|{N(e.Type)}|{N(e.Location)}";
-    private static string GetEventSignature(Cellular.Cloud_API.Models.Event e) => $"{e.MobileID}|{N(e.Name)}|{N(e.Type)}|{N(e.Location)}|{e.Average}|{e.Stats}|{N(e.Standings)}";
+    private static string GetBallSignature(Cellular.Cloud_API.Models.Ball b) => $"{b.MobileID}|{N(b.Name)}|{b.Weight}|{N(b.Core)}";
+    private static string GetBallSignature(Cellular.Cloud_API.Models.BallPostRequest b) => $"{b.MobileID}|{N(b.Name)}|{b.Weight}|{N(b.Core)}";
+    private static string GetEstablishmentSignature(Cellular.Cloud_API.Models.Establishment e) => $"{e.MobileID}|{N(e.FullName)}|{N(e.NickName)}|{N(e.Lanes)}|{N(e.Type)}|{N(e.Location)}";
+    private static string GetEventSignature(Cellular.Cloud_API.Models.Event e) => $"{e.MobileID}|{N(e.LongName)}|{N(e.NickName)}|{N(e.Type)}|{N(e.Location)}|{e.Average}|{e.Stats}|{N(e.Standings)}";
     private static string GetSessionSignature(Cellular.Cloud_API.Models.Session s) => $"{s.MobileID}|{s.SessionNumber}|{s.EstablishmentID}|{s.EventID}|{s.DateTime}|{N(s.TeamOpponent)}|{N(s.IndividualOpponent)}|{s.Score}|{s.Stats}|{s.TeamRecord}|{s.IndividualRecord}";
     private static string GetGameSignature(Cellular.Cloud_API.Models.Game g) => $"{g.MobileID}|{N(g.GameNumber)}|{N(g.Lanes)}|{g.Score}|{g.Win}|{g.StartingLane}|{g.SessionID}|{g.TeamResult}|{g.IndividualResult}";
     private static string GetFrameSignature(Cellular.Cloud_API.Models.Frames f) => $"{f.MobileID}|{f.GameId}|{f.ShotOne}|{f.ShotTwo}|{f.FrameNumber}|{f.Lane}|{f.Result}";
