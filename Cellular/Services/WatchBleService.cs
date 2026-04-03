@@ -382,7 +382,7 @@ namespace Cellular.Services
                             if (eventRepo != null)
                             {
                                 var eventData = await eventRepo.GetEventByIdAsync(mostRecent.EventId);
-                                eventName = eventData?.Name ?? "";
+                                eventName = eventData?.NickName ?? "";
                             }
 
                             // Check if session has games (active session)
