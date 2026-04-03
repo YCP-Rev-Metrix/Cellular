@@ -1,4 +1,4 @@
-﻿using Microsoft.Maui.Graphics.Text;
+using Microsoft.Maui.Graphics.Text;
 using SQLite;
 using System.ComponentModel.DataAnnotations;
 namespace Cellular.ViewModel;
@@ -22,6 +22,9 @@ public class Ball
     public string Core { get; set; }
     [Required]
     public string ColorString { get; set; }
+
+    public int? CloudID { get; set; }
+    //NEW
     public string Coverstock { get; set; }
     public string Comment { get; set; }
     [Required]

@@ -48,8 +48,8 @@ namespace Cellular
             {
                 Preferences.Set("EventId", ev.EventId);
                 // pass event id and name to SessionList (constructor)
-                Debug.WriteLine($"Event button clicked: {ev.EventId} - {ev.Name}");
-                await Navigation.PushAsync(new SessionList(ev.EventId, ev.Name ?? string.Empty));
+                Debug.WriteLine($"Event button clicked: {ev.EventId} - {ev.LongName}");
+                await Navigation.PushAsync(new SessionList(ev.EventId, ev.LongName ?? string.Empty));
             }
         }
     }

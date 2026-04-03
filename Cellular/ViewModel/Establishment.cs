@@ -1,4 +1,4 @@
-﻿using SQLite;
+using SQLite;
 using System.ComponentModel.DataAnnotations;
 namespace Cellular.ViewModel;
 
@@ -22,6 +22,9 @@ public class Establishment
     public string PhoneNumber { get; set; }
     public string Lanes { get; set; }
     public string Type { get; set; }
+    public string Location { get; set; }
 
+    public int? CloudID { get; set; }
+    //New
     public bool Enabled { get; set; }
 }

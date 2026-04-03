@@ -13,9 +13,9 @@ namespace CellularCore
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
             Debug.WriteLine($"Color in converter: {value}");
-            if (value is string colorName)
+            if (value is string colorName && !string.IsNullOrWhiteSpace(colorName))
             {
-                return Color.Parse(colorName);
+                return Color.TryParse(colorName, out var color) ? color : Colors.White;
             }
             return Colors.White;
         }

@@ -62,7 +62,8 @@ public partial class EstablishmentRegistrationPage : ContentPage
         var newEsta = new Establishment
         {
             UserId = userId,
-            Name = estaName,
+            FullName = estaName,
+            NickName = estaName,
             Type = estaType,
             Lanes = estaLane,
             Location = estaLocation,

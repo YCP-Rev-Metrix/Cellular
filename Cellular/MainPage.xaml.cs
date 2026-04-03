@@ -67,16 +67,23 @@ namespace Cellular
 
         private async void OnGuestClicked(object sender, EventArgs e)
         {
-            var user = await _userRepository.GetUserByUsernameAsync("Guest");
-           
-            if (user != null)
+            var user = await _userRepository!.GetUserByUsernameAsync("Guest");
+            if (user == null)
             {
-                Preferences.Set("UserId", user.UserId); // Store UserId properly
-                Preferences.Set("IsLoggedIn", true);
-                Debug.WriteLine("This is the login page " + Preferences.Get("UserId", 0));
-                ((AppShell)Shell.Current).UpdateMenuForLoginStatus(true);
-                await SoftRefreshAsync();
+                Debug.WriteLine("Guest user missing from local DB (users.csv seed).");
+                return;
             }
+
+            // Bootstrap Guest on cloud with the same mobileID as this device user row (JWT sync uses Preferences UserId).
+            await CloudSyncService.EnsureGuestCloudUserExistsAsync(user.UserId);
+            // Cloud PostUserApp stores bcrypt of plain password "Guest" (hashedPassword R3Vlc3Q=).
+            await CloudSyncCredentialStore.StoreAsync("Guest", "Guest");
+
+            Preferences.Set("UserId", user.UserId);
+            Preferences.Set("IsLoggedIn", true);
+            Debug.WriteLine("This is the login page " + Preferences.Get("UserId", 0));
+            ((AppShell)Shell.Current).UpdateMenuForLoginStatus(true);
+            await SoftRefreshAsync();
         }
 
         private async void OnArsenalClicked(object sender, EventArgs e)

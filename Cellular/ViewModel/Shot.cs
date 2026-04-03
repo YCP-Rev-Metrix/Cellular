@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -22,5 +22,8 @@ namespace Cellular.ViewModel
         public string? Comment { get; set; }
         public string? Speed { get; set; }
         public int Stance { get; set; }
+
+        /// <summary>Server-assigned row id from the cloud API. Used to correlate local rows across devices.</summary>
+        public int? CloudID { get; set; }
     }
 }

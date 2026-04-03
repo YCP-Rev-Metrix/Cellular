@@ -1,14 +1,23 @@
-﻿namespace Cellular.Cloud_API.Models;
+using System.Text.Json.Serialization;
 
+namespace Cellular.Cloud_API.Models;
+
+/// <summary>
+/// POST/GET: send mobileID (our local id); sessionId references Session mobileID.
+/// </summary>
 public class Game
 {
-    public int Id  { get; set; }
-    public String GameNumber { get; set; }
-    public String Lanes { get; set; }
+    [JsonPropertyName("id")]
+    public int ID { get; set; }
+    [JsonPropertyName("mobileID")]
+    public int? MobileID { get; set; }
+    public string GameNumber { get; set; } = string.Empty; 
+    public string Lanes { get; set; } 
     public int Score { get; set; }
     public int Win { get; set; }
     public int StartingLane { get; set; }
-    public int SessionId { get; set; }
+    [JsonPropertyName("sessionId")]
+    public int SessionID { get; set; }
     public int TeamResult { get; set; }
     public int IndividualResult { get; set; }
 }

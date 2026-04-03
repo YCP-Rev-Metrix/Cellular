@@ -96,9 +96,10 @@ public class EventPopupViewModel : INotifyPropertyChanged
         var newEvent = new Event
         {
             UserId = Preferences.Get("UserId", 0),
-            Name = EventName,
+            LongName = EventName,
+            NickName = EventName,
             Type = EventType,
-            Location = SelectedEstablishment.Name,
+            Location = SelectedEstablishment.NickName,
             Average = 0,
             Stats = 0,
             Standings = string.Empty

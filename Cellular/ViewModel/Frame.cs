@@ -13,5 +13,8 @@ namespace Cellular.ViewModel
         public int? GameId { get; set; }
         public int? Shot1 { get; set; }
         public int? Shot2 { get; set; }
+
+        /// <summary>Server-assigned row id from the cloud API. Used to correlate local rows across devices.</summary>
+        public int? CloudID { get; set; }
     }
 }

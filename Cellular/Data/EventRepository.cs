@@ -32,7 +32,7 @@ namespace Cellular.Data
 
         public async Task<Event?> GetEventByUserIdAndNameAsync(int userID, String name)
         {
-            return await _conn.Table<Event>().FirstOrDefaultAsync(u => u.UserId == userID && u.Name == name);
+            return await _conn.Table<Event>().FirstOrDefaultAsync(u => u.UserId == userID && u.LongName == name);
         }
 
         public async Task<Event?> GetEventByIdAsync(int eventId)

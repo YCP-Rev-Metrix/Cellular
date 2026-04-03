@@ -1,5 +1,6 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using Cellular.Data;
+using Cellular.Services;
 using Cellular.ViewModel;
 using Microsoft.Maui.Storage;
 
@@ -18,13 +19,20 @@ namespace Cellular
 
         private async void OnLoginClicked(object sender, EventArgs e)
         {
-            string username = entryUsername.Text;
-            string password = entryPassword.Text;
+            string username = entryUsername.Text?.Trim() ?? string.Empty;
+            string password = entryPassword.Text ?? string.Empty;
+
+            if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(password))
+            {
+                await DisplayAlert("Login Failed", "Please enter a username and password.", "OK");
+                return;
+            }
 
             var user = await _userRepository.GetUserByUsernameAsync(username);
 
             if (user != null && VerifyPassword(password, user.PasswordHash))
             {
+                await CloudSyncCredentialStore.StoreAsync(username, password);
                 Preferences.Set("UserId", user.UserId); // Store UserId properly
                 Preferences.Set("IsLoggedIn", true);
                 Debug.WriteLine("This is the login page "+Preferences.Get("UserId", 0));
