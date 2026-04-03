@@ -34,7 +34,7 @@
                 <!-- Bind the Establishment collection and selected item -->
                 <Picker Title="Select Establishment"
                         ItemsSource="{Binding Establishments}"
-                        ItemDisplayBinding="{Binding Name}"
+                        ItemDisplayBinding="{Binding FullName}"
                         SelectedItem="{Binding SelectedEstablishment}" />
 
                 <!-- Equal-size buttons using a two-column Grid -->

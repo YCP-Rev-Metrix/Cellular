@@ -18,7 +18,7 @@
                 <DataTemplate>
                     <ViewCell>
                         <StackLayout Padding="10">
-                            <Label Text="{Binding Name}" TextColor="Red" FontSize="14" />
+                            <Label Text="{Binding FullName}" TextColor="Red" FontSize="14" />
                             <Label Text="{Binding Location}" TextColor="Gray" FontSize="12" />
                         </StackLayout>
                     </ViewCell>
