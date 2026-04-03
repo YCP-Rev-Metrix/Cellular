@@ -4,6 +4,13 @@
              x:Class="Cellular.Video2"
              xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit">
 
+    <ContentPage.ToolbarItems>
+        <ToolbarItem x:Name="MmsConnectionToolbarItem"
+                     Order="Primary"
+                     Priority="0"
+                     Clicked="OnMmsConnectionIconClicked" />
+    </ContentPage.ToolbarItems>
+
     <ScrollView>
         <VerticalStackLayout
             Padding="30,0"
@@ -31,7 +38,9 @@
             <Button x:Name="RecordBtn"
                 Text="Record"
                 Clicked="OnRecordClicked"
-                WidthRequest="90"/>
+                WidthRequest="90"
+                IsEnabled="False"
+                BackgroundColor="Gray"/>
 
            
 
