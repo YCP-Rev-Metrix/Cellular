@@ -14,7 +14,7 @@
                 SemanticProperties.Description="RevMetrix Bowling Ball Logo" />
 
             <Label
-                Text="Bluetooth"
+                Text="SmartDot"
                 Style="{StaticResource Headline}"
                 SemanticProperties.HeadingLevel="Level1" />
 
@@ -129,6 +129,32 @@
                     </Grid>
                 </VerticalStackLayout>
             </Frame>
+
+            <!-- Light Sensor Threshold Setting -->
+            <Label
+                Text="Light Sensor Record Threshold:"
+                FontSize="16"
+                FontAttributes="Bold"
+                Margin="0,20,0,0" />
+            <Label
+                Text="Recording triggers when the light sensor reading exceeds this value."
+                FontSize="13"
+                TextColor="Gray" />
+            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                <Entry x:Name="LightThresholdEntry"
+                       Grid.Column="0"
+                       Keyboard="Numeric"
+                       Placeholder="e.g. 25000"
+                       ReturnType="Done" />
+                <Button x:Name="SaveThresholdButton"
+                        Grid.Column="1"
+                        Text="Save"
+                        Clicked="OnSaveLightThresholdClicked"
+                        WidthRequest="80" />
+            </Grid>
+            <Label x:Name="LightThresholdStatusLabel"
+                   FontSize="13"
+                   TextColor="Gray" />
 
             <!-- Sensor Controls -->
             <Label
