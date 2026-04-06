@@ -63,7 +63,7 @@ namespace Cellular.Data
 
         private async Task ImportEstabishmentsFromCsvAsync()
         {
-            var csvFileName = "establishments.csv"; // File in Resources/Raw
+            var csvFileName = "establishments2.csv"; // File in Resources/Raw
 
             try
             {
@@ -82,10 +82,11 @@ namespace Cellular.Data
                     {
                         UserId = int.TryParse(data[0].Trim(), out int UserId) ? UserId : 0,
                         FullName = data[1].Trim(),
-                        NickName = data[1].Trim(),
-                        Lanes = data[2].Trim(),
-                        Type = data[3].Trim(),
-                        Location = data[4].Trim(),
+                        NickName = data[2].Trim(),
+                        Location = data[3].Trim(),
+                        PhoneNumber = data[4].Trim(),
+                        Lanes = data[5].Trim(),
+                        Type = data[6].Trim()
                     };
                     var existingUser = await _database.Table<Establishment>().FirstOrDefaultAsync(u => u.NickName == esta.NickName);
                     if (existingUser == null)
@@ -112,7 +113,7 @@ namespace Cellular.Data
         }
         private async Task ImportEventsFromCsvAsync()
         {
-            var csvFileName = "events.csv"; // File in Resources/Raw
+            var csvFileName = "events2.csv"; // File in Resources/Raw
 
             try
             {
@@ -131,13 +132,14 @@ namespace Cellular.Data
                     {
                         UserId = int.TryParse(data[0].Trim(), out int UserId) ? UserId : 0,
                         LongName = data[1].Trim(),
-                        NickName = data[1].Trim(),
-                        Type = data[2].Trim(),
-                        Location = data[3].Trim(),
-                        Average = int.TryParse(data[4].Trim(), out int average) ? average : 0,
-                        Stats = int.TryParse(data[5].Trim(), out int stats) ? stats : 0,
-                        Standings = data[6].Trim(),
-
+                        NickName = data[2].Trim(),
+                        Type = data[3].Trim(),
+                        Location = data[4].Trim(),
+                        StartDate = data[10].Trim(),
+                        EndDate = data[11].Trim(),
+                        WeekDay = data[8].Trim(),
+                        StartTime = data[9].Trim(),
+                        NumGamesPerSession = int.TryParse(data[12].Trim(), out int numGames) ? numGames : 0,
                     };
                     var existingUser = await _database.Table<Event>().FirstOrDefaultAsync(u => u.LongName == event_.LongName);
                     if (existingUser == null)
@@ -165,7 +167,7 @@ namespace Cellular.Data
 
         private async Task ImportBallsFromCsvAsync()
         {
-            var csvFileName = "ball.csv"; // File in Resources/Raw
+            var csvFileName = "balls.csv"; // File in Resources/Raw
 
             try
             {
@@ -183,10 +185,14 @@ namespace Cellular.Data
                     var ball = new Ball
                     {
                         UserId = int.TryParse(data[0].Trim(), out int UserId) ? UserId : 0,
-                        Name = data[1].Trim(),
-                        //SerialNumber = int.TryParse(data[2].Trim(), out int diameter) ? diameter : 0,
-                        Weight = int.TryParse(data[2].Trim(), out int weight) ? weight : 0,
-                        Core = data[3].Trim(),
+                        Name = data[2].Trim(),
+                        BallMFG = data[3].Trim(),
+                        BallMFGName = data[1].Trim(),
+                        SerialNumber = data[10].Trim(),
+                        Weight = int.TryParse(data[11].Trim(), out int weight) ? weight : 0,
+                        Core = data[5].Trim(),
+                        Coverstock = data[6].Trim(),
+                        ColorString = data[7].Trim()
                     };
 
                     var existingUser = await _database.Table<Ball>().FirstOrDefaultAsync(u => u.Name == ball.Name);
