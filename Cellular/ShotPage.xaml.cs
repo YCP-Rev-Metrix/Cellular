@@ -241,7 +241,7 @@ namespace Cellular
                 }
 
                 //Add next frame view frame (avoid duplicates)
-                if(viewModel.CurrentFrame < 10)
+                if(viewModel.CurrentFrame <= 10)
                 {
                     if (!viewModel.Frames.Any(f => f.FrameNumber == viewModel.CurrentFrame))
                     {
@@ -1062,7 +1062,9 @@ namespace Cellular
                 viewModel.Frames.Add(new ShotPageFrame(1));
             }
 
-            while (viewModel.Frames.Count <= frameIds.Count)
+            // Add UI frames so there is one UI frame per saved frame.
+            // Use '<' (not '<=') to avoid creating an extra frame (off-by-one).
+            while (viewModel.Frames.Count < frameIds.Count)
             {
                 viewModel.Frames.Add(new ShotPageFrame(viewModel.Frames.Count + 1));
             }

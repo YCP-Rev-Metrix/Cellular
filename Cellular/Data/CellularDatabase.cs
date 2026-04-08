@@ -7,6 +7,9 @@ using System.Collections.Generic;
 using Microsoft.Maui.Storage;
 using Cellular.ViewModel;
 using Frame = Microsoft.Maui.Controls.Frame;
+using System.Diagnostics;
+using Microsoft.Extensions.Logging;
+using CellularCore;
 
 namespace Cellular.Data
 {
@@ -31,12 +34,10 @@ namespace Cellular.Data
             await _database.CreateTableAsync<Establishment>();
             await ImportEstabishmentsFromCsvAsync();
             await _database.CreateTableAsync<Session>();
-            //await ImportSessionsFromCsvAsync();
             await _database.CreateTableAsync<Game>();
-            //await ImportGamesFromCsvAsync();
-
             await _database.CreateTableAsync<BowlingFrame>();
             await _database.CreateTableAsync<Shot>();
+            await ImportHakesBowlingDataAsync();
 
             await EnsureCloudIdColumnsAsync(_database);
         }
@@ -99,11 +100,11 @@ namespace Cellular.Data
                 if (establishments.Count > 0)
                 {
                     await _database.InsertAllAsync(establishments);
-                    Console.WriteLine("Balls imported successfully.");
+                    Console.WriteLine("Establishments imported successfully.");
                 }
                 else
                 {
-                    Console.WriteLine("No new balls to import.");
+                    Console.WriteLine("No new establishments to import.");
                 }
             }
             catch (Exception ex)
@@ -152,11 +153,11 @@ namespace Cellular.Data
                 if (events.Count > 0)
                 {
                     await _database.InsertAllAsync(events);
-                    Console.WriteLine("Balls imported successfully.");
+                    Console.WriteLine("Events imported successfully.");
                 }
                 else
                 {
-                    Console.WriteLine("No new balls to import.");
+                    Console.WriteLine("No new events to import.");
                 }
             }
             catch (Exception ex)
@@ -164,7 +165,186 @@ namespace Cellular.Data
                 Console.WriteLine($"Error reading CSV: {ex.Message}");
             }
         }
+        private async Task ImportHakesBowlingDataAsync()
+        {
+            try
+            {
+                // Guard: if sessions already exist, assume import already ran and skip.
+                // Use CountAsync() to avoid ambiguity with AnyAsync extension overloads.
+                if (await _database.Table<Session>().CountAsync() > 0)
+                {
+                    Console.WriteLine("Hakes bowling data already imported — skipping import.");
+                    return;
+                }
+                var csvFileName = "lineScores1.csv";
+                using var stream = await FileSystem.OpenAppPackageFileAsync(csvFileName);
+                using var reader = new StreamReader(stream);
 
+                // 1. PRE-LOAD EVENTS (Essential to avoid async calls inside transaction)
+                var allEvents = await _database.Table<Event>().ToListAsync();
+                var eventMap = allEvents
+                    .Where(e => !string.IsNullOrWhiteSpace(e.NickName))
+                    .ToDictionary(e => e.NickName!.Trim(), e => e);
+
+                // PRE-LOAD BALLS so we can map ball name -> BallId when saving shots
+                var allBalls = await _database.Table<Ball>().ToListAsync();
+                var ballMap = allBalls
+                    .Where(b => !string.IsNullOrWhiteSpace(b.Name))
+                    .ToDictionary(b => b.Name!.Trim(), b => b, StringComparer.OrdinalIgnoreCase);
+
+                // No pre-skip of lines required — Read7RowBlockAsync will seek the next COUNT row
+
+                // Read entire file into memory as blocks using async reads to avoid cross-thread StreamReader access
+                var blocks = new List<BowlingBlock>();
+                while (!reader.EndOfStream)
+                {
+                    var block = await Read7RowBlockAsync(reader);
+                    if (block == null) continue;
+                    if (block.Count == null || block.Score == null) continue;
+                    if (!string.Equals(block.Count[0], "COUNT", StringComparison.OrdinalIgnoreCase)) continue;
+                    blocks.Add(block);
+                }
+
+                // 2. Process each block in its own transaction so a failing block can be skipped
+                string lastWeekIdentifier = string.Empty;
+                string lastDateIdentifier = string.Empty;
+                int currentSessionId = 0;
+
+                for (int bi = 0; bi < blocks.Count; bi++)
+                {
+                    var block = blocks[bi];
+
+                    // 1. Grab identifiers from the CSV (do this outside the transaction)
+                    string currentWeek = block.Count.Length > 3 ? block.Count[3].Trim() : "";
+                    string currentDate = block.Count.Length > 4 ? block.Count[4].Trim() : "";
+                    string eventName = (block.Count.Length > 1) ? block.Count[1].Trim() : string.Empty;
+                    eventMap.TryGetValue(eventName, out var eventRecord);
+
+                    bool isNewSession = (currentWeek != lastWeekIdentifier || currentDate != lastDateIdentifier);
+
+                    Session? newSession = null;
+                    if (isNewSession)
+                    {
+                        newSession = new Session
+                        {
+                            EventId = eventRecord?.EventId ?? 0,
+                            SessionNumber = int.TryParse(currentWeek, out var weekNum) ? weekNum : 0,
+                            DateTime = DateTime.TryParse(currentDate, out var dt) ? dt : DateTime.Now,
+                            UserId = eventRecord?.UserId ?? 0
+                        };
+                    }
+
+                    try
+                    {
+                        // Run each block inside its own transaction so failures rollback only that block
+                        await _database.RunInTransactionAsync(conn =>
+                        {
+                            if (isNewSession && newSession != null)
+                            {
+                                conn.Insert(newSession);
+                            }
+
+                            var sessionIdForGame = (isNewSession && newSession != null) ? newSession.SessionId : currentSessionId;
+
+                            // 3. CREATE GAME (Always happens for every block)
+                            var lanesA = SafeGet(block.Lane, 9);
+                            var lanesB = SafeGet(block.Lane, 10);
+                            var game = new Game
+                            {
+                                SessionId = sessionIdForGame,
+                                Lanes = string.IsNullOrWhiteSpace(lanesA) && string.IsNullOrWhiteSpace(lanesB) ? string.Empty : ($"{lanesA},{lanesB}"),
+                                GameNumber = int.TryParse(SafeGet(block.Count, 5), out var gn) ? gn : 0,
+                                StartingLane = int.TryParse(SafeGet(block.Count, 6), out var sl) ? sl : 0,
+                                Score = int.TryParse(SafeGet(block.Score, 27), out var s) ? s : 0
+                            };
+                            conn.Insert(game);
+
+                            // 4. PROCESS FRAMES & SHOTS
+                            int[] shot1Indices = { 9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 29, 31 };
+
+                            for (int i = 0; i < shot1Indices.Length; i++)
+                            {
+                                int s1Col = shot1Indices[i];
+                                int s2Col = s1Col + 1;
+                                int frameNumber = i + 1;
+
+                                var s1Raw = SafeGet(block.Count, s1Col);
+                                if (string.IsNullOrWhiteSpace(s1Raw)) break;
+
+                                var ballName1 = SafeGet(block.Ball, s1Col);
+                                var shot1 = new Shot
+                                {
+                                    ShotNumber = 1,
+                                    LeaveType = ParseLeaveToShort(SafeGet(block.Leave, s1Col), 1),
+                                    Count = ParsePinCount(s1Raw),
+                                    Position = SafeGet(block.Board, s1Col),
+                                    Ball = (!string.IsNullOrWhiteSpace(ballName1) && ballMap.TryGetValue(ballName1.Trim(), out var b1)) ? b1.BallId : (int?)null,
+                                };
+                                conn.Insert(shot1);
+
+                                int shot2Id = -1;
+                                var s2Raw = SafeGet(block.Count, s2Col);
+                                if (!string.IsNullOrWhiteSpace(s2Raw))
+                                {
+                                    int s2Count;
+                                    if (s2Raw == "/")
+                                    {
+                                        int s1Count = ParsePinCount(s1Raw);
+                                        s2Count = 10 - s1Count;
+                                    }
+                                    else
+                                    {
+                                        s2Count = ParsePinCount(s2Raw);
+                                    }
+
+                                    var ballName2 = SafeGet(block.Ball, s2Col);
+                                    var shot2 = new Shot
+                                    {
+                                        ShotNumber = 2,
+                                        LeaveType = ParseLeaveToShort(SafeGet(block.Leave, s2Col), 2),
+                                        Count = s2Count,
+                                        Position = SafeGet(block.Board, s2Col),
+                                        Ball = (!string.IsNullOrWhiteSpace(ballName2) && ballMap.TryGetValue(ballName2.Trim(), out var b2)) ? b2.BallId : (int?)null,
+                                    };
+                                    conn.Insert(shot2);
+                                    shot2Id = shot2.ShotId;
+                                }
+
+                                var frame = new BowlingFrame
+                                {
+                                    GameId = game.GameId,
+                                    FrameNumber = frameNumber,
+                                    Shot1 = shot1.ShotId,
+                                    Shot2 = shot2Id,
+                                    Lane = int.TryParse(SafeGet(block.Lane, s1Col), out var l) ? (l > 0 ? l : 0) : 0
+                                };
+                                conn.Insert(frame);
+                            }
+                        });
+
+                        // If we get here the block transaction succeeded — update session trackers
+                        if (isNewSession && newSession != null)
+                        {
+                            currentSessionId = newSession.SessionId;
+                            lastWeekIdentifier = currentWeek;
+                            lastDateIdentifier = currentDate;
+                            Debug.WriteLine($"Created New Session: Week {currentWeek} on {currentDate}");
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        // Log and continue with next block
+                        Console.WriteLine($"Import: skipping block #{bi} (Event='{eventName}', Week='{currentWeek}', Date='{currentDate}'): {ex.Message}");
+                    }
+                }
+
+                Console.WriteLine("Import Success!");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Import Error: {ex.Message}");
+            }
+        }
         private async Task ImportBallsFromCsvAsync()
         {
             var csvFileName = "balls.csv"; // File in Resources/Raw
@@ -270,124 +450,132 @@ namespace Cellular.Data
             }
         }
 
-        private async Task ImportSessionsFromCsvAsync()
-        {
-            var csvFileName = "sessions.csv"; // File in Resources/Raw
-
-            try
-            {
-                using var stream = await FileSystem.OpenAppPackageFileAsync(csvFileName);
-                using var reader = new StreamReader(stream);
-
-                var sessions = new List<Session>();
-                while (!reader.EndOfStream)
-                {
-                    var line = await reader.ReadLineAsync();
-                    var data = line?.Split(',');
-
-                    if (data == null || data.Length < 9) continue; // Ensure valid data
-
-                    DateTime? parsedDateTime = null;
-                    if (DateTime.TryParse(data[1].Trim(), out DateTime tempDateTime))
-                    {
-                        parsedDateTime = tempDateTime;
-                    }
-
-                    var session = new Session
-                    {
-                        SessionId = int.TryParse(data[0].Trim(), out int sessionId) ? sessionId : 0,
-                        UserId = int.TryParse(data[0].Trim(), out int userId) ? userId : 0,
-                        Establishment = int.TryParse(data[0].Trim(), out int establishment) ? establishment : (int?)null,
-                        DateTime = parsedDateTime,
-                        TeamOpponent = data[2].Trim(),
-                        IndividualOpponent = data[3].Trim(),
-                        Score = int.TryParse(data[4].Trim(), out int score) ? score : (int?)null,
-                        Stats = int.TryParse(data[5].Trim(), out int stats) ? stats : (int?)null,
-                        TeamRecord = int.TryParse(data[7].Trim(), out int teamRecord) ? teamRecord : (int?)null,
-                        IndividualRecord = int.TryParse(data[8].Trim(), out int individualRecord) ? individualRecord : (int?)null,
-                    };
-
-                    var existingSession = await _database.Table<Session>().FirstOrDefaultAsync(s => s.DateTime == session.DateTime && s.TeamOpponent == session.TeamOpponent);
-                    if (existingSession == null)
-                    {
-                        sessions.Add(session);
-                    }
-                }
-
-                if (sessions.Count > 0)
-                {
-                    await _database.InsertAllAsync(sessions);
-                    Console.WriteLine("Sessions imported successfully.");
-                }
-                else
-                {
-                    Console.WriteLine("No new sessions to import.");
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error reading CSV: {ex.Message}");
-            }
-        }
-
-        private async Task ImportGamesFromCsvAsync()
-        {
-            var csvFileName = "games.csv"; // File in Resources/Raw
-
-            try
-            {
-                using var stream = await FileSystem.OpenAppPackageFileAsync(csvFileName);
-                using var reader = new StreamReader(stream);
-
-                var games = new List<Game>();
-                while (!reader.EndOfStream)
-                {
-                    var line = await reader.ReadLineAsync();
-                    var data = line?.Split(',');
-
-                    if (data == null || data.Length < 8) continue; // Ensure valid data
-
-                    var game = new Game
-                    {
-                        Lanes = data[1].Trim(),
-                        GameNumber = int.TryParse(data[2].Trim(), out int gameNumber) ? gameNumber : (int?)null,
-                        Score = int.TryParse(data[3].Trim(), out int score) ? score : (int?)null,
-                        Win = bool.TryParse(data[4].Trim(), out bool win) ? win : (bool?)null,
-                        StartingLane = int.TryParse(data[5].Trim(), out int startingLane) ? startingLane : (int?)null,
-                        SessionId = int.TryParse(data[7].Trim(), out int session) ? session : 0,
-                        TeamResult = int.TryParse(data[7].Trim(), out int teamResult) ? teamResult : (int?)null,
-                        IndividualResult = int.TryParse(data[8].Trim(), out int individualResult) ? individualResult : (int?)null,
-                    };
-
-                    var existingGame = await _database.Table<Game>().FirstOrDefaultAsync(g => g.SessionId == game.SessionId && g.GameNumber == game.GameNumber);
-                    if (existingGame == null)
-                    {
-                        games.Add(game);
-                    }
-                }
-
-                if (games.Count > 0)
-                {
-                    await _database.InsertAllAsync(games);
-                    Console.WriteLine("Games imported successfully.");
-                }
-                else
-                {
-                    Console.WriteLine("No new games to import.");
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error reading CSV: {ex.Message}");
-            }
-        }
-
+        
         public static string HashPassword(string password)
         {
             return BCrypt.Net.BCrypt.HashPassword(password);
         }
 
         public SQLiteAsyncConnection GetConnection() => _database;
+
+        //CSV Helpers
+        private async Task<BowlingBlock?> Read7RowBlockAsync(StreamReader reader)
+        {
+            string? line;
+            // 1. Seek the next "COUNT" row
+            while ((line = await reader.ReadLineAsync()) != null)
+            {
+                if (string.IsNullOrWhiteSpace(line)) continue;
+                if (line.StartsWith("COUNT", StringComparison.OrdinalIgnoreCase)) break;
+            }
+
+            if (line == null) return null; // Reached EOF
+
+            // 2. Read the next 6 lines safely and ensure arrays are padded to avoid index issues
+            const int MinColumns = 32; // accommodate indices up to 31 used by the importer
+
+            // Read the next six lines; if any are missing then treat this as EOF/incomplete block
+            string? leaveLine = await reader.ReadLineAsync();
+            string? scoreLine = await reader.ReadLineAsync();
+            string? typeLine = await reader.ReadLineAsync();
+            string? boardLine = await reader.ReadLineAsync();
+            string? laneLine = await reader.ReadLineAsync();
+            string? ballLine = await reader.ReadLineAsync();
+
+            if (leaveLine == null || scoreLine == null || typeLine == null || boardLine == null || laneLine == null || ballLine == null)
+            {
+                // Incomplete block at EOF — skip it
+                Debug.WriteLine("Read7RowBlockAsync: encountered incomplete block at EOF; skipping remaining lines.");
+                return null;
+            }
+
+            var count = EnsureLength(line.Split(','), MinColumns);
+            var leave = EnsureLength(leaveLine.Split(','), MinColumns);
+            var score = EnsureLength(scoreLine.Split(','), MinColumns);
+            var type = EnsureLength(typeLine.Split(','), MinColumns);
+            var board = EnsureLength(boardLine.Split(','), MinColumns);
+            var lane = EnsureLength(laneLine.Split(','), MinColumns);
+            var ball = EnsureLength(ballLine.Split(','), MinColumns);
+
+            return new BowlingBlock
+            {
+                Count = count,
+                Leave = leave,
+                Score = score,
+                Type = type,
+                Board = board,
+                Lane = lane,
+                Ball = ball
+            };
+        }
+
+        private static string SafeGet(string[] arr, int index)
+        {
+            if (arr == null) return string.Empty;
+            return (index >= 0 && index < arr.Length) ? arr[index] : string.Empty;
+        }
+
+        private static string[] EnsureLength(string[] arr, int minLength)
+        {
+            if (arr == null) return Enumerable.Repeat(string.Empty, minLength).ToArray();
+            if (arr.Length >= minLength) return arr;
+            var result = new string[minLength];
+            for (int i = 0; i < minLength; i++)
+            {
+                result[i] = i < arr.Length ? arr[i] : string.Empty;
+            }
+            return result;
+        }
+
+        private int ParsePinCount(string value)
+        {
+            if (string.IsNullOrWhiteSpace(value)) return 0;
+
+            // Explicitly handle common Excel/CSV error strings
+            if (value.Contains("#DIV") || value.Contains("NaN")) return 0;
+
+            if (value.Equals("X", StringComparison.OrdinalIgnoreCase)) return 10;
+            if (value == "/") return 0; // Return 0 here, let the Loop handle the subtraction
+
+            if (int.TryParse(value, out int result))
+            {
+                return result;
+            }
+            return 0;
+        }
+
+        private short ParseLeaveToShort(string leaveString, int shotNumber)
+        {
+            // Start with 0 (All pins are DOWN/0)
+            int pinMask = 0;
+
+            if (string.IsNullOrWhiteSpace(leaveString)) return (short)pinMask;
+
+            // If it's a strike (X) on shot 1, all pins are down, so we return 0
+            if (leaveString.ToUpper() == "X") return 0;
+
+            // 1. Handle "10" first 
+            if (leaveString.Contains("10"))
+            {
+                pinMask |= (1 << 9); // Set bit 9 (Pin 10) to 1 (Standing)
+                leaveString = leaveString.Replace("10", "");
+            }
+
+            // 2. Handle remaining pins 1-9
+            foreach (char c in leaveString)
+            {
+                if (char.IsDigit(c))
+                {
+                    int pin = int.Parse(c.ToString());
+                    if (pin >= 1 && pin <= 9)
+                    {
+                        pinMask |= (1 << (pin - 1)); // Set the bit to 1 (Standing)
+                    }
+                }
+            }
+
+            return ShotCalculator.CalculateShotType((short)pinMask, shotNumber);
+        }
     }
 }
 
