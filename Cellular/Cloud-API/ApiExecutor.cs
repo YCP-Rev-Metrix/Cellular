@@ -14,148 +14,89 @@ public class ApiExecutor
     /// <param name="id">Unused for GET (mobile GETs append <c>?mobileID=</c> via API controller query). Kept for DELETE/POST and API test compatibility.</param>
     public string GetUrl(int id = -1)
     {
-        string relative = EntityType switch
+        if (TryGetCiclopesRoute(out var ciclopesRoute))
         {
-            case EntityType.Ball:
-                if (OperationType == OperationType.Get)
-                {
-                    url += "gets/GetBallsByUsername";
-                }
-                else if (OperationType == OperationType.Post)
-                {
-                    url += "posts/PostBalls";
-                }
-                break;
-            case EntityType.Establishment:
-                if (OperationType == OperationType.Get)
-                {
-                    url += "gets/GetAppEstablishments";
-                }
-                else if (OperationType == OperationType.Post)
-                {
-                    url += "posts/PostEstablishmentApp";
-                }
-                break;
-            case EntityType.Event:
-                if (OperationType == OperationType.Get)
-                {
-                    url += "gets/GetEventsByUsername";
-                }
-                else if (OperationType == OperationType.Post)
-                {
-                    url += "posts/PostEvents";
-                }
-                break;
-            case EntityType.Frame:
-                if (OperationType == OperationType.Get)
-                {
-                    url += "gets/GetFramesByGameId";
-                }
-                else if (OperationType == OperationType.Post)
-                {
-                    url += "posts/PostFrames";
-                }
-                break;
-            case EntityType.Game:
-                if (OperationType == OperationType.Get)
-                {
-                    url += "gets/GetAppGames";
-                }
-                else if (OperationType == OperationType.Post)
-                {
-                    url += "posts/PostAppGame";
-                }
-                break;
-            case EntityType.Session:
-                if (OperationType == OperationType.Get)
-                {
-                    url += "gets/GetAppSessions";
-                }
-                else if (OperationType == OperationType.Post)
-                {
-                    url += "posts/PostAppSession";
-                }
-                break;
-            case EntityType.Shot:
-                if (OperationType == OperationType.Get)
-                {
-                    url += "gets/GetAppShots";
-                }
-                else if (OperationType == OperationType.Post)
-                {
-                    url += "posts/PostAppShots";
-                }
-                break;
-            case EntityType.CiclopesAggRun:
-                if (OperationType == OperationType.Post)
-                {
-                    string? ciclopesBaseUrl = CiclopesSettings.BaseUrl;
-                    if (string.IsNullOrWhiteSpace(ciclopesBaseUrl))
-                    {
-                        throw new InvalidOperationException("CICLOPES_IP and CICLOPES_PORT must be configured.");
-                    }
-
-                    url = ciclopesBaseUrl + "agg/run";
-                }
-                else
-                {
-                    throw new NotImplementedException("CiclopesAggRun only supports POST.");
-                }
-                break;
-            case EntityType.CiclopesLaneBallsRun:
-                if (OperationType == OperationType.Post)
-                {
-                    string? laneBallsBaseUrl = CiclopesSettings.BaseUrl;
-                    if (string.IsNullOrWhiteSpace(laneBallsBaseUrl))
-                    {
-                        throw new InvalidOperationException("CICLOPES_IP and CICLOPES_PORT must be configured.");
-                    }
-
-                    url = laneBallsBaseUrl + "laneballs/run";
-                }
-                else
-                {
-                    throw new NotImplementedException("CiclopesLaneBallsRun only supports POST.");
-                }
-                break;
-            case EntityType.CiclopesFourDBodyRun:
-                if (OperationType == OperationType.Post)
-                {
-                    string? fourDBodyBaseUrl = CiclopesSettings.BaseUrl;
-                    if (string.IsNullOrWhiteSpace(fourDBodyBaseUrl))
-                    {
-                        throw new InvalidOperationException("CICLOPES_IP and CICLOPES_PORT must be configured.");
-                    }
-
-                    url = fourDBodyBaseUrl + "fourdbody/run";
-                }
-                else
-                {
-                    throw new NotImplementedException("CiclopesFourDBodyRun only supports POST.");
-                }
-                break;
-            default:
-                throw new NotImplementedException("This obj type is not implemented yet.");
+            return BuildCiclopesUrl(ciclopesRoute);
         }
-            EntityType.Ball => OperationType == OperationType.Get ? "GetBallsByUsername" : OperationType == OperationType.Delete ? "DeleteBallsByUsername" : "PostBalls",
-            EntityType.Establishment => OperationType == OperationType.Get ? "GetAllEstablishmentsByUser" : OperationType == OperationType.Delete ? "DeleteAppEstablishments" : "PostEstablishmentApp",
-            EntityType.Event => OperationType == OperationType.Get ? "GetEventsByUsername" : OperationType == OperationType.Delete ? "DeleteEventsByUsername" : "PostEvent",
-            EntityType.Frame => OperationType == OperationType.Get ? "GetAllFramesByUser" : OperationType == OperationType.Delete ? "DeleteAppFrames" : "PostFrames",
-            EntityType.Game => OperationType == OperationType.Get ? "GetAllGamesByUser" : OperationType == OperationType.Delete ? "DeleteAppGames" : "PostAppGame",
-            EntityType.Session => OperationType == OperationType.Get ? "GetAllSessionsByUser" : OperationType == OperationType.Delete ? "DeleteAppSessions" : "PostAppSession",
-            EntityType.Shot => OperationType == OperationType.Get ? "GetAllShotsByUser" : OperationType == OperationType.Delete ? "DeleteAppShots" : "PostAppShot",
-            _ => throw new NotImplementedException("This obj type is not implemented yet.")
-        };
 
-        string url = OperationType switch
+        var relative = GetRevMetrixAction();
+        return OperationType switch
         {
             OperationType.Get => RevMetrixApi.Gets(relative),
             OperationType.Delete => RevMetrixApi.Deletes(relative),
             OperationType.Post => RevMetrixApi.Posts(relative),
             _ => throw new ArgumentOutOfRangeException()
         };
-
-        return url;
     }
 
+    private bool TryGetCiclopesRoute(out string route)
+    {
+        route = EntityType switch
+        {
+            EntityType.CiclopesAggRun => "agg/run",
+            EntityType.CiclopesLaneBallsRun => "laneballs/run",
+            EntityType.CiclopesFourDBodyRun => "fourdbody/run",
+            _ => string.Empty
+        };
 
+        if (string.IsNullOrEmpty(route))
+        {
+            return false;
+        }
+
+        if (OperationType != OperationType.Post)
+        {
+            throw new NotImplementedException($"{EntityType} only supports POST.");
+        }
+
+        return true;
+    }
+
+    private static string BuildCiclopesUrl(string route)
+    {
+        var ciclopesBaseUrl = CiclopesSettings.BaseUrl;
+        if (string.IsNullOrWhiteSpace(ciclopesBaseUrl))
+        {
+            throw new InvalidOperationException(
+                "CICLOPES_API_BASE or CICLOPES_IP/CICLOPES_PORT must be configured.");
+        }
+
+        return $"{ciclopesBaseUrl}{route}";
+    }
+
+    private string GetRevMetrixAction()
+    {
+        return (EntityType, OperationType) switch
+        {
+            (EntityType.Ball, OperationType.Get) => "GetBallsByUsername",
+            (EntityType.Ball, OperationType.Delete) => "DeleteBallsByUsername",
+            (EntityType.Ball, OperationType.Post) => "PostBalls",
+
+            (EntityType.Establishment, OperationType.Get) => "GetAppEstablishments",
+            (EntityType.Establishment, OperationType.Delete) => "DeleteAppEstablishments",
+            (EntityType.Establishment, OperationType.Post) => "PostEstablishmentApp",
+
+            (EntityType.Event, OperationType.Get) => "GetEventsByUsername",
+            (EntityType.Event, OperationType.Delete) => "DeleteEventsByUsername",
+            (EntityType.Event, OperationType.Post) => "PostEvents",
+
+            (EntityType.Frame, OperationType.Get) => "GetFramesByGameId",
+            (EntityType.Frame, OperationType.Delete) => "DeleteAppFrames",
+            (EntityType.Frame, OperationType.Post) => "PostFrames",
+
+            (EntityType.Game, OperationType.Get) => "GetAppGames",
+            (EntityType.Game, OperationType.Delete) => "DeleteAppGames",
+            (EntityType.Game, OperationType.Post) => "PostAppGame",
+
+            (EntityType.Session, OperationType.Get) => "GetAppSessions",
+            (EntityType.Session, OperationType.Delete) => "DeleteAppSessions",
+            (EntityType.Session, OperationType.Post) => "PostAppSession",
+
+            (EntityType.Shot, OperationType.Get) => "GetAppShots",
+            (EntityType.Shot, OperationType.Delete) => "DeleteAppShots",
+            (EntityType.Shot, OperationType.Post) => "PostAppShots",
+
+            _ => throw new NotImplementedException("This obj type is not implemented yet.")
+        };
+    }
+}

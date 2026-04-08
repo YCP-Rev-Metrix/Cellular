@@ -2,6 +2,8 @@ namespace Cellular.Cloud_API;
 
 public static class CiclopesSettings
 {
+    public static string? ApiBase => NormalizeBaseUrl(Get("CICLOPES_API_BASE"));
+
     public static string? Ip => Get("CICLOPES_IP");
 
     public static int? Port
@@ -17,12 +19,17 @@ public static class CiclopesSettings
     {
         get
         {
+            if (!string.IsNullOrWhiteSpace(ApiBase))
+            {
+                return ApiBase;
+            }
+
             if (string.IsNullOrWhiteSpace(Ip) || Port is null)
             {
                 return null;
             }
 
-            return $"http://{Ip}:{Port}/";
+            return NormalizeBaseUrl($"http://{Ip}:{Port}");
         }
     }
 
@@ -30,5 +37,15 @@ public static class CiclopesSettings
     {
         var value = Environment.GetEnvironmentVariable(key);
         return string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+    }
+
+    private static string? NormalizeBaseUrl(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return null;
+        }
+
+        return value.Trim().TrimEnd('/') + "/";
     }
 }

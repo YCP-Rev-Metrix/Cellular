@@ -88,17 +88,6 @@ public class ApiController
         PropertyNameCaseInsensitive = true
     };
 
-    /// <summary>
-    /// Executes the API request and returns the authorization response body as a string.
-    /// Optionally invokes onAuthResponse when the authorization response is received.
-    /// </summary>
-    public async Task<string?> ExecuteRequest(
-        EntityType entityType,
-        OperationType operationType,
-        List<Object>? data = null,
-        int id = -1,
-        Action<string>? onAuthResponse = null
-    )
     /// <summary>Orphan cleanup; uses the same phone login as <see cref="ExecuteRequest"/>.</summary>
     public async Task<string?> DeleteOrphanedAppDataAsync(string username, string password)
     {
@@ -181,6 +170,7 @@ public class ApiController
         catch (JsonException jsonEx)
         {
             Debug.WriteLine("JSON parse failed: " + jsonEx);
+            throw;
         }
     }
     /// <summary>
