@@ -113,6 +113,14 @@ namespace Cellular
             _frameRepository = new FrameRepository(dbConnection);
             _shotRepository = new ShotRepository(dbConnection);
 
+            // Get userId for sync context initialization
+            int userId = Preferences.Get("UserId", -1);
+
+            // Initialize the watch BLE service with repositories for shot packet handling and sync context
+            // User will be fetched on-demand when needed for sending data to watch
+            _watchBleService.SetRepositories(_gameRepository, _frameRepository, _shotRepository,
+                _sessionRepository, _ballRepository, _eventRepository, null, userId);
+
             Devices = BlankPageStore.SavedDevices ?? new ObservableCollection<BluetoothDeviceWatch>();
             _selectedDevice = BlankPageStore.SavedSelected;
             _isConnected = BlankPageStore.SavedIsConnected;

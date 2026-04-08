@@ -22,6 +22,18 @@ namespace Cellular.Services
         private readonly IBluetoothLE _ble = CrossBluetoothLE.Current;
         private readonly IAdapter _adapter = CrossBluetoothLE.Current.Adapter;
 
+        // Repository references for database operations
+        private GameRepository? _gameRepo;
+        private FrameRepository? _frameRepo;
+        private ShotRepository? _shotRepo;
+
+        // Sync context - stores repositories and user info needed to respond to sync commands
+        private SessionRepository? _syncSessionRepo;
+        private BallRepository? _syncBallRepo;
+        private EventRepository? _syncEventRepo;
+        private User? _syncUser;
+        private int _syncUserId;
+
         private IDevice? _device;
         private ICharacteristic? _commandChar;
         private ICharacteristic? _notifyChar;
@@ -33,10 +45,33 @@ namespace Cellular.Services
         public event EventHandler<string>? WatchJsonReceived;
         public event EventHandler? WatchStartRecordingRequested;
         public event EventHandler? WatchStopRecordingRequested;
+        public event EventHandler<Shot>? WatchShotReceived;
 
         public WatchBleService()
         {
             _adapter.DeviceDisconnected += OnDisconnected;
+        }
+
+        /// <summary>
+        /// Set the repositories needed for database operations when shot packets arrive.
+        /// Call this after initializing the database and repositories.
+        /// </summary>
+        public void SetRepositories(GameRepository gameRepo, FrameRepository frameRepo, ShotRepository shotRepo, 
+            SessionRepository? sessionRepo = null, BallRepository? ballRepo = null, EventRepository? eventRepo = null,
+            User? user = null, int userId = 0)
+        {
+            _gameRepo = gameRepo;
+            _frameRepo = frameRepo;
+            _shotRepo = shotRepo;
+
+            // Store sync context repositories
+            _syncSessionRepo = sessionRepo;
+            _syncBallRepo = ballRepo;
+            _syncEventRepo = eventRepo;
+            _syncUser = user;
+            _syncUserId = userId;
+
+            Debug.WriteLine("WatchBleService: Repositories initialized for shot processing and sync commands");
         }
 
         private void OnDisconnected(object? sender, DeviceEventArgs e)
@@ -160,6 +195,11 @@ namespace Cellular.Services
                                 Debug.WriteLine("PHONE BLE → Watch requested stop recording");
                                 WatchStopRecordingRequested?.Invoke(this, EventArgs.Empty);
                             }
+                            else if (cmd == "sync")
+                            {
+                                Debug.WriteLine("PHONE BLE → Watch requested sync");
+                                _ = HandleSyncCommand();
+                            }
                         }
 
                         WatchJsonReceived?.Invoke(this, jsonStr);
@@ -229,14 +269,14 @@ namespace Cellular.Services
             }
         }
 
-        private void ParseShotData(byte[] data, int offset)
+        private async void ParseShotData(byte[] data, int offset)
         {
             try
             {
-                // Payload should be 19 bytes (after 4-byte header: type + version + length)
-                if (data.Length < offset + 19)
+                // Payload should be 16 bytes (after 4-byte header: type + version + length)
+                if (data.Length < offset + 16)
                 {
-                    Debug.WriteLine($"ParseShotData: Not enough data for shot packet. Expected at least {offset + 19} bytes, got {data.Length}");
+                    Debug.WriteLine($"ParseShotData: Not enough data for shot packet. Expected at least {offset + 16} bytes, got {data.Length}");
                     return;
                 }
 
@@ -297,10 +337,6 @@ namespace Cellular.Services
                 byte laneNumber = data[shotDataOffset];
                 shotDataOffset += 1;
 
-                // Parse Game Score After (3 bytes, little-endian)
-                uint gameScore = (uint)(data[shotDataOffset] | (data[shotDataOffset + 1] << 8) | (data[shotDataOffset + 2] << 16));
-                shotDataOffset += 3;
-
                 // Parse Padding (1 byte)
                 byte padding = data[shotDataOffset];
 
@@ -312,10 +348,10 @@ namespace Cellular.Services
                 Debug.WriteLine($"  Stance: {stance:F1}, Target: {target:F1}, Break Point: {breakPoint:F1}, Impact: {impact:F1}");
                 Debug.WriteLine($"  Ball Speed: {ballSpeedMph} mph");
                 Debug.WriteLine($"  Lane: {laneNumber}");
-                Debug.WriteLine($"  Game Score: {gameScore}");
 
-                // TODO: Save shot data to database
-                // TODO: Update UI with shot information
+                // Save shot data to database
+                await SaveShotToDatabase(sessionId, gameNumber, frameNumber, shotNumber, ballId, 
+                    pinsStanding, foul, stance, target, breakPoint, impact, ballSpeedMph, laneNumber);
             }
             catch (Exception ex)
             {
@@ -323,6 +359,173 @@ namespace Cellular.Services
             }
         }
 
+        private async Task SaveShotToDatabase(uint sessionId, int gameNumber, int frameNumber, int shotNumber, int ballId,
+            int pinsStanding, int foul, double stance, double target, double breakPoint, double impact, double ballSpeedMph, int laneNumber)
+        {
+            try
+            {
+                // Check if repositories are available
+                if (_gameRepo == null || _frameRepo == null || _shotRepo == null)
+                {
+                    Debug.WriteLine("SaveShotToDatabase: Repositories not initialized. Call SetRepositories() first.");
+                    return;
+                }
+
+                Debug.WriteLine($"SaveShotToDatabase: Starting save for Session {sessionId}, Game {gameNumber}, Frame {frameNumber}, Shot {shotNumber}");
+
+                // Step 1: Find or create the Game
+                var game = await _gameRepo.GetOrCreateGame((int)sessionId, gameNumber);
+                Debug.WriteLine($"SaveShotToDatabase: Game retrieved/created - GameId {game.GameId}, GameNumber {gameNumber}");
+
+
+                // Step 2: Find or create the Frame
+                var frames = await _frameRepo.GetFrameIdsByGameIdAsync(game.GameId);
+                BowlingFrame? frame = null;
+
+                foreach (var frameId in frames)
+                {
+                    var f = await _frameRepo.GetFrameById(frameId);
+                    if (f != null && f.FrameNumber == frameNumber)
+                    {
+                        frame = f;
+                        break;
+                    }
+                }
+
+                // If frame doesn't exist, create it
+                if (frame == null)
+                {
+                    frame = new BowlingFrame
+                    {
+                        GameId = game.GameId,
+                        FrameNumber = frameNumber,
+                        Lane = laneNumber
+                    };
+                    int newFrameId = await _frameRepo.AddFrame(frame);
+                    frame.FrameId = newFrameId;
+                    Debug.WriteLine($"SaveShotToDatabase: Created new frame - FrameId {newFrameId}, Frame {frameNumber}");
+                }
+                else
+                {
+                    Debug.WriteLine($"SaveShotToDatabase: Found existing frame - FrameId {frame.FrameId}, Frame {frameNumber}");
+                }
+
+                // Step 3: Create the Shot
+                // For bowling, we need to calculate pins knocked down:
+                // - Shot 1: Simple case - pins down = 10 - standing pins
+                // - Shot 2: Complex case - pins down = what was standing before - what's standing now
+
+                int pinsDown = 0;
+                int standingCount = Enumerable.Range(0, 10).Count(i => (pinsStanding & (1 << i)) != 0);
+
+                if (shotNumber == 1)
+                {
+                    // Shot 1 is straightforward
+                    pinsDown = 10 - standingCount;
+                    Debug.WriteLine($"SaveShotToDatabase: Shot 1 - pinsStanding=0x{pinsStanding:X3}, standing pins={standingCount}, pinsDown={pinsDown}");
+                }
+                else if (shotNumber == 2)
+                {
+                    // For shot 2, we need the state from shot 1 to calculate properly
+                    // pins knocked in shot 2 = (pins standing before shot 2) - (pins standing after shot 2)
+                    Shot? shot1 = null;
+                    if (frame.Shot1.HasValue)
+                    {
+                        shot1 = await _shotRepo.GetShotById(frame.Shot1.Value);
+                    }
+
+                    if (shot1 != null && shot1.LeaveType.HasValue)
+                    {
+                        // Extract pins standing from shot1's LeaveType (bits 0-9)
+                        int pinsStandingAfterShot1 = shot1.LeaveType.Value & 0x3FF;
+                        int pinsStandingAfterShot1Count = Enumerable.Range(0, 10).Count(i => (pinsStandingAfterShot1 & (1 << i)) != 0);
+
+                        // Pins knocked in shot 2 = what was standing - what remains
+                        pinsDown = pinsStandingAfterShot1Count - standingCount;
+                        Debug.WriteLine($"SaveShotToDatabase: Shot 2 - shot1.LeaveType=0x{pinsStandingAfterShot1:X3}, standing after shot1={pinsStandingAfterShot1Count}, standing now={standingCount}, pinsDown={pinsDown}");
+                    }
+                    else
+                    {
+                        // Fallback: treat as shot 1 (shouldn't happen in normal play)
+                        pinsDown = 10 - standingCount;
+                        Debug.WriteLine($"SaveShotToDatabase: Shot 2 - No shot 1 found, using fallback calculation, pinsDown={pinsDown}");
+                    }
+                }
+
+                var shot = new Shot
+                {
+                    ShotNumber = shotNumber,
+                    Ball = ballId,
+                    LeaveType = (short)(pinsStanding | (foul << 10)),
+                    Stance = (int)stance,
+                    Speed = ballSpeedMph.ToString("F1"),
+                    Frame = frame.FrameId,
+                    // Position, Side, Comment left as null (can be added later if needed)
+                    Count = pinsDown
+                };
+
+                int shotId = await _shotRepo.AddAsync(shot);
+                if (shotId > 0)
+                {
+                    shot.ShotId = shotId;
+                    Debug.WriteLine($"SaveShotToDatabase: Created shot - ShotId {shotId}, Shot {shotNumber}, Count={pinsDown}");
+
+                    // Step 4: Update Frame to link the Shot
+                    if (shotNumber == 1)
+                    {
+                        frame.Shot1 = shotId;
+                    }
+                    else if (shotNumber == 2)
+                    {
+                        frame.Shot2 = shotId;
+                    }
+
+                    await _frameRepo.UpdateFrameAsync(frame);
+                    Debug.WriteLine($"SaveShotToDatabase: Updated frame to link shot {shotNumber}");
+
+                    // Step 5: Fire event for UI update
+                    WatchShotReceived?.Invoke(this, shot);
+                    Debug.WriteLine($"SaveShotToDatabase: Shot saved successfully and UI event fired");
+                }
+                else
+                {
+                    Debug.WriteLine($"SaveShotToDatabase: Failed to save shot to database");
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"SaveShotToDatabase error: {ex.Message}");
+                Debug.WriteLine($"SaveShotToDatabase stack trace: {ex.StackTrace}");
+            }
+        }
+
+        private async Task HandleSyncCommand()
+        {
+            try
+            {
+                if (!IsConnected)
+                {
+                    Debug.WriteLine("HandleSyncCommand: Not connected, ignoring sync request");
+                    return;
+                }
+
+                if (_syncSessionRepo == null || _syncBallRepo == null || _syncEventRepo == null)
+                {
+                    Debug.WriteLine("HandleSyncCommand: Sync context not initialized, cannot respond to sync");
+                    return;
+                }
+
+                Debug.WriteLine("HandleSyncCommand: Responding to sync request with fresh user data");
+
+                // Resend the user data packet with current state
+                await SendJsonToWatch(_syncUserId, _syncSessionRepo, _syncBallRepo, _syncEventRepo, 
+                    _gameRepo, _syncUser, _frameRepo, _shotRepo);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"HandleSyncCommand error: {ex.Message}");
+            }
+        }
 
         public async Task DisconnectAsync()
         {
@@ -359,12 +562,8 @@ namespace Cellular.Services
             uint sessionId = 0;
             string eventName = "";
             bool sessionActive = false;
-            uint frameNumber = 0;
-            ushort gameNumber = 0;
-            ushort shotNumber = 0;
-            ushort previousShotPins = 0x3FF; // Default: all pins standing (1111111111 in binary)
-            int currentGameScore = 0;
             ushort gameCount = 0; // Number of games in the session
+            List<(ushort gameNumber, uint frameNumber, ushort shotNumber, ushort previousShotPins)> gameDataList = new();
 
             if (sessionRepo != null)
             {
@@ -395,27 +594,25 @@ namespace Cellular.Services
                                     {
                                         sessionActive = true;
                                         gameCount = (ushort)games.Count; // Store the number of games in this session
-                                        // Get the most recent game
-                                        var mostRecentGame = games.OrderByDescending(g => g.GameId).FirstOrDefault();
-                                        if (mostRecentGame != null)
-                                        {
-                                            gameNumber = (ushort)(mostRecentGame.GameNumber ?? 0);
-                                            currentGameScore = mostRecentGame.Score ?? 0;
-                                            frameNumber = 0; // Default to frame 0 for now
-                                            shotNumber = 0;  // Default to shot 0 for now
-                                            Debug.WriteLine($"BuildUserDataPacket: Found active game {gameNumber} ({gameCount} total games in session)");
+                                        Debug.WriteLine($"BuildUserDataPacket: Found {gameCount} games in session");
 
-                                            // Query for current frame and previous shot data
+                                        // Build data for each game
+                                        foreach (var game in games.OrderBy(g => g.GameNumber))
+                                        {
+                                            ushort gameNum = (ushort)(game.GameNumber ?? 0);
+                                            uint frameNum = 0;
+                                            ushort shotNum = 0;
+                                            ushort prevShotPins = 0x3FF; // Default: all pins standing
+
+                                            // Query for current frame and previous shot data for this game
                                             if (frameRepo != null && shotRepo != null)
                                             {
                                                 try
                                                 {
-                                                    // Get all frames for this game to find the current frame
-                                                    var frameIds = await frameRepo.GetFrameIdsByGameIdAsync(mostRecentGame.GameId);
+                                                    // Get all frames for this game
+                                                    var frameIds = await frameRepo.GetFrameIdsByGameIdAsync(game.GameId);
                                                     if (frameIds.Count > 0)
                                                     {
-                                                        frameNumber = (uint)(frameIds.Count); // Current frame is next one to play
-
                                                         // Get the last frame to check for previous shot
                                                         var lastFrameId = frameIds.Last();
                                                         var lastFrame = await frameRepo.GetFrameById(lastFrameId);
@@ -427,15 +624,17 @@ namespace Cellular.Services
 
                                                             if (lastFrame.Shot2.HasValue)
                                                             {
-                                                                // Frame has 2 shots, get the second one
+                                                                // Frame has 2 shots - frame is complete
                                                                 previousShot = await shotRepo.GetShotById(lastFrame.Shot2.Value);
-                                                                shotNumber = 1; // Next shot in the current frame would be 1
+                                                                frameNum = (uint)(frameIds.Count + 1); // Next frame to play
+                                                                shotNum = 1; // Start with shot 1 of next frame
                                                             }
                                                             else if (lastFrame.Shot1.HasValue)
                                                             {
-                                                                // Frame has only 1 shot, get it
+                                                                // Frame has only 1 shot - frame is incomplete
                                                                 previousShot = await shotRepo.GetShotById(lastFrame.Shot1.Value);
-                                                                shotNumber = 2; // Next shot would be 2
+                                                                frameNum = (uint)(frameIds.Count); // Stay in current frame
+                                                                shotNum = 2; // Next shot is shot 2 of current frame
                                                             }
 
                                                             // Extract previous shot pin data
@@ -443,17 +642,19 @@ namespace Cellular.Services
                                                             {
                                                                 // LeaveType contains the pin state: bit=1 => standing, bit=0 => down
                                                                 // Bits 0-9 are the 10 pins, bit 10 is foul
-                                                                previousShotPins = (ushort)previousShot.LeaveType.Value;
-                                                                Debug.WriteLine($"BuildUserDataPacket: Previous shot pin state = 0x{previousShotPins:X}");
+                                                                prevShotPins = (ushort)previousShot.LeaveType.Value;
                                                             }
                                                         }
                                                     }
                                                 }
                                                 catch (Exception ex)
                                                 {
-                                                    Debug.WriteLine($"BuildUserDataPacket: Error querying frame/shot data: {ex.Message}");
+                                                    Debug.WriteLine($"BuildUserDataPacket: Error querying frame/shot data for game {gameNum}: {ex.Message}");
                                                 }
                                             }
+
+                                            gameDataList.Add((gameNum, frameNum, shotNum, prevShotPins));
+                                            Debug.WriteLine($"BuildUserDataPacket: Game {gameNum} - Frame {frameNum}, Shot {shotNum}, PrevPins 0x{prevShotPins:X}");
                                         }
                                     }
                                 }
@@ -490,19 +691,17 @@ namespace Cellular.Services
 
             writer.Write(primaryHand);
 
-            // Write game/frame/shot data (all 0s if session not active)
-            writer.Write(frameNumber);  // 4 bytes
-            writer.Write(gameNumber);   // 2 bytes
-            writer.Write(shotNumber);   // 2 bytes
-
             // Write game count (number of games in this session)
             writer.Write(gameCount);    // 2 bytes
 
-            // Write previous shot pin data (11 bits: pins + foul)
-            writer.Write(previousShotPins);  // 2 bytes (bits 0-9 = pins, bit 10 = foul)
-
-            // Write current game score
-            writer.Write(currentGameScore);  // 4 bytes
+            // Write game data for each game (similar to ball data structure)
+            foreach (var (gameNum, frameNum, shotNum, prevShotPins) in gameDataList)
+            {
+                writer.Write(frameNum);      // 4 bytes - current frame number for this game
+                writer.Write(gameNum);       // 2 bytes - game number
+                writer.Write(shotNum);       // 2 bytes - next shot number for this game
+                writer.Write(prevShotPins);  // 2 bytes - previous shot pin state (bits 0-9 = pins, bit 10 = foul)
+            }
 
             // Ball Data
             List<Ball> balls = new List<Ball>();
@@ -548,7 +747,7 @@ namespace Cellular.Services
             writer.Write(packetLength);
 
             byte[] packet = ms.ToArray();
-            Debug.WriteLine($"BuildUserDataPacket: Built packet of {packet.Length} bytes, sessionId={sessionId}, gameNumber={gameNumber}, frameNumber={frameNumber}, shotNumber={shotNumber}");
+            Debug.WriteLine($"BuildUserDataPacket: Built packet of {packet.Length} bytes, sessionId={sessionId}, gameCount={gameCount}");
 
             return packet;
         }
