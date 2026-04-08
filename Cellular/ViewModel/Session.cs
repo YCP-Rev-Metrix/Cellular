@@ -18,5 +18,8 @@ namespace Cellular.ViewModel
         public int? Stats { get; set; }
         public int? TeamRecord { get; set; }
         public int? IndividualRecord { get; set; }
+
+        /// <summary>Server-assigned row id from the cloud API. Used to correlate local rows across devices.</summary>
+        public int? CloudID { get; set; }
     }
 }

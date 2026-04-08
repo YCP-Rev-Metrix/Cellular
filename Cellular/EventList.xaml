@@ -30,7 +30,7 @@
                          BindableLayout.ItemsSource="{Binding Events}">
                 <BindableLayout.ItemTemplate>
                     <DataTemplate x:DataType="local:Event">
-                        <Button Text="{Binding Name}"
+                        <Button Text="{Binding LongName}"
                                 CommandParameter="{Binding .}"
                                 Clicked="OnEventButtonClicked"
                                 HorizontalOptions="FillAndExpand"

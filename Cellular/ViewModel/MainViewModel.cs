@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.ComponentModel;
 using System.IO;
 using System.Runtime.CompilerServices;
@@ -147,6 +147,32 @@ namespace Cellular.ViewModel
                     _ = SaveHandPreferenceToDatabase();  // Save the updated hand preference
                 }
             }
+        }
+
+        private string? _syncLastCheckedTime;
+        public string? SyncLastCheckedTime
+        {
+            get => _syncLastCheckedTime;
+            set { if (_syncLastCheckedTime != value) { _syncLastCheckedTime = value; OnPropertyChanged(); } }
+        }
+
+        private bool _isSyncBusy;
+        public bool IsSyncBusy
+        {
+            get => _isSyncBusy;
+            set { if (_isSyncBusy != value) { _isSyncBusy = value; OnPropertyChanged(); } }
+        }
+
+        private string? _syncError;
+        public string? SyncError
+        {
+            get => _syncError;
+            set { if (_syncError != value) { _syncError = value; OnPropertyChanged(); } }
+        }
+
+        public void RefreshSyncLastCheckedTime()
+        {
+            SyncLastCheckedTime = Cellular.Services.CloudSyncService.GetLastCheckedTime();
         }
 
         public MainViewModel()

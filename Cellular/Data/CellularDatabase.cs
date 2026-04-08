@@ -1,5 +1,6 @@
-﻿using SQLite;
+using SQLite;
 using System;
+using System.Linq;
 using System.IO;
 using System.Threading.Tasks;
 using System.Collections.Generic;
@@ -36,6 +37,28 @@ namespace Cellular.Data
 
             await _database.CreateTableAsync<BowlingFrame>();
             await _database.CreateTableAsync<Shot>();
+
+            await EnsureCloudIdColumnsAsync(_database);
+        }
+
+        /// <summary>Adds CloudID to existing installs (SQLite CreateTable does not add new columns).</summary>
+        private static async Task EnsureCloudIdColumnsAsync(SQLiteAsyncConnection db)
+        {
+            await EnsureColumnAsync(db, "ball", "CloudID");
+            await EnsureColumnAsync(db, "establishment", "CloudID");
+            await EnsureColumnAsync(db, "event", "CloudID");
+            await EnsureColumnAsync(db, "session", "CloudID");
+            await EnsureColumnAsync(db, "game", "CloudID");
+            await EnsureColumnAsync(db, "bowlingFrame", "CloudID");
+            await EnsureColumnAsync(db, "shot", "CloudID");
+        }
+
+        private static async Task EnsureColumnAsync(SQLiteAsyncConnection db, string table, string column)
+        {
+            var info = await db.GetTableInfoAsync(table);
+            if (info.Any(c => string.Equals(c.Name, column, StringComparison.OrdinalIgnoreCase)))
+                return;
+            await db.ExecuteAsync($"ALTER TABLE [{table}] ADD COLUMN {column} INTEGER NULL");
         }
 
         private async Task ImportEstabishmentsFromCsvAsync()
@@ -58,12 +81,13 @@ namespace Cellular.Data
                     var esta = new Establishment
                     {
                         UserId = int.TryParse(data[0].Trim(), out int UserId) ? UserId : 0,
-                        Name = data[1].Trim(),
+                        FullName = data[1].Trim(),
+                        NickName = data[1].Trim(),
                         Lanes = data[2].Trim(),
                         Type = data[3].Trim(),
                         Location = data[4].Trim(),
                     };
-                    var existingUser = await _database.Table<Establishment>().FirstOrDefaultAsync(u => u.Name == esta.Name);
+                    var existingUser = await _database.Table<Establishment>().FirstOrDefaultAsync(u => u.NickName == esta.NickName);
                     if (existingUser == null)
                     {
                         establishments.Add(esta);
@@ -106,7 +130,8 @@ namespace Cellular.Data
                     var event_ = new Event
                     {
                         UserId = int.TryParse(data[0].Trim(), out int UserId) ? UserId : 0,
-                        Name = data[1].Trim(),
+                        LongName = data[1].Trim(),
+                        NickName = data[1].Trim(),
                         Type = data[2].Trim(),
                         Location = data[3].Trim(),
                         Average = int.TryParse(data[4].Trim(), out int average) ? average : 0,
@@ -114,7 +139,7 @@ namespace Cellular.Data
                         Standings = data[6].Trim(),
 
                     };
-                    var existingUser = await _database.Table<Event>().FirstOrDefaultAsync(u => u.Name == event_.Name);
+                    var existingUser = await _database.Table<Event>().FirstOrDefaultAsync(u => u.LongName == event_.LongName);
                     if (existingUser == null)
                     {
                         events.Add(event_);

@@ -70,7 +70,14 @@ namespace Cellular.Services
         private readonly List<AccelerometerDerivative> _accelerometerDerivatives = new List<AccelerometerDerivative>();
         
         private const double BufferDurationSeconds = 3.0;
-        private const float LightSensorHighThreshold = 40000.0f; // Updated to 40000 as requested
+        private const string LightThresholdPreferenceKey = "LightSensorThreshold";
+        private const float DefaultLightSensorHighThreshold = 5000.0f;
+
+        public static float LightSensorHighThreshold
+        {
+            get => Microsoft.Maui.Storage.Preferences.Get(LightThresholdPreferenceKey, DefaultLightSensorHighThreshold);
+            set => Microsoft.Maui.Storage.Preferences.Set(LightThresholdPreferenceKey, value);
+        }
         private const double ContinuousSaveDurationSeconds = 4.0; // Save for 4 seconds
         private const float AccelerometerDerivativeJumpThreshold = 5.0f; // G/s threshold for detecting jumps (fallback when not enough data)
         private const int DerivativeAveragingWindowSize = 10; // Number of previous derivatives to average

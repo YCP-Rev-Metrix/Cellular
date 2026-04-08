@@ -6,6 +6,19 @@
              BackgroundColor="{StaticResource Gray950}">
     <Grid RowDefinitions="Auto,*" Padding="16">
         <VerticalStackLayout Grid.Row="0" Spacing="12" Margin="0,0,0,12">
+            <Label Text="Source"
+                   TextColor="{StaticResource Gray300}"
+                   FontSize="12"/>
+            <Picker x:Name="SourcePicker"
+                    Title="Select source..."
+                    BackgroundColor="{StaticResource Gray900}"
+                    TextColor="{StaticResource White}"
+                    SelectedIndexChanged="OnSourceSelected">
+                <Picker.Items>
+                    <x:String>Local</x:String>
+                    <x:String>Cloud</x:String>
+                </Picker.Items>
+            </Picker>
             <Label Text="Table"
                    TextColor="{StaticResource Gray300}"
                    FontSize="12"/>
@@ -18,6 +31,21 @@
                    Text=""
                    TextColor="{StaticResource Gray400}"
                    FontSize="14"/>
+            <Label x:Name="DeleteInfoLabel"
+                   Text="Tap a row's Delete to remove it from local DB (so local != cloud for testing)."
+                   TextColor="{StaticResource Gray500}"
+                   FontSize="12"
+                   LineBreakMode="WordWrap"/>
+            <Button x:Name="DeleteLocalDataButton"
+                    Text="Delete Local Data (Keep Users)"
+                    BackgroundColor="#5C2E2E"
+                    TextColor="White"
+                    Clicked="OnDeleteLocalDataClicked"/>
+            <Button x:Name="DeleteCloudDataButton"
+                    Text="Delete Cloud Data (Keep Users)"
+                    BackgroundColor="#5C2E2E"
+                    TextColor="White"
+                    Clicked="OnDeleteCloudDataClicked"/>
         </VerticalStackLayout>
         <ScrollView Grid.Row="1" x:Name="DataScroll">
             <VerticalStackLayout x:Name="DataContainer" Spacing="12" Padding="0,8"/>

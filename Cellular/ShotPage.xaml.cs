@@ -152,7 +152,7 @@ namespace Cellular
                             await LoadExistingGameData(true);
                         }
                     }
-                    if (viewModel.CurrentFrame < 12)
+                    if (viewModel.CurrentFrame <= 12)
                     {
                         // Only add a new UI frame if one for this frame number doesn't already exist
                         if (!viewModel.Frames.Any(f => f.FrameNumber == viewModel.CurrentFrame))
