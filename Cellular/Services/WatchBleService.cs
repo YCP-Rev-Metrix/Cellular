@@ -34,6 +34,9 @@ namespace Cellular.Services
         private User? _syncUser;
         private int _syncUserId;
 
+        // Cache for mapping watch anonymous session IDs to actual database session IDs
+        private Dictionary<int, int> _anonymousSessionIdMapping = new();
+
         private IDevice? _device;
         private ICharacteristic? _commandChar;
         private ICharacteristic? _notifyChar;
@@ -373,6 +376,13 @@ namespace Cellular.Services
 
                 Debug.WriteLine($"SaveShotToDatabase: Starting save for Session {sessionId}, Game {gameNumber}, Frame {frameNumber}, Shot {shotNumber}");
 
+                // Check if this is an anonymous session (ID > 100,000)
+                if (sessionId > 100000)
+                {
+                    // Get a unique anonymous session ID (may be different if collision detected)
+                    sessionId = (uint)await GetUniqueAnonymousSessionIdAsync((int)sessionId);
+                }
+
                 // Step 1: Find or create the Game
                 var game = await _gameRepo.GetOrCreateGame((int)sessionId, gameNumber);
                 Debug.WriteLine($"SaveShotToDatabase: Game retrieved/created - GameId {game.GameId}, GameNumber {gameNumber}");
@@ -499,6 +509,95 @@ namespace Cellular.Services
             }
         }
 
+        private async Task<int> GetUniqueAnonymousSessionIdAsync(int requestedSessionId)
+        {
+            try
+            {
+                // Check if we've already mapped this watch session ID to a database session ID
+                if (_anonymousSessionIdMapping.TryGetValue(requestedSessionId, out int mappedSessionId))
+                {
+                    Debug.WriteLine($"GetUniqueAnonymousSessionIdAsync: Watch session {requestedSessionId} already mapped to database session {mappedSessionId}");
+                    return mappedSessionId;
+                }
+
+                if (_syncSessionRepo == null)
+                {
+                    Debug.WriteLine($"GetUniqueAnonymousSessionIdAsync: SessionRepository not available");
+                    return requestedSessionId;
+                }
+
+                // Get all sessions for the current user
+                var userSessions = await _syncSessionRepo.GetSessionsByUserIdAsync(_syncUserId);
+
+                // Check if the requested ID already exists
+                var existingSession = userSessions.FirstOrDefault(s => s.SessionId == requestedSessionId);
+
+                if (existingSession == null)
+                {
+                    // ID is available - create new session with this ID
+                    var newSession = new Session
+                    {
+                        SessionId = requestedSessionId,
+                        SessionNumber = userSessions.Count + 1,
+                        UserId = _syncUserId,
+                        EventId = 0, // Anonymous sessions don't have an event
+                        DateTime = DateTime.Now,
+                        CloudID = null // Anonymous sessions won't be synced to cloud
+                    };
+
+                    await _syncSessionRepo.AddAsync(newSession);
+                    Debug.WriteLine($"GetUniqueAnonymousSessionIdAsync: Created anonymous session {requestedSessionId} for user {_syncUserId}");
+
+                    // Store the mapping
+                    _anonymousSessionIdMapping[requestedSessionId] = requestedSessionId;
+                    return requestedSessionId;
+                }
+
+                // ID collision detected - find next available anonymous ID
+                Debug.WriteLine($"GetUniqueAnonymousSessionIdAsync: Session ID {requestedSessionId} already exists. Finding alternative ID...");
+
+                int newId = requestedSessionId + 1;
+                const int maxAttempts = 1000; // Prevent infinite loop
+                int attempts = 0;
+
+                while (attempts < maxAttempts)
+                {
+                    var checkSession = userSessions.FirstOrDefault(s => s.SessionId == newId);
+                    if (checkSession == null)
+                    {
+                        // Found available ID
+                        var newSession = new Session
+                        {
+                            SessionId = newId,
+                            SessionNumber = userSessions.Count + 1,
+                            UserId = _syncUserId,
+                            EventId = 0,
+                            DateTime = DateTime.Now,
+                            CloudID = null
+                        };
+
+                        await _syncSessionRepo.AddAsync(newSession);
+                        Debug.WriteLine($"GetUniqueAnonymousSessionIdAsync: Collision on {requestedSessionId}. Created new anonymous session {newId} for user {_syncUserId}");
+
+                        // Store the mapping so subsequent shots use the correct ID
+                        _anonymousSessionIdMapping[requestedSessionId] = newId;
+                        return newId;
+                    }
+
+                    newId++;
+                    attempts++;
+                }
+
+                Debug.WriteLine($"GetUniqueAnonymousSessionIdAsync: Could not find available anonymous session ID after {maxAttempts} attempts");
+                return requestedSessionId; // Fallback to original (shouldn't happen in practice)
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"GetUniqueAnonymousSessionIdAsync error: {ex.Message}");
+                return requestedSessionId;
+            }
+        }
+
         private async Task HandleSyncCommand()
         {
             try
@@ -539,6 +638,9 @@ namespace Cellular.Services
             {
                 try { await _adapter.DisconnectDeviceAsync(_device); } catch { }
             }
+
+            // Clear the anonymous session ID mapping on disconnect
+            _anonymousSessionIdMapping.Clear();
 
             IsConnected = false;
         }
