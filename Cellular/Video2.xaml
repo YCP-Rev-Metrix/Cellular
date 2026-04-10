@@ -45,8 +45,10 @@
                 <Button x:Name="UseCiclopesBtn"
                     Text="Use Ciclopes"
                     Clicked="OnUseCiclopesClicked"
-                    IsEnabled="False"
-                    BackgroundColor="Gray"/>
+                    IsVisible="False"
+                    WidthRequest="90"
+                    HeightRequest="90"
+                    BackgroundColor="#9880e5"/>
             </HorizontalStackLayout>
 
         </VerticalStackLayout>
