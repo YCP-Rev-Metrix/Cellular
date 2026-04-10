@@ -46,6 +46,7 @@ namespace Cellular
         private SensorBufferManager? _sensorBufferManager;
         private IMetaWearService _metaWearService; // Not readonly so we can update to singleton if needed
         private readonly UserRepository _userRepository;
+        private readonly SmartDotDeviceRepository _deviceRepository;
         private readonly IBluetoothLE _ble = CrossBluetoothLE.Current;
         private readonly IAdapter _adapter = CrossBluetoothLE.Current.Adapter;
 
@@ -99,7 +100,9 @@ namespace Cellular
                 ?? new MetaWearBleService(); // Last resort - but this should not happen with proper DI
 
             // Initialize UserRepository
-            _userRepository = new UserRepository(new CellularDatabase().GetConnection());
+            var dbConn = new CellularDatabase().GetConnection();
+            _userRepository = new UserRepository(dbConn);
+            _deviceRepository = new SmartDotDeviceRepository(dbConn);
 
             // Subscribe to connection/disconnection events
             _metaWearService.DeviceDisconnected -= OnDeviceDisconnected; // Remove first to avoid duplicates
@@ -677,14 +680,20 @@ namespace Cellular
                 {
                     string? savedMac = await _userRepository.GetSmartDotMacAsync(userId);
                     if (!string.IsNullOrEmpty(savedMac))
-                    {
                         macAddress = savedMac;
-                    }
                 }
             }
 
+            // Look up friendly name from device profile
+            string? deviceName = null;
+            if (!string.IsNullOrEmpty(macAddress) && macAddress != "Unknown")
+            {
+                var deviceProfile = await _deviceRepository.GetByMacAsync(macAddress);
+                deviceName = deviceProfile?.DeviceName;
+            }
+
             // Show popup with connection info
-            var popup = new Cellular.Views.MmsConnectionPopup(macAddress, isConnected);
+            var popup = new Cellular.Views.MmsConnectionPopup(macAddress, isConnected, deviceName);
 
             // Ensure Completion is set if the popup is closed by other means
             popup.Closed += (s, args) =>

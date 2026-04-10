@@ -63,8 +63,8 @@
                     IsVisible="True" />
 
             <Button x:Name="bluetooth"
-                    Text="Bluetooth" 
-                    SemanticProperties.Hint="Access bluetooth devices"
+                    Text="SmartDot"
+                    SemanticProperties.Hint="Access SmartDot device"
                     Clicked="OnBluetoothClicked"
                     HorizontalOptions="Fill"
                     IsVisible="True" />

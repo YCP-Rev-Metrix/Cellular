@@ -78,7 +78,30 @@ namespace Cellular.Services
             get => Microsoft.Maui.Storage.Preferences.Get(LightThresholdPreferenceKey, DefaultLightSensorHighThreshold);
             set => Microsoft.Maui.Storage.Preferences.Set(LightThresholdPreferenceKey, value);
         }
-        private const double ContinuousSaveDurationSeconds = 4.0; // Save for 4 seconds
+        private const string RecordDurationPreferenceKey = "RecordDurationSeconds";
+        private const double DefaultContinuousSaveDurationSeconds = 4.0;
+
+        public static double ContinuousSaveDurationSeconds
+        {
+            get => Microsoft.Maui.Storage.Preferences.Get(RecordDurationPreferenceKey, DefaultContinuousSaveDurationSeconds);
+            set => Microsoft.Maui.Storage.Preferences.Set(RecordDurationPreferenceKey, value);
+        }
+        // ── Sensor configuration (persisted via Preferences) ──────────────────────
+        public static float AccelSampleRate      { get => Pref(50f,   "AccelSampleRate");    set => Microsoft.Maui.Storage.Preferences.Set("AccelSampleRate",    value); }
+        public static float AccelRange           { get => Pref(16f,   "AccelRange");         set => Microsoft.Maui.Storage.Preferences.Set("AccelRange",         value); }
+        public static float GyroSampleRate       { get => Pref(100f,  "GyroSampleRate");     set => Microsoft.Maui.Storage.Preferences.Set("GyroSampleRate",     value); }
+        public static float GyroRange            { get => Pref(2000f, "GyroRange");          set => Microsoft.Maui.Storage.Preferences.Set("GyroRange",          value); }
+        public static float MagSampleRate        { get => Pref(25f,   "MagSampleRate");      set => Microsoft.Maui.Storage.Preferences.Set("MagSampleRate",      value); }
+        public static float LightSampleRate      { get => Pref(10f,   "LightSampleRate");    set => Microsoft.Maui.Storage.Preferences.Set("LightSampleRate",    value); }
+        public static int   LightGain            { get => Microsoft.Maui.Storage.Preferences.Get("LightGain",            0); set => Microsoft.Maui.Storage.Preferences.Set("LightGain",            value); }
+        public static int   LightIntegrationTime { get => Microsoft.Maui.Storage.Preferences.Get("LightIntegrationTime", 0); set => Microsoft.Maui.Storage.Preferences.Set("LightIntegrationTime", value); }
+        public static int   LightMeasurementRate { get => Microsoft.Maui.Storage.Preferences.Get("LightMeasurementRate", 1); set => Microsoft.Maui.Storage.Preferences.Set("LightMeasurementRate", value); }
+        public static int   BaroOversampling     { get => Microsoft.Maui.Storage.Preferences.Get("BaroOversampling",     3); set => Microsoft.Maui.Storage.Preferences.Set("BaroOversampling",     value); }
+        public static int   BaroIirFilter        { get => Microsoft.Maui.Storage.Preferences.Get("BaroIirFilter",        0); set => Microsoft.Maui.Storage.Preferences.Set("BaroIirFilter",        value); }
+        public static int   BaroStandbyTime      { get => Microsoft.Maui.Storage.Preferences.Get("BaroStandbyTime",      0); set => Microsoft.Maui.Storage.Preferences.Set("BaroStandbyTime",      value); }
+        private static float Pref(float def, string key) => Microsoft.Maui.Storage.Preferences.Get(key, def);
+        // ──────────────────────────────────────────────────────────────────────────
+
         private const float AccelerometerDerivativeJumpThreshold = 5.0f; // G/s threshold for detecting jumps (fallback when not enough data)
         private const int DerivativeAveragingWindowSize = 10; // Number of previous derivatives to average
         private const float DerivativeSpikeMultiplier = 1.8f; // Multiplier above average to consider a spike (lower = more sensitive for bowling release)
@@ -154,11 +177,11 @@ namespace Cellular.Services
 
             try
             {
-                // Start all sensors needed for buffering
-                await _metaWearService.StartAccelerometerAsync(50f, 16f);
-                await _metaWearService.StartGyroscopeAsync(100f, 2000f);
-                await _metaWearService.StartMagnetometerAsync(25f);
-                await _metaWearService.StartLightSensorAsync(10f);
+                // Start all sensors needed for buffering, using saved configuration
+                await _metaWearService.StartAccelerometerAsync(AccelSampleRate, AccelRange);
+                await _metaWearService.StartGyroscopeAsync(GyroSampleRate, GyroRange);
+                await _metaWearService.StartMagnetometerAsync(MagSampleRate);
+                await _metaWearService.StartLightSensorAsync(LightSampleRate, (byte)LightGain, (byte)LightIntegrationTime, (byte)LightMeasurementRate);
             }
             catch (Exception ex)
             {

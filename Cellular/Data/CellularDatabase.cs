@@ -38,6 +38,9 @@ namespace Cellular.Data
             await _database.CreateTableAsync<BowlingFrame>();
             await _database.CreateTableAsync<Shot>();
 
+            // Local-only device profile table — never synced to cloud
+            await _database.CreateTableAsync<SmartDotDevice>();
+
             await EnsureCloudIdColumnsAsync(_database);
         }
 

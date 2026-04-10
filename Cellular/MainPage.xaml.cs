@@ -98,7 +98,7 @@ namespace Cellular
 
         private async void OnBluetoothClicked(object sender, EventArgs e)
         {
-            await Navigation.PushAsync(new Bluetooth());
+            await Navigation.PushAsync(new SmartDot());
         }
 
         private async void OnVideoClicked(object sender, EventArgs e)

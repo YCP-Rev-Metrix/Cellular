@@ -1424,7 +1424,7 @@ namespace Cellular.Services
             }
         }
 
-        public async Task StartLightSensorAsync(float sampleRate = 10f)
+        public async Task StartLightSensorAsync(float sampleRate = 10f, byte gain = 0, byte integrationTime = 0, byte measurementRate = 1)
         {
             if (_commandCharacteristic == null || !IsConnected)
                 throw new InvalidOperationException("Device not connected");
@@ -1444,11 +1444,14 @@ namespace Cellular.Services
                 // For LTR-329ALS-01 light sensor (module 0x14):
                 // Step 1: Configure the light sensor
                 // Register 0x04: Configuration (gain, integration time, measurement rate)
-                // For simplicity, use default settings
+                // gain: 0=1x, 1=2x, 2=4x, 3=8x, 6=48x, 7=96x
+                // integrationTime: 0=100ms, 1=50ms, 2=200ms, 3=400ms, 4=150ms, 5=250ms, 6=300ms, 7=350ms
+                // measurementRate: 0=50ms, 1=100ms, 2=200ms, 3=500ms, 4=1000ms, 5=2000ms
                 byte[] configCommand = new byte[]
                 {
-                    0x14, 0x04, // Module ID: 0x14 (Light Sensor), Register ID: 0x04 (Configuration)
-                    0x01, 0x01  // Gain and integration time settings (default)
+                    0x14, 0x04,                                             // Module, Register
+                    gain,                                                   // Gain setting
+                    (byte)((integrationTime << 3) | (measurementRate & 0x7)) // Integration + rate packed
                 };
                 
                 DebugLog($"[LightSensor] Sending config command: [{string.Join(", ", configCommand.Select(b => $"0x{b:X2}"))}]");
@@ -1564,14 +1567,90 @@ namespace Cellular.Services
 
             try
             {
-                // MetaWear reset command 
-                byte[] resetCommand = new byte[] { 0x0F, 0x0A }; // System module, Reset command
+                // Debug module (0xfe), register 0x01 = mbl_mw_debug_reset
+                byte[] resetCommand = new byte[] { 0xfe, 0x01 };
                 await WriteCommandAsync(resetCommand);
+                DebugLog("[Device] Reset command sent");
             }
             catch (Exception ex)
             {
                 DebugLog($"Error resetting device: {ex.Message}");
                 throw;
+            }
+        }
+
+        public async Task SleepAsync()
+        {
+            if (_commandCharacteristic == null || !IsConnected)
+                throw new InvalidOperationException("Device not connected");
+
+            try
+            {
+                // Deep sleep sequence per MetaWear C++ SDK:
+                //   1. mbl_mw_debug_enable_power_save  → { 0xfe, 0x06 }
+                //      Marks the device to enter low-power sleep on the next reset.
+                //      Wake-up requires pressing the physical button or plugging in USB.
+                //   2. mbl_mw_debug_reset              → { 0xfe, 0x01 }
+                //      Triggers the reset; device immediately goes into deep sleep.
+                await WriteCommandAsync(new byte[] { 0xfe, 0x06 });
+                await Task.Delay(100); // brief pause so the flag is committed
+                await WriteCommandAsync(new byte[] { 0xfe, 0x01 });
+                DebugLog("[Device] Deep sleep command sequence sent (enable_power_save + reset)");
+            }
+            catch (Exception ex)
+            {
+                DebugLog($"Error sending sleep command: {ex.Message}");
+                throw;
+            }
+        }
+
+        public async Task StartBarometerAsync(byte oversampling = 3, byte iirFilter = 0, byte standbyTime = 0)
+        {
+            if (_commandCharacteristic == null || !IsConnected)
+                throw new InvalidOperationException("Device not connected");
+
+            try
+            {
+                DebugLog($"[Barometer] Configuring - Oversampling: {oversampling}, IIR: {iirFilter}, Standby: {standbyTime}");
+
+                // BMP280 module (0x12) — set pressure oversampling
+                // Register 0x01: pressure oversampling (0=ULP,1=LP,2=Standard,3=High,4=UltraHigh)
+                byte[] oversamplingCmd = new byte[] { 0x12, 0x01, oversampling };
+                await WriteCommandAsync(oversamplingCmd);
+                await Task.Delay(50);
+
+                // Register 0x02: IIR filter (bits [4:2]) + standby time (bits [7:5])
+                byte configByte = (byte)((standbyTime << 5) | (iirFilter << 2));
+                byte[] configCmd = new byte[] { 0x12, 0x02, configByte };
+                await WriteCommandAsync(configCmd);
+                await Task.Delay(50);
+
+                // Register 0x03: Start periodic measurement
+                byte[] startCmd = new byte[] { 0x12, 0x03, 0x01 };
+                await WriteCommandAsync(startCmd);
+                DebugLog("[Barometer] Barometer started");
+            }
+            catch (Exception ex)
+            {
+                DebugLog($"[Barometer] Error starting barometer: {ex.Message}");
+                throw;
+            }
+        }
+
+        public async Task StopBarometerAsync()
+        {
+            if (_commandCharacteristic == null || !IsConnected)
+                return;
+
+            try
+            {
+                byte[] stopCmd = new byte[] { 0x12, 0x04, 0x00 };
+                await WriteCommandAsync(stopCmd);
+                DebugLog("[Barometer] Barometer stopped");
+            }
+            catch (Exception ex)
+            {
+                DebugLog($"[Barometer] Error stopping barometer: {ex.Message}");
             }
         }
 

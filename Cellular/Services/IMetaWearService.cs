@@ -99,7 +99,10 @@ namespace Cellular.Services
         /// Starts light sensor data streaming
         /// </summary>
         /// <param name="sampleRate">Sample rate in Hz (1-10)</param>
-        Task StartLightSensorAsync(float sampleRate = 10f);
+        /// <param name="gain">LTR329 gain: 0=1x, 1=2x, 2=4x, 3=8x, 6=48x, 7=96x</param>
+        /// <param name="integrationTime">LTR329 integration time: 0=100ms, 1=50ms, 2=200ms, 3=400ms, 4=150ms, 5=250ms, 6=300ms, 7=350ms</param>
+        /// <param name="measurementRate">LTR329 measurement rate: 0=50ms, 1=100ms, 2=200ms, 3=500ms, 4=1000ms, 5=2000ms</param>
+        Task StartLightSensorAsync(float sampleRate = 10f, byte gain = 0, byte integrationTime = 0, byte measurementRate = 1);
 
         /// <summary>
         /// Stops light sensor data streaming
@@ -107,9 +110,27 @@ namespace Cellular.Services
         Task StopLightSensorAsync();
 
         /// <summary>
+        /// Starts barometer (BMP280) with the given configuration
+        /// </summary>
+        /// <param name="oversampling">Pressure oversampling: 0=ULP, 1=LP, 2=Standard, 3=High, 4=Ultra High</param>
+        /// <param name="iirFilter">IIR filter coefficient: 0=Off, 1=2, 2=4, 3=8, 4=16</param>
+        /// <param name="standbyTime">Standby time index: 0=0.5ms, 1=62.5ms, 2=125ms, 3=250ms, 4=500ms, 5=1000ms, 6=2000ms, 7=4000ms</param>
+        Task StartBarometerAsync(byte oversampling = 3, byte iirFilter = 0, byte standbyTime = 0);
+
+        /// <summary>
+        /// Stops barometer streaming
+        /// </summary>
+        Task StopBarometerAsync();
+
+        /// <summary>
         /// Resets the device
         /// </summary>
         Task ResetAsync();
+
+        /// <summary>
+        /// Puts the device into sleep/low-power mode
+        /// </summary>
+        Task SleepAsync();
 
         /// <summary>
         /// Probes the device to discover available modules and registers
