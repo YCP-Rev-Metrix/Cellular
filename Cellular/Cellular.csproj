@@ -182,6 +182,10 @@
 	</ItemGroup>
 
 	<ItemGroup>
+		<EmbeddedResource Include="settings.json" />
+	</ItemGroup>
+
+	<ItemGroup>
 	  <ProjectReference Include="..\CellularCore\CellularCore.csproj" />
 	</ItemGroup>
 

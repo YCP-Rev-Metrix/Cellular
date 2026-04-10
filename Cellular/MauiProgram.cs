@@ -1,6 +1,5 @@
 ﻿using Cellular.Data;
 using Cellular.Services;
-using Cellular.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.DependencyInjection;
 using CommunityToolkit.Maui;
@@ -18,8 +17,6 @@ namespace Cellular
     {
         public static MauiApp CreateMauiApp()
         {
-            DotEnvLoader.LoadFromSolutionRoot();
-
             var builder = MauiApp.CreateBuilder();
             builder
                 .UseMauiApp<App>().UseMauiCameraView()
