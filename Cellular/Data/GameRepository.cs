@@ -64,6 +64,37 @@ namespace Cellular.Data
                                   .FirstOrDefaultAsync();
         }
 
+        public async Task<Game> GetOrCreateGame(int sessionId, int gameNumber)
+        {
+            var existingGame = await _conn.Table<Game>()
+                                          .Where(g => g.SessionId == sessionId && g.GameNumber == gameNumber)
+                                          .FirstOrDefaultAsync();
+
+            if (existingGame != null)
+            {
+                return existingGame;
+            }
+
+            // Create new game with defaults
+            var newGame = new Game
+            {
+                SessionId = sessionId,
+                GameNumber = gameNumber,
+                Score = 0,
+                Win = null,
+                Lanes = null,
+                StartingLane = null,
+                TeamResult = null,
+                IndividualResult = null,
+                CloudID = null
+            };
+
+            await _conn.InsertAsync(newGame);
+            Debug.WriteLine($"GameRepository: Created new game - GameId {newGame.GameId}, GameNumber {gameNumber}, SessionId {sessionId}");
+
+            return newGame;
+        }
+
         // New: return games in a session that have at least one BowlingFrame with the given frameNumber.
         public async Task<List<Game>> GetGamesBySessionAndFrameNumberAsync(int sessionId, int frameNumber)
         {

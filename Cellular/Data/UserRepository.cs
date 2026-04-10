@@ -110,5 +110,32 @@ namespace Cellular.Data
             return user?.IsConnected ?? false;
         }
 
+        /// <summary>
+        /// Sets a watch as the default watch for a user
+        /// </summary>
+        public async Task SetDefaultWatchAsync(int userId, string watchName, string watchMac)
+        {
+            var user = await GetUserByIdAsync(userId);
+            if (user != null)
+            {
+                user.DefaultWatchName = watchName;
+                user.DefaultWatchMac = watchMac;
+                await UpdateUserAsync(user);
+            }
+        }
+
+        /// <summary>
+        /// Gets the default watch for a user
+        /// </summary>
+        public async Task<(string? Name, string? Mac)> GetDefaultWatchAsync(int userId)
+        {
+            var user = await GetUserByIdAsync(userId);
+            if (user != null)
+            {
+                return (user.DefaultWatchName, user.DefaultWatchMac);
+            }
+            return (null, null);
+        }
+
     }
 }

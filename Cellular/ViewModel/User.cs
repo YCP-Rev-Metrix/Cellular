@@ -21,5 +21,9 @@ namespace Cellular.ViewModel
         public String? SmartDotMac { get; set; }
 
         public bool IsConnected { get; set; }
+
+        public String? DefaultWatchName { get; set; }
+
+        public String? DefaultWatchMac { get; set; }
     }
 }
