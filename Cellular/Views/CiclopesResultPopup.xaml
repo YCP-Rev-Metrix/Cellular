@@ -352,7 +352,7 @@
                         StrokeShape="RoundRectangle 12"
                         StrokeThickness="0"
                         Margin="0,40,0,0"
-                        IsClippedToBounds="True">
+                        >
                     <views:CiclopesPoseView x:Name="PoseView"/>
                 </Border>
 
