@@ -34,8 +34,13 @@ namespace Cellular
             await SoftRefreshAsync();
         }
         private void UpdateUI()
-        { 
-            // Set which buttons show up when logged in or out
+        {
+            // Panel-level visibility
+            loggedOutPanel.IsVisible = !isLoggedIn;
+            loggedInPanel.IsVisible = isLoggedIn;
+            welcomeRow.IsVisible = isLoggedIn;
+
+            // Individual control visibility
             login.IsVisible = !isLoggedIn;
             register.IsVisible = !isLoggedIn;
             guest.IsVisible = !isLoggedIn;
