@@ -1,4 +1,5 @@
 ﻿using Cellular.Data;
+using Cellular.Services;
 using Cellular.ViewModel;
 using Cellular.Views;
 using CellularCore;
@@ -21,6 +22,7 @@ namespace Cellular
     public partial class ShotPage : ContentPage
     {
         private readonly GameInterfaceViewModel viewModel;
+        private IWatchBleService? _watchBleService;
 
         private bool _hasAppeared = false;
         public ShotPage()
@@ -29,6 +31,9 @@ namespace Cellular
             viewModel = new GameInterfaceViewModel();
             BindingContext = viewModel;
             viewModel.AlertEditFrame += HandleEditFrame;
+
+            // Get the watch BLE service from dependency injection
+            _watchBleService = IPlatformApplication.Current?.Services.GetService<IWatchBleService>();
         }
 
         protected override void OnAppearing()
@@ -49,6 +54,24 @@ namespace Cellular
                 // do it here in a minimal way rather than re-running full initialization.
                 Debug.WriteLine("ShotPage re-appeared (popup closed or focus returned). Skipping full reload.");
             }
+
+            // Subscribe to watch shot events
+            if (_watchBleService != null)
+            {
+                _watchBleService.WatchShotReceived += OnWatchShotReceived;
+                Debug.WriteLine("ShotPage: Subscribed to WatchShotReceived event");
+            }
+        }
+
+        protected override void OnDisappearing()
+        {
+            // Unsubscribe from watch shot events to prevent memory leaks
+            if (_watchBleService != null)
+            {
+                _watchBleService.WatchShotReceived -= OnWatchShotReceived;
+                Debug.WriteLine("ShotPage: Unsubscribed from WatchShotReceived event");
+            }
+            base.OnDisappearing();
         }
 
         // Handles pin click events and toggles the pin state
@@ -883,8 +906,8 @@ namespace Cellular
                 if (shot1 == null)
                     continue;
 
-                bool isShot1Foul = (shot1.LeaveType & (1 << 10)) != 0;
-                bool isShot2Foul = shot2 != null && (shot2.LeaveType & (1 << 10)) != 0;
+                bool isShot1Foul = ((shot1.LeaveType ?? 0) & (1 << 10)) != 0;
+                bool isShot2Foul = shot2 != null && ((shot2.LeaveType ?? 0) & (1 << 10)) != 0;
 
                 // BLOCK Foul with 10 pins as "false strike"
                 if (isShot1Foul && shot1.Count == 10)
@@ -895,8 +918,8 @@ namespace Cellular
                     continue; // don't process it further
                 }
 
-                bool isStrike = !isShot1Foul && shot1.Count == 10;
-                bool isSpare = !isStrike && shot2 != null && !isShot2Foul && (shot1.Count + shot2.Count == 10);
+                bool isStrike = !isShot1Foul && (shot1.Count ?? 0) == 10;
+                bool isSpare = !isStrike && shot2 != null && !isShot2Foul && ((shot1.Count ?? 0) + (shot2.Count ?? 0) == 10);
                 Debug.WriteLine($"Shot 1 count: {shot1.Count}");
 
                 if (isStrike)
@@ -929,7 +952,7 @@ namespace Cellular
                     if (bonusShots.Count >= 2)
                     {
                         Debug.WriteLine($"Bonus shot 1: {bonusShots[0].Count} and bonus shot 2: {bonusShots[1].Count}");
-                        frameScore = 10 + bonusShots[0].Count + bonusShots[1].Count ?? 0;
+                        frameScore = 10 + (bonusShots[0].Count ?? 0) + (bonusShots[1].Count ?? 0);
                         totalScore += frameScore;
 
                         if (i < 10)
@@ -990,6 +1013,26 @@ namespace Cellular
                     else
                     {
                         frameScore = (shot1?.Count ?? 0) + (shot2?.Count ?? 0);
+                    }
+                    totalScore += frameScore;
+
+                    if (i < viewModel.Frames.Count)
+                    {
+                        var uiFrame = viewModel.Frames[i];
+                        uiFrame.RollingScore = totalScore;
+                        uiFrame.OnPropertyChanged(nameof(uiFrame.RollingScore));
+                    }
+                }
+                else if (!isStrike && !isSpare && shot2 == null)
+                {
+                    // Single shot open frame (e.g., 9 pins on first shot only)
+                    if (isShot1Foul)
+                    {
+                        frameScore = 0;
+                    }
+                    else
+                    {
+                        frameScore = (shot1.Count ?? 0);
                     }
                     totalScore += frameScore;
 
@@ -1293,6 +1336,109 @@ namespace Cellular
             if (box == "/") return 10; // caller should handle spare context appropriately
             if (int.TryParse(box, out int val)) return val;
             return 0;
+        }
+
+        /// <summary>
+        /// Handler for when a shot is received from the smartwatch via BLE.
+        /// Updates the UI to display the new shot in the current frame.
+        /// </summary>
+        private void OnWatchShotReceived(object? sender, Shot shot)
+        {
+            // Ensure we're on the main thread for UI updates
+            MainThread.BeginInvokeOnMainThread(() =>
+            {
+                try
+                {
+                    Debug.WriteLine($"OnWatchShotReceived: Shot received from watch - Frame {shot.Frame}, Shot {shot.ShotNumber}, Pins Down {shot.Count}");
+
+                    // Find the frame in the UI by frame ID
+                    var currentFrame = viewModel.Frames.FirstOrDefault(f => f.FrameNumber == viewModel.CurrentFrame);
+                    if (currentFrame == null)
+                    {
+                        Debug.WriteLine($"OnWatchShotReceived: Could not find frame {viewModel.CurrentFrame} in UI");
+                        return;
+                    }
+
+                    // Only process if shot is actually linked to a frame
+                    if (shot.Frame == null || shot.Frame <= 0)
+                    {
+                        Debug.WriteLine($"OnWatchShotReceived: ERROR - Shot has no valid frame ID! This should never happen.");
+                        return;
+                    }
+
+                    // Only process if the shot belongs to the currently displayed frame
+                    if (shot.Frame != viewModel.currentFrameId)
+                    {
+                        Debug.WriteLine($"OnWatchShotReceived: Shot is for frame {shot.Frame}, but currently viewing frame {viewModel.currentFrameId}. Skipping UI update.");
+                        return;
+                    }
+
+                    // Extract foul flag and pin state from LeaveType
+                    bool isFoul = ((shot.LeaveType ?? 0) & (1 << 10)) != 0;
+                    int pinsStanding = (shot.LeaveType ?? 0) & 0x3FF;
+
+                    // Update pin states in view model for UI refresh
+                    viewModel.pinStates = (short)(shot.LeaveType ?? 0);
+
+                    // Update the shot box display
+                    if (shot.ShotNumber == 1)
+                    {
+                        // First shot display
+                        if (isFoul)
+                        {
+                            currentFrame.ShotOneBox = "F";
+                        }
+                        else if (shot.Count == 10)
+                        {
+                            currentFrame.ShotOneBox = "X"; // Strike
+                        }
+                        else if (shot.Count == 0)
+                        {
+                            currentFrame.ShotOneBox = "-"; // Miss
+                        }
+                        else
+                        {
+                            currentFrame.ShotOneBox = shot.Count.ToString();
+                        }
+
+                        Debug.WriteLine($"OnWatchShotReceived: Updated Shot 1 display - {currentFrame.ShotOneBox}");
+                    }
+                    else if (shot.ShotNumber == 2)
+                    {
+                        // Second shot display
+                        if (isFoul)
+                        {
+                            currentFrame.ShotTwoBox = "F";
+                        }
+                        else if (shot.Count == 10)
+                        {
+                            // Spare - all remaining pins knocked down
+                            currentFrame.ShotTwoBox = "/";
+                        }
+                        else if (shot.Count == 0)
+                        {
+                            currentFrame.ShotTwoBox = "-";
+                        }
+                        else
+                        {
+                            currentFrame.ShotTwoBox = shot.Count.ToString();
+                        }
+
+                        Debug.WriteLine($"OnWatchShotReceived: Updated Shot 2 display - {currentFrame.ShotTwoBox}");
+                    }
+
+                    // Refresh UI to show updated pin states and shot box
+                    ReloadButtonColors();
+                    viewModel.OnPropertyChanged(nameof(viewModel.Frames));
+
+                    Debug.WriteLine($"OnWatchShotReceived: UI updated successfully for shot {shot.ShotNumber}");
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine($"OnWatchShotReceived error: {ex.Message}");
+                    Debug.WriteLine($"OnWatchShotReceived stack trace: {ex.StackTrace}");
+                }
+            });
         }
     }
 }
