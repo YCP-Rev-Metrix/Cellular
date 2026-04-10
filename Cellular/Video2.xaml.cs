@@ -89,17 +89,7 @@ namespace Cellular
             await UpdateRecordButtonStateAsync();
         }
 
-        protected override void OnDisappearing()
-        {
-            base.OnDisappearing();
-
-            // Unsubscribe from watch recording events
-            _watchBleService.WatchStartRecordingRequested -= async (s, e) => await BeginExternalRecording();
-            _watchBleService.WatchStopRecordingRequested -= async (s, e) => await EndExternalRecording();
-
-            // Clean up stream if recording
-            CleanupStream();
-        }
+        
         
         public Video2()
         {
@@ -428,6 +418,13 @@ namespace Cellular
 
             isCameraStarted = false;
 
+            // Unsubscribe from watch recording events
+            _watchBleService.WatchStartRecordingRequested -= async (s, e) => await BeginExternalRecording();
+            _watchBleService.WatchStopRecordingRequested -= async (s, e) => await EndExternalRecording();
+
+            // Clean up stream if recording
+            CleanupStream();
+
             CleanupStream();
         }
 
@@ -536,102 +533,7 @@ namespace Cellular
             });
         }
 
-        public async Task BeginExternalRecording()
-        {
-            if (!isCameraStarted || isRecording)
-                return;
-
-            await MainThread.InvokeOnMainThreadAsync(async () =>
-            {
-                try
-                {
-                    isRecording = true;
-                    RecordBtn.Text = "Stop";
-                    RecordBtn.BackgroundColor = Colors.Red;
-
-                    string targetFolder = Path.Combine(FileSystem.AppDataDirectory, "MyVideos");
-                    Directory.CreateDirectory(targetFolder);
-
-                    string fileName = $"rm_{DateTime.Now:yyyyMMdd_HHmmss}.mp4";
-                    currentVideoPath = Path.Combine(targetFolder, fileName);
-
-                    _videoFileStream = File.Create(currentVideoPath);
-                    await cameraView.StartVideoRecording(_videoFileStream, CancellationToken.None);
-                }
-                catch (Exception ex)
-                {
-                    isRecording = false;
-                    RecordBtn.Text = "Record";
-                    RecordBtn.BackgroundColor = Color.FromArgb("#9880e5");
-                    CleanupStream();
-                }
-            });
-        }
-
-        public async Task EndExternalRecording()
-        {
-            if (!isRecording)
-                return;
-
-            await MainThread.InvokeOnMainThreadAsync(async () =>
-            {
-                try
-                {
-                    // Update state and UI
-                    isRecording = false;
-                    RecordBtn.Text = "Record";
-                    RecordBtn.BackgroundColor = Color.FromArgb("#9880e5");
-
-                    // Stop recording
-                    await cameraView.StopVideoRecording(CancellationToken.None);
-                    CleanupStream();
-
-                    if (File.Exists(currentVideoPath))
-                    {
-                        try
-                        {
-                            using var videoStream = File.OpenRead(currentVideoPath);
-
-                            string fileName = Path.GetFileName(currentVideoPath);
-                            string initialPath = App.LastSavePath;
-
-                            var saveResult = await FileSaver.Default.SaveAsync(
-                                initialPath,
-                                fileName,
-                                videoStream,
-                                CancellationToken.None);
-
-                            if (saveResult.IsSuccessful)
-                            {
-                                App.LastSavePath = Path.GetDirectoryName(saveResult.FilePath);
-                                await DisplayAlert("Success", $"Video saved to: {saveResult.FilePath}", "OK");
-
-                                File.Delete(currentVideoPath);
-                            }
-                            else
-                            {
-                                await DisplayAlert(
-                                    "Error",
-                                    $"Failed to save to gallery: {saveResult.Exception?.Message}",
-                                    "OK");
-                            }
-                        }
-                        catch (Exception saveEx)
-                        {
-                            await DisplayAlert("Error", $"Error preparing to save: {saveEx.Message}", "OK");
-                        }
-                    }
-                    else
-                    {
-                        await DisplayAlert("Error", "Could not find the recorded video file to save.", "OK");
-                    }
-                }
-                catch (Exception ex)
-                {
-                    await DisplayAlert("Error", $"Error stopping or saving recording: {ex.Message}", "OK");
-                }
-            });
-        }
+        
 
         private void OnDeviceDisconnected(object? sender, string macAddress)
         {
@@ -1028,8 +930,9 @@ namespace Cellular
                     // Cleanup the stream to flush data to disk
                     CleanupStream();
 
-                    // Save to Public Gallery/Folder
-                    await SaveVideoToGallery();
+                    // Save to phone (FileSaver) and upload to RevMetrix, same as timeout / manual flows
+                    if (File.Exists(currentVideoPath))
+                        await SaveAndUploadVideoAsync(currentVideoPath, logBytesForUpload: null, logFileNameForUpload: null, folderToSaveVideoTo: null);
 
                     isRecording = false;
                     RecordBtn.Text = "Record";
