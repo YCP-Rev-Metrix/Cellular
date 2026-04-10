@@ -180,11 +180,30 @@ namespace Cellular
                 }
             }
 
+            // Populate the light sensor threshold entry with the current saved value
+            LightThresholdEntry.Text = SensorBufferManager.LightSensorHighThreshold.ToString("0");
+            LightThresholdStatusLabel.Text = $"Current threshold: {SensorBufferManager.LightSensorHighThreshold:0}";
+
             // Try to auto-connect to saved SmartDot MAC if user is logged in (only once per page instance)
             if (!_hasAttemptedAutoConnect && !IsConnected)
             {
                 _hasAttemptedAutoConnect = true;
                 await TryAutoConnectAsync();
+            }
+        }
+
+        private void OnSaveLightThresholdClicked(object sender, EventArgs e)
+        {
+            if (float.TryParse(LightThresholdEntry.Text, out float newThreshold) && newThreshold > 0)
+            {
+                SensorBufferManager.LightSensorHighThreshold = newThreshold;
+                LightThresholdStatusLabel.Text = $"Saved! Current threshold: {newThreshold:0}";
+                LightThresholdStatusLabel.TextColor = Colors.Green;
+            }
+            else
+            {
+                LightThresholdStatusLabel.Text = "Invalid value. Please enter a positive number.";
+                LightThresholdStatusLabel.TextColor = Colors.Red;
             }
         }
 
