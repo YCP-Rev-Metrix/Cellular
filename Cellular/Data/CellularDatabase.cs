@@ -64,7 +64,7 @@ namespace Cellular.Data
 
         private async Task ImportEstabishmentsFromCsvAsync()
         {
-            var csvFileName = "establishments2.csv"; // File in Resources/Raw
+            var csvFileName = "establishments3.csv"; // File in Resources/Raw
 
             try
             {
@@ -114,7 +114,7 @@ namespace Cellular.Data
         }
         private async Task ImportEventsFromCsvAsync()
         {
-            var csvFileName = "events2.csv"; // File in Resources/Raw
+            var csvFileName = "events3.csv"; // File in Resources/Raw
 
             try
             {
@@ -176,7 +176,7 @@ namespace Cellular.Data
                     Console.WriteLine("Hakes bowling data already imported — skipping import.");
                     return;
                 }
-                var csvFileName = "lineScores1.csv";
+                var csvFileName = "lineScores3.csv";
                 using var stream = await FileSystem.OpenAppPackageFileAsync(csvFileName);
                 using var reader = new StreamReader(stream);
 
@@ -347,7 +347,7 @@ namespace Cellular.Data
         }
         private async Task ImportBallsFromCsvAsync()
         {
-            var csvFileName = "balls.csv"; // File in Resources/Raw
+            var csvFileName = "balls3.csv"; // File in Resources/Raw
 
             try
             {
