@@ -76,13 +76,6 @@
                     HorizontalOptions="Fill"
                     IsVisible="True" />
 
-            <Button x:Name="video2"
-                    Text="Video2" 
-                    SemanticProperties.Hint="Access video for Ciclopes"
-                    Clicked="OnVideo2Clicked"
-                    HorizontalOptions="Fill"
-                    IsVisible="True" />
-
             <Button x:Name="establishment"
                     Text="Establishments" 
                     SemanticProperties.Hint="takes you to the establishment page"
