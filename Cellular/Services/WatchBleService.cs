@@ -203,6 +203,20 @@ namespace Cellular.Services
                                 Debug.WriteLine("PHONE BLE → Watch requested sync");
                                 _ = HandleSyncCommand();
                             }
+                            else if (cmd == "disconn")
+                            {
+                                Debug.WriteLine("PHONE BLE → Watch requested disconnect");
+                                _ = DisconnectAsync();
+                            }
+                            else if (cmd == "nextSession")
+                            {
+                                Debug.WriteLine("PHONE BLE → Watch requested next session");
+                                if (root.TryGetProperty("sessionId", out var sessionIdProp))
+                                {
+                                    int completedSessionId = sessionIdProp.GetInt32();
+                                    _ = HandleNextSessionCommand(completedSessionId);
+                                }
+                            }
                         }
 
                         WatchJsonReceived?.Invoke(this, jsonStr);
@@ -598,6 +612,119 @@ namespace Cellular.Services
             }
         }
 
+        private async Task HandleNextSessionCommand(int completedSessionId)
+        {
+            try
+            {
+                if (!IsConnected)
+                {
+                    Debug.WriteLine("HandleNextSessionCommand: Not connected");
+                    return;
+                }
+
+                if (_syncSessionRepo == null || _syncBallRepo == null || _syncEventRepo == null)
+                {
+                    Debug.WriteLine("HandleNextSessionCommand: Sync context not initialized");
+                    return;
+                }
+
+                Debug.WriteLine($"HandleNextSessionCommand: Looking for next session after {completedSessionId}");
+
+                // Find the next incomplete session after the completed one
+                int? nextSessionId = await GetNextIncompleteSessionAsync(completedSessionId);
+
+                if (nextSessionId == null)
+                {
+                    Debug.WriteLine("HandleNextSessionCommand: No more incomplete sessions available");
+                    // Send packet indicating all sessions are complete (empty/minimal packet)
+                    await SendJsonToWatch(_syncUserId, _syncSessionRepo, _syncBallRepo, _syncEventRepo,
+                        _gameRepo, _syncUser, _frameRepo, _shotRepo, 0);
+                    return;
+                }
+
+                Debug.WriteLine($"HandleNextSessionCommand: Found next incomplete session {nextSessionId}");
+
+                // Send user data packet with the new session
+                await SendJsonToWatch(_syncUserId, _syncSessionRepo, _syncBallRepo, _syncEventRepo,
+                    _gameRepo, _syncUser, _frameRepo, _shotRepo, nextSessionId);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"HandleNextSessionCommand error: {ex.Message}");
+            }
+        }
+
+        private async Task<int?> GetNextIncompleteSessionAsync(int currentSessionId)
+        {
+            try
+            {
+                if (_syncSessionRepo == null || _gameRepo == null || _frameRepo == null)
+                    return null;
+
+                // Get all sessions for the user, ordered by SessionId
+                var allSessions = await _syncSessionRepo.GetSessionsByUserIdAsync(_syncUserId);
+                var sessionsAfterCurrent = allSessions.Where(s => s.SessionId > currentSessionId).OrderBy(s => s.SessionId).ToList();
+
+                // Check each session to see if it's incomplete
+                foreach (var session in sessionsAfterCurrent)
+                {
+                    if (await IsSessionCompleteAsync(session.SessionId))
+                        continue; // This session is complete, skip it
+
+                    // Found an incomplete session
+                    Debug.WriteLine($"GetNextIncompleteSessionAsync: Found incomplete session {session.SessionId}");
+                    return session.SessionId;
+                }
+
+                Debug.WriteLine($"GetNextIncompleteSessionAsync: No incomplete sessions found after {currentSessionId}");
+                return null; // No incomplete sessions found
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"GetNextIncompleteSessionAsync error: {ex.Message}");
+                return null;
+            }
+        }
+
+        private async Task<bool> IsSessionCompleteAsync(int sessionId)
+        {
+            try
+            {
+                if (_gameRepo == null || _frameRepo == null)
+                    return false;
+
+                var games = await _gameRepo.GetGamesListBySessionAsync(sessionId, _syncUserId);
+
+                if (!games.Any())
+                    return false; // No games = incomplete
+
+                // Check each game to see if all frames are complete
+                foreach (var game in games)
+                {
+                    var frameIds = await _frameRepo.GetFrameIdsByGameIdAsync(game.GameId);
+
+                    if (frameIds.Count != 10)
+                        return false; // Doesn't have all 10 frames
+
+                    // Check if each frame has at least Shot1
+                    foreach (var frameId in frameIds)
+                    {
+                        var frame = await _frameRepo.GetFrameById(frameId);
+                        if (frame == null || !frame.Shot1.HasValue)
+                            return false; // Frame missing Shot1
+                    }
+                }
+
+                Debug.WriteLine($"IsSessionCompleteAsync: Session {sessionId} is complete");
+                return true; // All games have all frames with shots
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"IsSessionCompleteAsync error: {ex.Message}");
+                return false;
+            }
+        }
+
         private async Task HandleSyncCommand()
         {
             try
@@ -628,6 +755,9 @@ namespace Cellular.Services
 
         public async Task DisconnectAsync()
         {
+            // Notify watch that phone is disconnecting
+            await NotifyWatchDisconnectAsync();
+
             if (_notifyChar != null)
             {
                 _notifyChar.ValueUpdated -= OnWatchNotification;
@@ -643,9 +773,39 @@ namespace Cellular.Services
             _anonymousSessionIdMapping.Clear();
 
             IsConnected = false;
+
+            // Notify UI that watch is disconnected
+            WatchDisconnected?.Invoke(this, MacAddress);
         }
 
-        private async Task<byte[]> BuildUserDataPacket(int userId, SessionRepository? sessionRepo, BallRepository? ballRepo, EventRepository? eventRepo, GameRepository? gameRepo, User? user, FrameRepository? frameRepo, ShotRepository? shotRepo)
+        private async Task NotifyWatchDisconnectAsync()
+        {
+            try
+            {
+                if (!IsConnected || _commandChar == null)
+                {
+                    Debug.WriteLine("NotifyWatchDisconnectAsync: Not connected or no characteristic, skipping notification");
+                    return;
+                }
+
+                // Send disconnect command to watch
+                string disconnectCmd = "{\"cmd\":\"disconn\"}";
+                byte[] bytes = System.Text.Encoding.UTF8.GetBytes(disconnectCmd);
+
+                await _commandChar.WriteAsync(bytes);
+                Debug.WriteLine("NotifyWatchDisconnectAsync: Sent disconnect notification to watch");
+
+                // Brief delay to ensure watch receives the message
+                await Task.Delay(100);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"NotifyWatchDisconnectAsync error: {ex.Message}");
+                // Don't throw - proceed with disconnect regardless
+            }
+        }
+
+        private async Task<byte[]> BuildUserDataPacket(int userId, SessionRepository? sessionRepo, BallRepository? ballRepo, EventRepository? eventRepo, GameRepository? gameRepo, User? user, FrameRepository? frameRepo, ShotRepository? shotRepo, int? specificSessionId = null)
         {
             using var ms = new System.IO.MemoryStream();
             using var writer = new System.IO.BinaryWriter(ms);
@@ -674,15 +834,37 @@ namespace Cellular.Services
                     var sessions = await sessionRepo.GetSessionsByUserIdAsync(userId);
                     if (sessions != null && sessions.Count > 0)
                     {
-                        var mostRecent = sessions.OrderByDescending(s => s.SessionId).FirstOrDefault();
-                        if (mostRecent != null)
+                        Session? sessionToUse = null;
+
+                        if (specificSessionId.HasValue && specificSessionId.Value > 0)
                         {
-                            sessionId = (uint)mostRecent.SessionId;
+                            // Use the specific session requested
+                            sessionToUse = sessions.FirstOrDefault(s => s.SessionId == specificSessionId.Value);
+                            Debug.WriteLine($"BuildUserDataPacket: Using specific session {specificSessionId}");
+                        }
+                        else
+                        {
+                            // Find the oldest incomplete session
+                            var sortedSessions = sessions.OrderBy(s => s.SessionId).ToList();
+                            foreach (var session in sortedSessions)
+                            {
+                                if (!await IsSessionCompleteAsync(session.SessionId))
+                                {
+                                    sessionToUse = session;
+                                    Debug.WriteLine($"BuildUserDataPacket: Using oldest incomplete session {session.SessionId}");
+                                    break;
+                                }
+                            }
+                        }
+
+                        if (sessionToUse != null)
+                        {
+                            sessionId = (uint)sessionToUse.SessionId;
 
                             // Get the actual event name from EventRepository
                             if (eventRepo != null)
                             {
-                                var eventData = await eventRepo.GetEventByIdAsync(mostRecent.EventId);
+                                var eventData = await eventRepo.GetEventByIdAsync(sessionToUse.EventId);
                                 eventName = eventData?.NickName ?? "";
                             }
 
@@ -760,21 +942,21 @@ namespace Cellular.Services
                                         }
                                     }
                                 }
-                                catch (Exception ex)
-                                {
-                                    Debug.WriteLine($"BuildUserDataPacket: Error querying games: {ex.Message}");
-                                }
-                            }
+                                                     catch (Exception ex)
+                                                     {
+                                                         Debug.WriteLine($"BuildUserDataPacket: Error querying games: {ex.Message}");
+                                                     }
+                                                }
 
-                            Debug.WriteLine($"BuildUserDataPacket: Found session {sessionId}, event {eventName}, active={sessionActive}");
-                        }
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Debug.WriteLine($"BuildUserDataPacket: Error querying sessions: {ex.Message}");
-                }
-            }
+                                                Debug.WriteLine($"BuildUserDataPacket: Found session {sessionId}, event {eventName}, active={sessionActive}");
+                                            }
+                                        }
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        Debug.WriteLine($"BuildUserDataPacket: Error querying sessions: {ex.Message}");
+                                    }
+                                }
 
             // Write Session ID
             writer.Write(sessionId);
@@ -854,7 +1036,7 @@ namespace Cellular.Services
             return packet;
         }
 
-        public async Task<bool> SendJsonToWatch(int userId, SessionRepository? sessionRepo, BallRepository? ballRepo, EventRepository? eventRepo, GameRepository? gameRepo, User? user, FrameRepository? frameRepo, ShotRepository? shotRepo)
+        public async Task<bool> SendJsonToWatch(int userId, SessionRepository? sessionRepo, BallRepository? ballRepo, EventRepository? eventRepo, GameRepository? gameRepo, User? user, FrameRepository? frameRepo, ShotRepository? shotRepo, int? specificSessionId = null)
         {
             if (!IsConnected || _commandChar == null)
             {
@@ -862,7 +1044,7 @@ namespace Cellular.Services
                 return false;
             }
 
-            byte[] bytes = await BuildUserDataPacket(userId, sessionRepo, ballRepo, eventRepo, gameRepo, user, frameRepo, shotRepo);
+            byte[] bytes = await BuildUserDataPacket(userId, sessionRepo, ballRepo, eventRepo, gameRepo, user, frameRepo, shotRepo, specificSessionId);
 
             Debug.WriteLine($"SendJsonToWatch: Payload size = {bytes.Length} bytes");
 
