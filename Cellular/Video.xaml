@@ -93,9 +93,20 @@
                     Text="Use Ciclopes"
                     Clicked="OnUseCiclopesClicked"
                     IsVisible="False"
-                    WidthRequest="90"
+                    WidthRequest="120"
                     BackgroundColor="#9880e5"/>
             </Grid>
+
+            <ActivityIndicator
+                Grid.Row="3"
+                x:Name="CiclopesSpinner"
+                IsRunning="False"
+                IsVisible="False"
+                WidthRequest="50"
+                HeightRequest="50"
+                Color="#9880e5"
+                HorizontalOptions="Center"
+                VerticalOptions="Center" />
         </Grid>
     </ScrollView>
 

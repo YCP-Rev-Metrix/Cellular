@@ -205,6 +205,25 @@ namespace Cellular
                     try { await DisplayAlert("Media Error", e.ErrorMessage ?? "Unknown media error", "OK"); } catch { }
                 });
             };
+            mediaElement.MediaEnded += (s, e) =>
+            {
+                MainThread.BeginInvokeOnMainThread(() =>
+                {
+                    if (isDemoPlaying)
+                    {
+                        isDemoPlaying = false;
+                        DemoRecordBtn.Text = "Play";
+                        DemoRecordBtn.BackgroundColor = Color.FromArgb("#9880e5");
+
+                        // Show Ciclopes button with demo/test keys
+                        UseCiclopesBtn.IsVisible = true;
+                        UseCiclopesBtn.IsEnabled = true;
+                        UseCiclopesBtn.BackgroundColor = Color.FromArgb("#9880e5");
+                        _lastVideoKey = "videos/310fceda-dac8-4bf0-a25c-2d1ba360ea68_shot1.mp4";
+                        _lastSdKey = "key";
+                    }
+                });
+            };
         }
 
         private void CameraView_PropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
@@ -644,6 +663,8 @@ namespace Cellular
 
             UseCiclopesBtn.IsEnabled = false;
             UseCiclopesBtn.BackgroundColor = Colors.Gray;
+            CiclopesSpinner.IsVisible = true;
+            CiclopesSpinner.IsRunning = true;
             try
             {
                 var controller = new ApiController();
@@ -657,6 +678,9 @@ namespace Cellular
                 var fourDBodyTask = controller.ExecuteFourDBodyRunRequest(request);
 
                 var laneBallsResponse = await laneBallsTask;
+
+                CiclopesSpinner.IsRunning = false;
+                CiclopesSpinner.IsVisible = false;
 
                 if (laneBallsResponse is null)
                 {
@@ -672,6 +696,8 @@ namespace Cellular
             }
             finally
             {
+                CiclopesSpinner.IsRunning = false;
+                CiclopesSpinner.IsVisible = false;
                 UpdateCiclopesButtonState();
             }
         }
@@ -1117,6 +1143,8 @@ namespace Cellular
                 {
                     DemoRecordBtn.IsVisible = false;
                 }
+                // Hide Ciclopes button when leaving demo mode
+                UseCiclopesBtn.IsVisible = false;
             }
             else
             {
@@ -1149,6 +1177,7 @@ namespace Cellular
                     isDemoPlaying = true;
                     DemoRecordBtn.Text = "Stop";
                     DemoRecordBtn.BackgroundColor = Colors.Red;
+                    UseCiclopesBtn.IsVisible = false;
                     try
                     {
                         // Use local bundled resource for demo playback (Resources/Raw/lego.mp4)
