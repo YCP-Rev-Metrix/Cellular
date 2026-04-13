@@ -550,6 +550,8 @@ namespace Cellular
             {
                 bool hasKeys = !string.IsNullOrEmpty(_lastVideoKey);
                 UseCiclopesBtn.IsVisible = hasKeys;
+                UseCiclopesBtn.IsEnabled = hasKeys;
+                UseCiclopesBtn.BackgroundColor = hasKeys ? Color.FromArgb("#9880e5") : Colors.Gray;
             });
         }
 
@@ -561,7 +563,8 @@ namespace Cellular
                 return;
             }
 
-            UseCiclopesBtn.IsVisible = false;
+            UseCiclopesBtn.IsEnabled = false;
+            UseCiclopesBtn.BackgroundColor = Colors.Gray;
             try
             {
                 var controller = new ApiController();

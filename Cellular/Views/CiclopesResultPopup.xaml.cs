@@ -34,6 +34,14 @@ public partial class CiclopesResultPopup : Popup
     {
         InitializeComponent();
 
+        // Size the popup as a percentage of the screen
+        var displayInfo = DeviceDisplay.MainDisplayInfo;
+        var density = displayInfo.Density > 0 ? displayInfo.Density : 1;
+        var screenWidth = displayInfo.Width / density;
+        var screenHeight = displayInfo.Height / density;
+        MainGrid.WidthRequest = screenWidth * 0.85;
+        MainGrid.HeightRequest = screenHeight * 0.85;
+
         _mainPanes = [BallPane, PosePane];
         _plotPanels = [PlotSpeedPanel, PlotAccelPanel, PlotLateralPanel];
         _plotDots = [PlotDot0, PlotDot1, PlotDot2];

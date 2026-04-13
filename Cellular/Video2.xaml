@@ -47,7 +47,6 @@
                     Clicked="OnUseCiclopesClicked"
                     IsVisible="False"
                     WidthRequest="90"
-                    HeightRequest="90"
                     BackgroundColor="#9880e5"/>
             </HorizontalStackLayout>
 
