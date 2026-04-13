@@ -2,29 +2,42 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="Cellular.EstablishmentPage">
-    <Grid>
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="*" />
-        </Grid.RowDefinitions>
+    <Grid RowDefinitions="Auto, *">
 
         <StackLayout Orientation="Horizontal" Padding="10" Grid.Row="0">
             <Label Text="Establishment" FontSize="24" HorizontalOptions="StartAndExpand" />
             <Button Text="➕" FontSize="18" Clicked="OnAddEventClicked" HorizontalOptions="End" />
         </StackLayout>
 
-        <ListView x:Name="EstablishmentsList" Grid.Row="1" ItemSelected="OnEventSelected">
-            <ListView.ItemTemplate>
+        <CollectionView x:Name="EstablishmentsList" 
+                        Grid.Row="1" 
+                        SelectionMode="Single"
+                        SelectionChanged="OnEventSelected">
+            <CollectionView.ItemTemplate>
                 <DataTemplate>
-                    <ViewCell>
-                        <StackLayout Padding="10">
-                            <Label Text="{Binding FullName}" TextColor="Red" FontSize="14" />
-                            <Label Text="{Binding Location}" TextColor="Gray" FontSize="12" />
-                        </StackLayout>
-                    </ViewCell>
+                    <Border>
+                        <VerticalStackLayout Padding="10" Spacing="2">
+                            <Label Text="{Binding FullName}" 
+                               TextColor="White" 
+                               FontSize="14" 
+                               FontAttributes="Bold">
+                                <Label.Triggers>
+                                    <DataTrigger TargetType="Label" 
+                                         Binding="{Binding Enabled}" 
+                                         Value="False">
+                                        <Setter Property="TextColor" Value="Red" />
+                                    </DataTrigger>
+                                </Label.Triggers>
+                            </Label>
+                            <Label Text="{Binding NickName, StringFormat='Nickname: {0}'}" TextColor="Gray" FontSize="14" />
+                            <Label Text="{Binding Lanes, StringFormat='# of Lanes: {0}'}" TextColor="Gray" FontSize="14" />
+                            <Label Text="{Binding Address, StringFormat='Address: {0}'}" TextColor="Gray" FontSize="14" />
+                            <Label Text="{Binding PhoneNumber, StringFormat='Phone: {0}'} " TextColor="Gray" FontSize="14" />
+                        </VerticalStackLayout>
+                    </Border>
                 </DataTemplate>
-            </ListView.ItemTemplate>
-        </ListView>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
 
     </Grid>
 </ContentPage>

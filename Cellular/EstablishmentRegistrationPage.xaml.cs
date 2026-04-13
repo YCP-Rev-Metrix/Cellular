@@ -26,9 +26,11 @@ public partial class EstablishmentRegistrationPage : ContentPage
     {
         // Get the entered data
         string estaName = nameBox.Text;
+        string? estaNickname = nickNameBox.Text;
         string? estaLane = lanesBox.Text;
         string? estaType = typeBox.Text;
-        string? estaLocation = locationBox.Text;
+        string? estaAddress = addressBox.Text;
+        string? estaPhone = phoneBox.Text;
         userId = Preferences.Get("UserId", 0);
 
         Debug.WriteLine("This is USer ID" + userId);
@@ -40,20 +42,9 @@ public partial class EstablishmentRegistrationPage : ContentPage
             return;
         }
 
-        if (string.IsNullOrEmpty(estaLane))
+        if (string.IsNullOrEmpty(estaNickname))
         {
-            await DisplayAlertAsync("Error", "Please enter an Establishment lane.", "OK");
-            return;
-        }
-
-        if (string.IsNullOrEmpty(estaType))
-        {
-            await DisplayAlertAsync("Error", "Please enter an Establishment lane type.", "OK");
-            return;
-        }
-        if (string.IsNullOrEmpty(estaLocation))
-        {
-            await DisplayAlertAsync("Error", "Please enter an Establishment location.", "OK");
+            await DisplayAlertAsync("Error", "Please enter an Establishment nickName.", "OK");
             return;
         }
 
@@ -63,10 +54,12 @@ public partial class EstablishmentRegistrationPage : ContentPage
         {
             UserId = userId,
             FullName = estaName,
-            NickName = estaName,
+            NickName = estaNickname,
             Type = estaType,
+            HomeHouse = homeHouseBox.IsChecked,
             Lanes = estaLane,
-            Location = estaLocation,
+            Address = estaAddress,
+            PhoneNumber = estaPhone,
       
         };
         var existingEvent = await _EstablishmentRepository.GetEstablishmentByNameAsync(estaName);
@@ -81,7 +74,7 @@ public partial class EstablishmentRegistrationPage : ContentPage
         nameBox.Text = string.Empty;
         lanesBox.Text = string.Empty;
         typeBox.Text = string.Empty;
-        locationBox.Text = string.Empty;
+        addressBox.Text = string.Empty;
 
     }
 }

@@ -144,6 +144,9 @@
 		<MauiXaml Update="Video.xaml">
 		  <Generator>MSBuild:Compile</Generator>
 		</MauiXaml>
+		<MauiXaml Update="Views\EstablishmentEditorPopup.xaml">
+		  <Generator>MSBuild:Compile</Generator>
+		</MauiXaml>
 		<MauiXaml Update="Views\EventPopup.xaml">
 		  <Generator>MSBuild:Compile</Generator>
 		</MauiXaml>

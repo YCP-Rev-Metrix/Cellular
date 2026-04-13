@@ -1,4 +1,6 @@
 using Microsoft.Maui.Controls;
+using CommunityToolkit.Maui.Views;
+using CommunityToolkit.Maui.Extensions;
 using System.Collections.ObjectModel;
 using Cellular.ViewModel;
 using Cellular.Data;
@@ -17,20 +19,13 @@ public partial class EstablishmentPage : ContentPage
         InitializeComponent();
         _EstablishmentRepository = new EstablishmentRepository(new CellularDatabase().GetConnection());
         Establishments = new ObservableCollection<Establishment>();
-        EstablishmentsList.BindingContext = this;
-        LoadEstablishments();
         EstablishmentsList.ItemsSource = Establishments;
+        LoadEstablishments();
     }
     protected override void OnAppearing()
     {
         base.OnAppearing();
-
-        // Prevent duplicate entries by resetting the list
-        EstablishmentsList.ItemsSource = null;
-
-        // Load the event list again
         LoadEstablishments();
-        EstablishmentsList.ItemsSource = Establishments;
     }
     private async void LoadEstablishments()
     {
@@ -57,16 +52,51 @@ public partial class EstablishmentPage : ContentPage
     }
 
     // Event handler when an event in the list is selected
-    private async void OnEventSelected(object sender, SelectedItemChangedEventArgs e)
+    // Change this signature
+    private async void OnEventSelected(object sender, SelectionChangedEventArgs e)
     {
-        if (e.SelectedItem != null)
+        // CollectionView uses e.CurrentSelection (a list)
+        var selectedEvent = e.CurrentSelection.FirstOrDefault() as Establishment;
+
+        if (selectedEvent != null)
         {
-            // Get the selected event
-            var selectedEvent = e.SelectedItem as Establishment;
-            // Navigate to the event page (replace with your event details page)
-            await DisplayAlertAsync("Establishment Selected", $"You selected {selectedEvent.FullName}", "OK");
-            // Deselect the item
-            EstablishmentsList.SelectedItem = null;
+            try
+            {
+                var popup = new Views.EstablishmentEditorPopup(selectedEvent);
+
+                popup.Closed += (s, args) =>
+                {
+                    if (!popup.Completion.Task.IsCompleted)
+                    {
+                        popup.Completion.TrySetResult(null);
+                    }
+                };
+
+                this.ShowPopup(popup);
+
+                var result = await popup.Completion.Task;
+                if (result != null)
+                {
+                    await _EstablishmentRepository.UpdateAsync(result);
+
+                    LoadEstablishments();
+
+                    var idx = Establishments.IndexOf(selectedEvent);
+                    if (idx >= 0)
+                    {
+                        Establishments[idx] = result;
+                    }
+
+                    await DisplayAlertAsync("Establishment", "Establishment saved.", "OK");
+                }
+            }
+            catch (System.Exception ex)
+            {
+                Debug.WriteLine($"Error showing editor: {ex.Message}");
+            }
+
+            // Deselect the item so it can be clicked again
+            ((CollectionView)sender).SelectedItem = null;
         }
     }
 }

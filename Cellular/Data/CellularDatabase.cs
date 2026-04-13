@@ -84,10 +84,11 @@ namespace Cellular.Data
                         UserId = int.TryParse(data[0].Trim(), out int UserId) ? UserId : 0,
                         FullName = data[1].Trim(),
                         NickName = data[2].Trim(),
-                        Location = data[3].Trim(),
+                        Address = data[3].Trim(),
                         PhoneNumber = data[4].Trim(),
                         Lanes = data[5].Trim(),
-                        Type = data[6].Trim()
+                        Type = data[6].Trim(),
+                        Enabled = true
                     };
                     var existingUser = await _database.Table<Establishment>().FirstOrDefaultAsync(u => u.NickName == esta.NickName);
                     if (existingUser == null)

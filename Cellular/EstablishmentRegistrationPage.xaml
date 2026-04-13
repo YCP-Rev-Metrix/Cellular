@@ -13,8 +13,17 @@
         </StackLayout>
 
         <StackLayout Padding="20" Grid.Row="1">
-            <Label Text="Establishment Name"/>
+            <Label Text="Name"/>
             <Entry x:Name="nameBox" Placeholder="Enter name"/>
+
+            <Label Text="Nickname"/>
+            <Entry x:Name="nickNameBox" Placeholder="Enter nickname"/>
+
+            <Label Text="Address"/>
+            <Entry x:Name="addressBox" Placeholder="Enter address"/>
+
+            <Label Text="Phone Number"/>
+            <Entry x:Name="phoneBox" Placeholder="Enter phone number"/>
 
             <Label Text="Lanes"/>
             <Entry x:Name="lanesBox" Placeholder="Enter number of lanes" Keyboard="Numeric"/>
@@ -22,8 +31,8 @@
             <Label Text="Type"/>
             <Entry x:Name="typeBox" Placeholder="Enter type"/>
 
-            <Label Text="Location"/>
-            <Entry x:Name="locationBox" Placeholder="Enter type"/>
+            <Label Text="HomeHouse"/>
+            <CheckBox x:Name="homeHouseBox" HorizontalOptions="Start"/>
 
             <Button Text="Register Estabishment" Clicked="OnRegisterEstablishmentClicked" />
         </StackLayout>

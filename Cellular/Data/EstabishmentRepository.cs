@@ -28,6 +28,11 @@ namespace Cellular.Data
             await _conn.InsertAsync(e);
         }
 
+        public async Task UpdateAsync(Establishment e)
+        {
+            await _conn.UpdateAsync(e);
+        }
+
         public async Task<List<Establishment>> GetEstablishmentsByUserIdAsync(int userID) => await _conn.Table<Establishment>().Where(u => u.UserId == userID).ToListAsync();
 
         public async Task<Establishment?> GetEstablishmentByNameAsync(String name)
