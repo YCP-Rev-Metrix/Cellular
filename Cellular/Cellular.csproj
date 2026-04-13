@@ -56,11 +56,13 @@
 
 	<ItemGroup>
 		<PackageReference Include="BCrypt.Net-Next" Version="4.1.0" />
-		<PackageReference Include="Camera.MAUI" Version="1.5.1" />
-		<PackageReference Include="Camera.MAUI.ZXing" Version="1.0.0" />
+		<PackageReference Include="UraniumUI" Version="2.12.1" />
+		<PackageReference Include="UraniumUI.Material" Version="2.12.1" />
+		<PackageReference Include="UraniumUI.Icons.MaterialIcons" Version="2.12.1" />
 		<PackageReference Include="CommunityToolkit.Maui" Version="14.0.1" />
 		<PackageReference Include="CommunityToolkit.Maui.Camera" Version="6.0.0" />
 		<PackageReference Include="CommunityToolkit.Maui.Core" Version="14.0.1" />
+		<PackageReference Include="CommunityToolkit.Maui.MediaElement" Version="9.0.0" />
 		<PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
 		<PackageReference Include="Microsoft.Maui.Controls" Version="10.0.50" />
 		<PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="9.0.0" />
@@ -80,8 +82,8 @@
 		<Compile Update="SessionList.xaml.cs">
 		  <DependentUpon>SessionList.xaml</DependentUpon>
 		</Compile>
-		<Compile Update="Video2.xaml.cs">
-		  <DependentUpon>Video2.xaml</DependentUpon>
+		<Compile Update="Video.xaml.cs">
+		  <DependentUpon>Video.xaml</DependentUpon>
 		</Compile>
 		<Compile Update="Views\EventPopup.xaml.cs">
 		  <DependentUpon>EventPopup.xaml</DependentUpon>
@@ -94,9 +96,6 @@
 		</Compile>
 		<Compile Update="Views\CommentEditorPopup.xaml.cs">
 		  <DependentUpon>CommentEditorPopup.xaml</DependentUpon>
-		</Compile>
-		<Compile Update="Video.xaml.cs">
-		  <DependentUpon>Video.xaml</DependentUpon>
 		</Compile>
 		<Compile Update="EditAccount.xaml.cs">
 			<DependentUpon>EditAccount.xaml</DependentUpon>
@@ -146,7 +145,10 @@
 		<MauiXaml Update="EventList.xaml">
 		  <Generator>MSBuild:Compile</Generator>
 		</MauiXaml>
-		<MauiXaml Update="Video2.xaml">
+		<MauiXaml Update="Video.xaml">
+		  <Generator>MSBuild:Compile</Generator>
+		</MauiXaml>
+		<MauiXaml Update="Views\EstablishmentEditorPopup.xaml">
 		  <Generator>MSBuild:Compile</Generator>
 		</MauiXaml>
 		<MauiXaml Update="Views\EventPopup.xaml">
@@ -159,9 +161,6 @@
 		  <Generator>MSBuild:Compile</Generator>
 		</MauiXaml>
 		<MauiXaml Update="Views\CommentEditorPopup.xaml">
-		  <Generator>MSBuild:Compile</Generator>
-		</MauiXaml>
-		<MauiXaml Update="Video.xaml">
 		  <Generator>MSBuild:Compile</Generator>
 		</MauiXaml>
 		<MauiXaml Update="DataPage.xaml">
@@ -193,6 +192,12 @@
 		<Compile Update="ClickerPage.xaml.cs">
 			<DependentUpon>ClickerPage.xaml</DependentUpon>
 		</Compile>
+	</ItemGroup>
+
+	<ItemGroup>
+	  <MauiAsset Update="Resources\Raw\lego.mp4">
+	    <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+	  </MauiAsset>
 	</ItemGroup>
 
 	<ItemGroup>

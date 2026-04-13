@@ -2,9 +2,8 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="Cellular.Video"
-             xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
-             xmlns:cv="clr-namespace:Camera.MAUI;assembly=Camera.MAUI">
-    
+             xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit">
+
     <ContentPage.ToolbarItems>
         <ToolbarItem x:Name="MmsConnectionToolbarItem"
                      Order="Primary"
@@ -13,38 +12,81 @@
     </ContentPage.ToolbarItems>
 
     <ScrollView>
-        <VerticalStackLayout
+        <Grid
             Padding="30,0"
-            Spacing="25">
+            RowSpacing="25">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <!-- Image -->
+                <RowDefinition Height="Auto" />
+                <!-- Picker -->
+                <RowDefinition Height="Auto" />
+                <!-- Toggle button -->
+                <RowDefinition Height="*" />
+                <!-- Camera/Media expand -->
+                <RowDefinition Height="Auto" />
+                <!-- Record button -->
+            </Grid.RowDefinitions>
+
             <Image
+                Grid.Row="0"
                 Source="logo.png"
                 HeightRequest="185"
                 Aspect="AspectFit"
                 SemanticProperties.Description="RevMetrix Bowling Ball Logo" />
 
-            <Picker x:Name="ResolutionPicker"
+            <Picker
+                Grid.Row="1"
+                x:Name="ResolutionPicker"
                 Title="Select Resolution"
-                Grid.Row="0"
                 BackgroundColor="LightSlateGray"
                 SelectedIndexChanged="ResolutionPicker_SelectedIndexChanged" />
 
-            <cv:CameraView
-                x:Name="cameraView"
-                Grid.Row="0"
-                WidthRequest="300"
-                HeightRequest="400"
-                HorizontalOptions="Center" />
-            <Button
-                x:Name="Record"
-                Grid.Row="1"
-                Text="Record" 
-                Clicked="OnRecordClicked"
-                WidthRequest="75"
-                HeightRequest="20"
-                IsEnabled="False"
-                BackgroundColor="Gray"/>
+            <Grid Grid.Row="3">
+                <toolkit:CameraView
+                    x:Name="cameraView"
+                    WidthRequest="300"
+                    HeightRequest="400"
+                    HorizontalOptions="Center"
+                    IsVisible="True" />
+                <toolkit:MediaElement
+                    x:Name="mediaElement"
+                    WidthRequest="300"
+                    HeightRequest="400"
+                    Source=""
+                    ShouldShowPlaybackControls="False"
+                    IsVisible="False" />
+            </Grid>
 
-        </VerticalStackLayout>
+            <Grid Grid.Row="4" ColumnSpacing="10" HorizontalOptions="Center">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <Button
+                    Grid.Column="0"
+                    x:Name="ToggleModeBtn"
+                    Text="Demo"
+                    WidthRequest="90"
+                    Clicked="OnToggleModeClicked" />
+                <Button
+                    Grid.Column="1"
+                    x:Name="RecordBtn"
+                    Text="Record"
+                    Clicked="OnRecordClicked"
+                    WidthRequest="90"
+                    IsEnabled="False"
+                    BackgroundColor="Gray" />
+                <Button
+                    Grid.Column="2"
+                    x:Name="DemoRecordBtn"
+                    Text="Play"
+                    WidthRequest="90"
+                    Clicked="OnDemoRecordClicked"
+                    IsVisible="False"/>
+            </Grid>
+        </Grid>
     </ScrollView>
 
 </ContentPage>

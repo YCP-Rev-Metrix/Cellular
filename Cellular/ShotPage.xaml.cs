@@ -264,7 +264,7 @@ namespace Cellular
                 }
 
                 //Add next frame view frame (avoid duplicates)
-                if(viewModel.CurrentFrame < 10)
+                if(viewModel.CurrentFrame <= 10)
                 {
                     if (!viewModel.Frames.Any(f => f.FrameNumber == viewModel.CurrentFrame))
                     {
@@ -1105,7 +1105,9 @@ namespace Cellular
                 viewModel.Frames.Add(new ShotPageFrame(1));
             }
 
-            while (viewModel.Frames.Count <= frameIds.Count)
+            // Add UI frames so there is one UI frame per saved frame.
+            // Use '<' (not '<=') to avoid creating an extra frame (off-by-one).
+            while (viewModel.Frames.Count < frameIds.Count)
             {
                 viewModel.Frames.Add(new ShotPageFrame(viewModel.Frames.Count + 1));
             }
@@ -1200,7 +1202,34 @@ namespace Cellular
                             lastWasSpare10 = true;
                     }
 
-                    if ((lastWasStrike || lastWasSpare10) && nextFrameNumber <= 12)
+                    bool shouldAddNext = false;
+
+                    // If the last saved frame is frame 10 and it was a strike or spare, add frame 11
+                    if (lastFrameNumber == 10 && (lastWasStrike || lastWasSpare10))
+                    {
+                        shouldAddNext = true;
+                    }
+                    // If the last saved frame is frame 11 and it was a strike, only add frame 12
+                    // when frame 10 was also a strike.
+                    else if (lastFrameNumber == 11 && lastWasStrike)
+                    {
+                        // Find frame 10 for this game and check if it was a strike
+                        var gameId = Preferences.Get("GameID", 0);
+                        var frame10 = await db.Table<BowlingFrame>()
+                                         .Where(f => f.GameId == gameId && f.FrameNumber == 10)
+                                         .FirstOrDefaultAsync();
+
+                        if (frame10 != null && frame10.Shot1.HasValue)
+                        {
+                            var s10 = await shotRepository.GetShotById(frame10.Shot1.Value);
+                            if (s10 != null && s10.Count == 10)
+                            {
+                                shouldAddNext = true; // both 10 and 11 were strikes -> add frame 12
+                            }
+                        }
+                    }
+
+                    if (shouldAddNext && nextFrameNumber <= 12)
                     {
                         if (!viewModel.Frames.Any(f => f.FrameNumber == nextFrameNumber))
                         {
