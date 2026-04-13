@@ -39,8 +39,11 @@ public partial class CiclopesResultPopup : Popup
         var density = displayInfo.Density > 0 ? displayInfo.Density : 1;
         var screenWidth = displayInfo.Width / density;
         var screenHeight = displayInfo.Height / density;
-        MainGrid.WidthRequest = screenWidth * 0.85;
-        MainGrid.HeightRequest = screenHeight * 0.85;
+        var popupWidth = screenWidth * 0.85;
+        var popupHeight = screenHeight * 0.85;
+        MainGrid.WidthRequest = popupWidth;
+        MainGrid.HeightRequest = popupHeight;
+        this.Size = new Size(popupWidth, popupHeight);
 
         _mainPanes = [BallPane, PosePane];
         _plotPanels = [PlotSpeedPanel, PlotAccelPanel, PlotLateralPanel];
@@ -51,7 +54,8 @@ public partial class CiclopesResultPopup : Popup
             SpeedPicker.Items.Add(label);
         SpeedPicker.SelectedIndex = 0;
 
-        _ballDrawable = new CiclopesBallPointsDrawable(laneBallsResponse.BallPoints);
+        var ballPoints = laneBallsResponse.BallPoints ?? new List<CiclopesBallPoint>();
+        _ballDrawable = new CiclopesBallPointsDrawable(ballPoints);
         BallPlotView.Drawable = _ballDrawable;
         BallPlotView.Invalidate();
 
@@ -109,8 +113,8 @@ public partial class CiclopesResultPopup : Popup
 
     private void PopulateStats(LaneBallsRunResponse response)
     {
-        var pts = response.BallPoints;
-        var kin = response.KinematicsTable;
+        var pts = response.BallPoints ?? new List<CiclopesBallPoint>();
+        var kin = response.KinematicsTable ?? new List<CiclopesKinematicsRow>();
 
         if (pts.Count > 0)
         {
@@ -139,7 +143,7 @@ public partial class CiclopesResultPopup : Popup
 
     private void PopulatePlots(LaneBallsRunResponse response)
     {
-        var kin = response.KinematicsTable;
+        var kin = response.KinematicsTable ?? new List<CiclopesKinematicsRow>();
 
         if (kin.Count > 0)
         {
@@ -154,7 +158,7 @@ public partial class CiclopesResultPopup : Popup
                 Color.FromArgb("#4a6fa5"), Color.FromArgb("#7a9fd4"));
         }
 
-        var pts = response.BallPoints;
+        var pts = response.BallPoints ?? new List<CiclopesBallPoint>();
         if (pts.Count > 1)
         {
             // Convert lateral positions from meters to inches for the plot
