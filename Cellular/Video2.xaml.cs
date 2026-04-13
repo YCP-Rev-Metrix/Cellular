@@ -585,7 +585,8 @@ namespace Cellular
                     return;
                 }
 
-                this.ShowPopup(new Cellular.Views.CiclopesResultPopup(laneBallsResponse, fourDBodyTask));
+                var popup = new Cellular.Views.CiclopesResultPopup(laneBallsResponse, fourDBodyTask);
+                await this.ShowPopupAsync(popup, Cellular.Views.CiclopesResultPopup.CreatePopupOptions());
             }
             catch (Exception ex)
             {

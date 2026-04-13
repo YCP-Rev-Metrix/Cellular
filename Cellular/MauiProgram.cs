@@ -5,6 +5,7 @@ using CommunityToolkit.Maui.Core;
 using CommunityToolkit.Maui.Media;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using SkiaSharp.Views.Maui.Controls.Hosting;
 using UraniumUI;
 
 namespace Cellular
@@ -20,6 +21,7 @@ namespace Cellular
                 .UseMauiCommunityToolkit()
                 .UseMauiCommunityToolkitCamera()
                 .UseMauiCommunityToolkitMediaElement(isAndroidForegroundServiceEnabled: true)
+                .UseSkiaSharp()
                 .UseUraniumUI()
                 .UseUraniumUIMaterial()
                 .ConfigureFonts(fonts =>

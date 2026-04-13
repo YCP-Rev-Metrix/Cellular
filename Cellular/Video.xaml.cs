@@ -689,7 +689,7 @@ namespace Cellular
                 }
 
                 var popup = new Cellular.Views.CiclopesResultPopup(laneBallsResponse, fourDBodyTask);
-                await this.ShowPopupAsync(popup);
+                await this.ShowPopupAsync(popup, Cellular.Views.CiclopesResultPopup.CreatePopupOptions());
             }
             catch (Exception ex)
             {

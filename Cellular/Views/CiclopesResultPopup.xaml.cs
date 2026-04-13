@@ -1,5 +1,7 @@
 using Cellular.Cloud_API.Models;
+using CommunityToolkit.Maui;
 using CommunityToolkit.Maui.Views;
+using Microsoft.Maui.Controls.Shapes;
 using System.Diagnostics;
 
 namespace Cellular.Views;
@@ -34,13 +36,9 @@ public partial class CiclopesResultPopup : Popup
     {
         InitializeComponent();
 
-        // Size the popup as a percentage of the screen
-        var displayInfo = DeviceDisplay.MainDisplayInfo;
-        var density = displayInfo.Density > 0 ? displayInfo.Density : 1;
-        var screenWidth = displayInfo.Width / density;
-        var screenHeight = displayInfo.Height / density;
-        var popupWidth = screenWidth * 0.85;
-        var popupHeight = screenHeight * 0.85;
+        // Size the popup content as a percentage of the screen.
+        // Prefer Window dimensions (already in DIPs) over DeviceDisplay (raw pixels).
+        var (popupWidth, popupHeight) = ComputePopupSize(0.85);
         MainGrid.WidthRequest = popupWidth;
         MainGrid.HeightRequest = popupHeight;
 
@@ -107,6 +105,36 @@ public partial class CiclopesResultPopup : Popup
                 PoseLoadingLabel.Text = "Pose estimation failed.";
             });
         }
+    }
+
+    public static PopupOptions CreatePopupOptions()
+    {
+        return new PopupOptions
+        {
+            CanBeDismissedByTappingOutsideOfPopup = true,
+            Shape = new RoundRectangle { CornerRadius = new CornerRadius(14), StrokeThickness = 0 }
+        };
+    }
+
+    private static (double Width, double Height) ComputePopupSize(double fraction)
+    {
+        const double fallbackWidth = 460;
+        const double fallbackHeight = 820;
+
+        // Window.Width/Height are already in DIPs — no density conversion needed.
+        var window = Application.Current?.Windows?.FirstOrDefault();
+        if (window is { Width: > 0, Height: > 0 })
+            return (window.Width * fraction, window.Height * fraction);
+
+        // Fallback: DeviceDisplay reports raw pixels, so divide by density.
+        var info = DeviceDisplay.MainDisplayInfo;
+        if (info.Width > 0 && info.Height > 0)
+        {
+            var density = info.Density > 0 ? info.Density : 1;
+            return (info.Width / density * fraction, info.Height / density * fraction);
+        }
+
+        return (fallbackWidth, fallbackHeight);
     }
 
     private void PopulateStats(LaneBallsRunResponse response)

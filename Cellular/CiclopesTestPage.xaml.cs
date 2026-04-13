@@ -1,6 +1,8 @@
 using Cellular.ViewModel;
 using Cellular.Views;
+using CommunityToolkit.Maui;
 using CommunityToolkit.Maui.Extensions;
+using CommunityToolkit.Maui.Views;
 
 namespace Cellular;
 
@@ -32,7 +34,7 @@ public partial class CiclopesTestPage : ContentPage
             }
 
             var popup = new CiclopesResultPopup(laneBallsResponse, fourDBodyTask);
-            await this.ShowPopupAsync(popup);
+            await this.ShowPopupAsync(popup, CiclopesResultPopup.CreatePopupOptions());
         }
         catch (Exception ex)
         {
