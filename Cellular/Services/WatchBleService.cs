@@ -11,6 +11,9 @@ using Plugin.BLE.Abstractions;
 using System.Diagnostics;
 using Cellular.Data;
 using Cellular.ViewModel;
+#if __ANDROID__
+using Android.Util;
+#endif
 namespace Cellular.Services
 {
     public class WatchBleService : IWatchBleService
@@ -55,6 +58,15 @@ namespace Cellular.Services
             _adapter.DeviceDisconnected += OnDisconnected;
         }
 
+        private void LogDebug(string message)
+        {
+#if __ANDROID__
+            Log.Debug("WatchBleService", message);
+#else
+            Debug.WriteLine(message);
+#endif
+        }
+
         /// <summary>
         /// Set the repositories needed for database operations when shot packets arrive.
         /// Call this after initializing the database and repositories.
@@ -75,6 +87,18 @@ namespace Cellular.Services
             _syncUserId = userId;
 
             Debug.WriteLine("WatchBleService: Repositories initialized for shot processing and sync commands");
+            Debug.WriteLine($"SetRepositories: _syncUser is {(user == null ? "NULL" : $"VALID (UserName={user.UserName}, Hand={user.Hand})")}");
+            Debug.WriteLine($"SetRepositories: _syncUserId = {userId}");
+        }
+
+        /// <summary>
+        /// Update user information for sync packets. Call this after SetRepositories if user data wasn't available initially.
+        /// </summary>
+        public void UpdateUserData(User? user, int userId)
+        {
+            _syncUser = user;
+            _syncUserId = userId;
+            Debug.WriteLine($"WatchBleService: User data updated - UserName={user?.UserName}, Hand={user?.Hand}, UserId={userId}");
         }
 
         private void OnDisconnected(object? sender, DeviceEventArgs e)
@@ -690,37 +714,212 @@ namespace Cellular.Services
         {
             try
             {
-                if (_gameRepo == null || _frameRepo == null)
+                if (_gameRepo == null || _frameRepo == null || _shotRepo == null)
+                {
+                    LogDebug($"IsSessionCompleteAsync: Session {sessionId} - Repositories null, returning false");
                     return false;
+                }
 
                 var games = await _gameRepo.GetGamesListBySessionAsync(sessionId, _syncUserId);
 
                 if (!games.Any())
+                {
+                    LogDebug($"IsSessionCompleteAsync: Session {sessionId} - No games, returning false");
                     return false; // No games = incomplete
+                }
 
-                // Check each game to see if all frames are complete
+                LogDebug($"IsSessionCompleteAsync: Session {sessionId} - Checking {games.Count} games for completion");
+
+                // A session is complete when ALL games are complete
+                // Mirrors ShotPage.xaml.cs SetIsGameOver() logic exactly
+
                 foreach (var game in games)
                 {
                     var frameIds = await _frameRepo.GetFrameIdsByGameIdAsync(game.GameId);
 
-                    if (frameIds.Count != 10)
-                        return false; // Doesn't have all 10 frames
-
-                    // Check if each frame has at least Shot1
-                    foreach (var frameId in frameIds)
+                    if (frameIds.Count < 10)
                     {
-                        var frame = await _frameRepo.GetFrameById(frameId);
-                        if (frame == null || !frame.Shot1.HasValue)
-                            return false; // Frame missing Shot1
+                        LogDebug($"IsSessionCompleteAsync: Game {game.GameId} - Only {frameIds.Count} frames, incomplete");
+                        return false; // Not enough frames = incomplete
+                    }
+
+                    // Get the last frame to check if game is complete
+                    var lastFrameId = frameIds.Last();
+                    var lastFrame = await _frameRepo.GetFrameById(lastFrameId);
+
+                    if (lastFrame == null)
+                        return false;
+
+                    // FRAME 10 LOGIC: Can have 1 shot (strike) or 2 shots (spare or open)
+                    if (frameIds.Count == 10)
+                    {
+                        // Frame 10 must have at least Shot1
+                        if (!lastFrame.Shot1.HasValue)
+                        {
+                            LogDebug($"IsSessionCompleteAsync: Game {game.GameId} - Frame 10 waiting for shot 1");
+                            return false;
+                        }
+
+                        Shot? shot1 = await _shotRepo.GetShotById(lastFrame.Shot1.Value);
+                        bool isStrike = shot1?.Count == 10;
+
+                        if (isStrike)
+                        {
+                            // Strike on frame 10 shot 1 (no shot 2) → Continue to frame 11
+                            LogDebug($"IsSessionCompleteAsync: Game {game.GameId} - Frame 10 strike (shot1 only), needs frames 11+");
+                            return false;
+                        }
+
+                        // Not a strike, so frame 10 needs both shots to evaluate for spare
+                        if (!lastFrame.Shot2.HasValue)
+                        {
+                            LogDebug($"IsSessionCompleteAsync: Game {game.GameId} - Frame 10 no strike, waiting for shot 2");
+                            return false;
+                        }
+
+                        Shot? shot2 = await _shotRepo.GetShotById(lastFrame.Shot2.Value);
+                        bool isSpare = (shot1?.Count ?? 0) + (shot2?.Count ?? 0) == 10;
+
+                        if (isSpare)
+                        {
+                            // Spare on frame 10 → Continue to frame 11
+                            LogDebug($"IsSessionCompleteAsync: Game {game.GameId} - Frame 10 spare (shot1+shot2=10), needs frame 11");
+                            return false;
+                        }
+
+                        // No strike or spare on frame 10 → GAME COMPLETE (no bonus frames)
+                        LogDebug($"IsSessionCompleteAsync: Game {game.GameId} - Frame 10 open (shot1={shot1?.Count}, shot2={shot2?.Count}), game complete");
+                        continue;
+                    }
+
+                    // FRAME 11 LOGIC
+                    if (frameIds.Count == 11)
+                    {
+                        // Need to check frame 10 to determine what caused frame 11
+                        var frame10Id = frameIds[9];
+                        var frame10 = await _frameRepo.GetFrameById(frame10Id);
+
+                        if (frame10 == null || !frame10.Shot1.HasValue)
+                        {
+                            LogDebug($"IsSessionCompleteAsync: Game {game.GameId} - Frame 11 but frame 10 shot 1 missing");
+                            return false;
+                        }
+
+                        Shot? frame10Shot1 = await _shotRepo.GetShotById(frame10.Shot1.Value);
+                        bool frame10WasStrike = frame10Shot1?.Count == 10;
+
+                        if (frame10WasStrike)
+                        {
+                            // Frame 10 was strike → Frame 11 gets 2 shots
+                            LogDebug($"IsSessionCompleteAsync: Game {game.GameId} - Frame 11 after frame 10 strike, checking for 2 shots");
+
+                            if (!lastFrame.Shot1.HasValue)
+                            {
+                                LogDebug($"IsSessionCompleteAsync: Game {game.GameId} - Frame 11 after strike, no shots yet");
+                                return false;
+                            }
+
+                            Shot? frame11Shot1 = await _shotRepo.GetShotById(lastFrame.Shot1.Value);
+                            bool frame11Shot1IsStrike = frame11Shot1?.Count == 10;
+
+                            if (frame11Shot1IsStrike)
+                            {
+                                // Frame 11 shot 1 is also a strike → Need Frame 12 with 1 shot
+                                if (lastFrame.Shot2.HasValue)
+                                {
+                                    LogDebug($"IsSessionCompleteAsync: Game {game.GameId} - Frame 11 after strike with strike in shot 1, needs frame 12");
+                                    return false; // Need frame 12
+                                }
+                                else
+                                {
+                                    LogDebug($"IsSessionCompleteAsync: Game {game.GameId} - Frame 11 after strike with strike in shot 1, waiting for shot 2 (which would be frame 12)");
+                                    return false;
+                                }
+                            }
+                            else
+                            {
+                                // Frame 11 shot 1 is NOT a strike → Check if need shot 2
+                                if (lastFrame.Shot2.HasValue)
+                                {
+                                    // Frame 11 has both shots → GAME COMPLETE
+                                    LogDebug($"IsSessionCompleteAsync: Game {game.GameId} - Frame 11 after strike has 2 shots (no strike on shot1), game complete");
+                                    continue;
+                                }
+                                else
+                                {
+                                    LogDebug($"IsSessionCompleteAsync: Game {game.GameId} - Frame 11 after strike, shot 1 only, waiting for shot 2");
+                                    return false;
+                                }
+                            }
+                        }
+                        else
+                        {
+                            // Frame 10 was NOT a strike (must be spare or open)
+                            if (!frame10.Shot2.HasValue)
+                            {
+                                LogDebug($"IsSessionCompleteAsync: Game {game.GameId} - Frame 11 but frame 10 shot 2 missing");
+                                return false;
+                            }
+
+                            Shot? frame10Shot2 = await _shotRepo.GetShotById(frame10.Shot2.Value);
+                            bool frame10WasSpare = (frame10Shot1?.Count ?? 0) + (frame10Shot2?.Count ?? 0) == 10;
+
+                            if (frame10WasSpare)
+                            {
+                                // Frame 10 was spare → Frame 11 has only 1 shot (bonus), game ends after shot 1
+                                if (lastFrame.Shot1.HasValue)
+                                {
+                                    LogDebug($"IsSessionCompleteAsync: Game {game.GameId} - Frame 11 after frame 10 spare, shot 1 complete, game complete");
+                                    continue; // This game is complete
+                                }
+                                else
+                                {
+                                    LogDebug($"IsSessionCompleteAsync: Game {game.GameId} - Frame 11 after frame 10 spare, waiting for shot 1");
+                                    return false;
+                                }
+                            }
+                            else
+                            {
+                                // Frame 10 was open (no strike, no spare) - shouldn't reach frame 11
+                                LogDebug($"IsSessionCompleteAsync: Game {game.GameId} - Frame 11 exists but frame 10 was open (unexpected)");
+                                return false;
+                            }
+                        }
+                    }
+
+                    // FRAME 12 LOGIC: Exists only if Frame 10 strike + Frame 11 shot 1 strike
+                    if (frameIds.Count == 12)
+                    {
+                        LogDebug($"IsSessionCompleteAsync: Game {game.GameId} - Frame 12 detected (strike after strike)...");
+
+                        // Frame 12 has only 1 shot - it's the bonus shot after two strikes
+                        if (lastFrame.Shot1.HasValue)
+                        {
+                            LogDebug($"IsSessionCompleteAsync: Game {game.GameId} - Frame 12 with shot 1 complete, game complete");
+                            continue; // This game is complete
+                        }
+                        else
+                        {
+                            LogDebug($"IsSessionCompleteAsync: Game {game.GameId} - Frame 12 with no shots yet, game INCOMPLETE");
+                            return false; // Waiting for the shot in frame 12
+                        }
+                    }
+
+                    // Frame count > 12 shouldn't happen
+                    if (frameIds.Count > 12)
+                    {
+                        LogDebug($"IsSessionCompleteAsync: Game {game.GameId} - Unexpected frame count {frameIds.Count} (max is 12)");
+                        return false;
                     }
                 }
 
-                Debug.WriteLine($"IsSessionCompleteAsync: Session {sessionId} is complete");
-                return true; // All games have all frames with shots
+                LogDebug($"IsSessionCompleteAsync: Session {sessionId} is complete - all games finished");
+                return true; // All games are complete
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"IsSessionCompleteAsync error: {ex.Message}");
+                LogDebug($"IsSessionCompleteAsync ERROR for session {sessionId}: {ex.Message}");
+                LogDebug($"IsSessionCompleteAsync ERROR Stack Trace: {ex.StackTrace}");
                 return false;
             }
         }
@@ -742,6 +941,8 @@ namespace Cellular.Services
                 }
 
                 Debug.WriteLine("HandleSyncCommand: Responding to sync request with fresh user data");
+                Debug.WriteLine($"HandleSyncCommand: _syncUser is {(_syncUser == null ? "NULL" : $"VALID (UserName={_syncUser.UserName}, Hand={_syncUser.Hand})")}");
+                Debug.WriteLine($"HandleSyncCommand: _syncUserId = {_syncUserId}");
 
                 // Resend the user data packet with current state
                 await SendJsonToWatch(_syncUserId, _syncSessionRepo, _syncBallRepo, _syncEventRepo, 
@@ -915,10 +1116,22 @@ namespace Cellular.Services
                                                             }
                                                             else if (lastFrame.Shot1.HasValue)
                                                             {
-                                                                // Frame has only 1 shot - frame is incomplete
                                                                 previousShot = await shotRepo.GetShotById(lastFrame.Shot1.Value);
-                                                                frameNum = (uint)(frameIds.Count); // Stay in current frame
-                                                                shotNum = 2; // Next shot is shot 2 of current frame
+                                                                bool isStrike = previousShot?.Count == 10;
+                                                                bool isBonusFrame = frameIds.Count > 10;
+
+                                                                if (isStrike && !isBonusFrame)
+                                                                {
+                                                                    // Strike in regular frame (1-10) → frame complete, move to next frame
+                                                                    frameNum = (uint)(frameIds.Count + 1);
+                                                                    shotNum = 1;
+                                                                }
+                                                                else
+                                                                {
+                                                                    // Not a strike, or bonus frame with strike → need shot 2
+                                                                    frameNum = (uint)(frameIds.Count);
+                                                                    shotNum = 2;
+                                                                }
                                                             }
 
                                                             // Extract previous shot pin data
