@@ -7,19 +7,18 @@ using System;
 using System.IO;
 using Cellular.Services;
 using Cellular.Data;
+using Cellular.Cloud_API;
+using Cellular.Cloud_API.Models;
 using Plugin.BLE;
 using Plugin.BLE.Abstractions.Contracts;
 using System.Linq;
-using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using CommunityToolkit.Maui.Extensions;
-using Cellular.Cloud_API;
-using Cellular.Cloud_API.Models;
 
 namespace Cellular
 {
-    public partial class Video : ContentPage
+    public partial class Video2 : ContentPage
     {
         private readonly List<Size> CommonResolutions = new List<Size>
         {
@@ -30,7 +29,6 @@ namespace Cellular
             new Size(854, 480)    // 480p / FWVGA
         };
 
-        private bool _isCameraMode = true;
         private bool isCameraStarted = false;
         private Size previewResolution = new Size(1920, 1080);
 
@@ -38,8 +36,6 @@ namespace Cellular
         private bool isRecording = false;
         private string currentVideoPath = string.Empty;
         private System.IO.FileStream? _videoFileStream;
-        // Demo mode playback state (fake record behavior)
-        private bool isDemoPlaying = false;
 
         // Stop video only after log is saved; timeout if no log save happens
         private CancellationTokenSource? _stopVideoCts;
@@ -66,34 +62,6 @@ namespace Cellular
             base.OnAppearing();
             await Permissions.RequestAsync<Permissions.Camera>();
             await Permissions.RequestAsync<Permissions.Microphone>();
-
-            // Request notification permission on Android 13+ so foreground service notifications can be shown
-#if ANDROID
-            try
-            {
-                if (Android.OS.Build.VERSION.SdkInt >= Android.OS.BuildVersionCodes.Tiramisu)
-                {
-                    // MAUI Permissions.Notification may not exist in this version; request POST_NOTIFICATIONS directly
-                    try
-                    {
-                        var permission = Android.Manifest.Permission.PostNotifications;
-                        var activity = Platform.CurrentActivity;
-                        if (activity != null && AndroidX.Core.App.ActivityCompat.CheckSelfPermission(activity, permission) != Android.Content.PM.Permission.Granted)
-                        {
-                            AndroidX.Core.App.ActivityCompat.RequestPermissions(activity, new[] { permission }, 1002);
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        System.Diagnostics.Debug.WriteLine($"Notification permission request failed: {ex.Message}");
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Notification permission request failed: {ex.Message}");
-            }
-#endif
 
             // Ensure we have the singleton service instance (Handler is available in OnAppearing)
             if (Handler?.MauiContext?.Services != null)
@@ -129,7 +97,7 @@ namespace Cellular
 
         
         
-        public Video()
+        public Video2()
         {
             InitializeComponent();
 
@@ -166,64 +134,6 @@ namespace Cellular
 
             cameraView.PropertyChanged += CameraView_PropertyChanged;
             cameraView.SizeChanged += CameraView_SizeChanged;
-
-            // Setup media element for packed Raw asset and diagnostics
-            try
-            {
-                // FromResource is the correct API for Resources/Raw MauiAsset files.
-                // On Android it resolves via Assets/ internally (ExoPlayer).
-                // FromFile is for filesystem paths and does NOT work for bundled raw assets.
-                mediaElement.Source = MediaSource.FromResource("lego.mp4");
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Failed to set media source from resource: {ex.Message}");
-                // Fallback: try a known remote URL to verify playback support on device
-                // try
-                // {
-                //     mediaElement.Source = MediaSource.FromUri("https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4");
-                //     mediaElement.IsVisible = true;
-                //     mediaElement.Play();
-                // }
-                // catch { }
-            }
-
-            mediaElement.MediaOpened += (s, e) =>
-            {
-                System.Diagnostics.Debug.WriteLine("Media opened");
-                // In demo mode, start playback once Android ExoPlayer has prepared the source
-                if (isDemoPlaying)
-                {
-                    mediaElement.Play();
-                }
-            };
-            mediaElement.MediaFailed += (s, e) =>
-            {
-                System.Diagnostics.Debug.WriteLine($"Media failed: {e.ErrorMessage}");
-                MainThread.BeginInvokeOnMainThread(async () =>
-                {
-                    try { await DisplayAlert("Media Error", e.ErrorMessage ?? "Unknown media error", "OK"); } catch { }
-                });
-            };
-            mediaElement.MediaEnded += (s, e) =>
-            {
-                MainThread.BeginInvokeOnMainThread(() =>
-                {
-                    if (isDemoPlaying)
-                    {
-                        isDemoPlaying = false;
-                        DemoRecordBtn.Text = "Play";
-                        DemoRecordBtn.BackgroundColor = Color.FromArgb("#9880e5");
-
-                        // Show Ciclopes button with demo/test keys
-                        UseCiclopesBtn.IsVisible = true;
-                        UseCiclopesBtn.IsEnabled = true;
-                        UseCiclopesBtn.BackgroundColor = Color.FromArgb("#9880e5");
-                        _lastVideoKey = "videos/310fceda-dac8-4bf0-a25c-2d1ba360ea68_shot1.mp4";
-                        _lastSdKey = "key";
-                    }
-                });
-            };
         }
 
         private void CameraView_PropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
@@ -524,14 +434,6 @@ namespace Cellular
             // Clean up stream if recording
             CleanupStream();
 
-            // Stop demo playback if active and hide demo button
-            try { mediaElement.Stop(); } catch { }
-            isDemoPlaying = false;
-            if (DemoRecordBtn != null)
-            {
-                DemoRecordBtn.IsVisible = false;
-            }
-
             CleanupStream();
         }
 
@@ -663,8 +565,6 @@ namespace Cellular
 
             UseCiclopesBtn.IsEnabled = false;
             UseCiclopesBtn.BackgroundColor = Colors.Gray;
-            CiclopesSpinner.IsVisible = true;
-            CiclopesSpinner.IsRunning = true;
             try
             {
                 var controller = new ApiController();
@@ -679,9 +579,6 @@ namespace Cellular
 
                 var laneBallsResponse = await laneBallsTask;
 
-                CiclopesSpinner.IsRunning = false;
-                CiclopesSpinner.IsVisible = false;
-
                 if (laneBallsResponse is null)
                 {
                     await DisplayAlert("Ciclopes", "No lane/balls data returned.", "OK");
@@ -693,12 +590,10 @@ namespace Cellular
             }
             catch (Exception ex)
             {
-                await DisplayAlert("Ciclopes Request Failed", $"{ex.GetType().Name}: {ex.Message}\n\n{ex.StackTrace}", "OK");
+                await DisplayAlert("Ciclopes Request Failed", ex.Message, "OK");
             }
             finally
             {
-                CiclopesSpinner.IsRunning = false;
-                CiclopesSpinner.IsVisible = false;
                 UpdateCiclopesButtonState();
             }
         }
@@ -1003,12 +898,11 @@ namespace Cellular
 
                 MainThread.BeginInvokeOnMainThread(() =>
                 {
-                    // When in player/demo mode, allow the Record button to act as a fake-record (play/stop)
-                    RecordBtn.IsEnabled = connected || !_isCameraMode;
-                    // Only update color if not currently recording (camera) or playing (demo)
-                    if (!isRecording && !isDemoPlaying)
+                    RecordBtn.IsEnabled = connected;
+                    // Only update color if not currently recording
+                    if (!isRecording)
                     {
-                        RecordBtn.BackgroundColor = (connected || !_isCameraMode) ? Color.FromArgb("#9880e5") : Colors.Gray;
+                        RecordBtn.BackgroundColor = connected ? Color.FromArgb("#9880e5") : Colors.Gray;
                     }
                 });
             }
@@ -1114,125 +1008,6 @@ namespace Cellular
                     System.Diagnostics.Debug.WriteLine($"[Video2] EndExternalRecording failed: {ex.Message}");
                 }
             });
-        }
-
-        private void OnToggleModeClicked(object sender, EventArgs e)
-        {
-            _isCameraMode = !_isCameraMode;
-
-            if (_isCameraMode)
-            {
-                // Switch to Camera Mode
-                cameraView.IsVisible = true;
-                mediaElement.IsVisible = false;
-
-                // Stop the video to save resources
-                mediaElement.Stop();
-
-                // If demo playback was active, stop it and reset state
-                if (isDemoPlaying)
-                {
-                    try { mediaElement.Stop(); } catch { }
-                    isDemoPlaying = false;
-                    RecordBtn.Text = "Record";
-                    RecordBtn.BackgroundColor = Color.FromArgb("#9880e5");
-                }
-
-                ToggleModeBtn.Text = "Demo Mode";
-                RecordBtn.IsEnabled = true; // Enable recording logic
-                if (DemoRecordBtn != null)
-                {
-                    DemoRecordBtn.IsVisible = false;
-                }
-                // Hide Ciclopes button when leaving demo mode
-                UseCiclopesBtn.IsVisible = false;
-            }
-            else
-            {
-                // Switch to Video Player Mode
-                cameraView.IsVisible = false;
-                mediaElement.IsVisible = true;
-
-                // Optionally auto-play the video
-                // mediaElement.Play(); 
-
-                ToggleModeBtn.Text = "Default Mode";
-                // Show demo playback button in player mode
-                if (DemoRecordBtn != null)
-                {
-                    DemoRecordBtn.IsVisible = true;
-                    DemoRecordBtn.Text = "Play";
-                    DemoRecordBtn.BackgroundColor = Color.FromArgb("#9880e5");
-                }
-                // Disable actual recording in player mode
-                RecordBtn.IsEnabled = false;
-            }
-        }
-
-        private async void OnDemoRecordClicked(object sender, EventArgs e)
-        {
-            try
-            {
-                if (!isDemoPlaying)
-                {
-                    isDemoPlaying = true;
-                    DemoRecordBtn.Text = "Stop";
-                    DemoRecordBtn.BackgroundColor = Colors.Red;
-                    UseCiclopesBtn.IsVisible = false;
-                    try
-                    {
-                        // Use local bundled resource for demo playback (Resources/Raw/lego.mp4)
-                        // Remote URL code commented out — kept for reference
-                        // var testUrl = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4";
-                        //
-                        // // Quick HTTP check to surface bad HTTP status codes before handing to MediaElement
-                        // try
-                        // {
-                        //     using var http = new HttpClient() { Timeout = TimeSpan.FromSeconds(10) };
-                        //     // Try HEAD first
-                        //     var headReq = new HttpRequestMessage(HttpMethod.Head, testUrl);
-                        //     var headResp = await http.SendAsync(headReq);
-                        //     if (!headResp.IsSuccessStatusCode)
-                        //     {
-                        //         // Some servers don't support HEAD; try GET as fallback
-                        //         var getResp = await http.GetAsync(testUrl, HttpCompletionOption.ResponseHeadersRead);
-                        //         if (!getResp.IsSuccessStatusCode)
-                        //         {
-                        //             await DisplayAlert("Media Error", $"Remote file returned HTTP {(int)getResp.StatusCode} {getResp.ReasonPhrase}", "OK");
-                        //             return;
-                        //         }
-                        //     }
-                        // }
-                        // catch (Exception ex)
-                        // {
-                        //     await DisplayAlert("Network Error", $"Could not reach media URL: {ex.Message}", "OK");
-                        //     return;
-                        // }
-                        //
-                        // // If HTTP check succeeded, set source and play
-                        // mediaElement.Source = MediaSource.FromUri(testUrl);
-
-                        // Set local resource source — Play() is triggered by the MediaOpened handler
-                        mediaElement.Source = MediaSource.FromResource("lego.mp4");
-                        mediaElement.IsVisible = true;
-                    }
-                    catch (Exception ex)
-                    {
-                        System.Diagnostics.Debug.WriteLine($"Demo play failed: {ex.Message}");
-                    }
-                }
-                else
-                {
-                    isDemoPlaying = false;
-                    try { mediaElement.Stop(); } catch { }
-                    DemoRecordBtn.Text = "Play";
-                    DemoRecordBtn.BackgroundColor = Color.FromArgb("#9880e5");
-                }
-            }
-            catch (Exception ex)
-            {
-                await DisplayAlert("Error", $"Demo playback failed: {ex.Message}", "OK");
-            }
         }
     }
 }
