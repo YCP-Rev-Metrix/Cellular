@@ -177,9 +177,13 @@ namespace Cellular.Data
                     Console.WriteLine("Hakes bowling data already imported — skipping import.");
                     return;
                 }
-                var csvFileName = "lineScores3.csv";
+                var csvFileName = "Fa25-LeagueScores(JoshMods-4-13-26).csv";
                 using var stream = await FileSystem.OpenAppPackageFileAsync(csvFileName);
                 using var reader = new StreamReader(stream);
+
+                //Skip first 2 lines
+                await reader.ReadLineAsync();
+                await reader.ReadLineAsync();
 
                 // 1. PRE-LOAD EVENTS (Essential to avoid async calls inside transaction)
                 var allEvents = await _database.Table<Event>().ToListAsync();
@@ -216,8 +220,8 @@ namespace Cellular.Data
                     var block = blocks[bi];
 
                     // 1. Grab identifiers from the CSV (do this outside the transaction)
-                    string currentWeek = block.Count.Length > 3 ? block.Count[3].Trim() : "";
-                    string currentDate = block.Count.Length > 4 ? block.Count[4].Trim() : "";
+                    string currentWeek = block.Count.Length > 3 ? block.Count[4].Trim() : "";
+                    string currentDate = block.Count.Length > 4 ? block.Count[5].Trim() : "";
                     string eventName = (block.Count.Length > 1) ? block.Count[1].Trim() : string.Empty;
                     eventMap.TryGetValue(eventName, out var eventRecord);
 
@@ -248,20 +252,20 @@ namespace Cellular.Data
                             var sessionIdForGame = (isNewSession && newSession != null) ? newSession.SessionId : currentSessionId;
 
                             // 3. CREATE GAME (Always happens for every block)
-                            var lanesA = SafeGet(block.Lane, 9);
-                            var lanesB = SafeGet(block.Lane, 10);
+                            var lanesA = SafeGet(block.Lane, 10);
+                            var lanesB = SafeGet(block.Lane, 12);
                             var game = new Game
                             {
                                 SessionId = sessionIdForGame,
                                 Lanes = string.IsNullOrWhiteSpace(lanesA) && string.IsNullOrWhiteSpace(lanesB) ? string.Empty : ($"{lanesA},{lanesB}"),
-                                GameNumber = int.TryParse(SafeGet(block.Count, 5), out var gn) ? gn : 0,
-                                StartingLane = int.TryParse(SafeGet(block.Count, 6), out var sl) ? sl : 0,
-                                Score = int.TryParse(SafeGet(block.Score, 27), out var s) ? s : 0
+                                GameNumber = int.TryParse(SafeGet(block.Count, 6), out var gn) ? gn : 0,
+                                StartingLane = int.TryParse(SafeGet(block.Count, 7), out var sl) ? sl : 0,
+                                Score = int.TryParse(SafeGet(block.Score, 28), out var s) ? s : 0
                             };
                             conn.Insert(game);
 
                             // 4. PROCESS FRAMES & SHOTS
-                            int[] shot1Indices = { 9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 29, 31 };
+                            int[] shot1Indices = { 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30, 32 };
 
                             for (int i = 0; i < shot1Indices.Length; i++)
                             {
