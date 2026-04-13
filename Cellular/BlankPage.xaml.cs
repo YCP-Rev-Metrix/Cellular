@@ -125,6 +125,7 @@ namespace Cellular
             _selectedDevice = BlankPageStore.SavedSelected;
             _isConnected = BlankPageStore.SavedIsConnected;
             _watchBleService.WatchJsonReceived += OnWatchJsonReceived;
+            _watchBleService.WatchDisconnected += OnDeviceDisconnected;
             BindingContext = this;
 
             DeviceListView.SelectionChanged += OnDeviceSelected;
