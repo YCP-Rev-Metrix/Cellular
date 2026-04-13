@@ -53,8 +53,7 @@ public partial class CiclopesResultPopup : Popup
             SpeedPicker.Items.Add(label);
         SpeedPicker.SelectedIndex = 0;
 
-        var ballPoints = laneBallsResponse.BallPoints ?? new List<CiclopesBallPoint>();
-        _ballDrawable = new CiclopesBallPointsDrawable(ballPoints);
+        _ballDrawable = new CiclopesBallPointsDrawable(laneBallsResponse.BallPoints);
         BallPlotView.Drawable = _ballDrawable;
         BallPlotView.Invalidate();
 
@@ -112,8 +111,8 @@ public partial class CiclopesResultPopup : Popup
 
     private void PopulateStats(LaneBallsRunResponse response)
     {
-        var pts = response.BallPoints ?? new List<CiclopesBallPoint>();
-        var kin = response.KinematicsTable ?? new List<CiclopesKinematicsRow>();
+        var pts = response.BallPoints;
+        var kin = response.KinematicsTable;
 
         if (pts.Count > 0)
         {
@@ -142,7 +141,7 @@ public partial class CiclopesResultPopup : Popup
 
     private void PopulatePlots(LaneBallsRunResponse response)
     {
-        var kin = response.KinematicsTable ?? new List<CiclopesKinematicsRow>();
+        var kin = response.KinematicsTable;
 
         if (kin.Count > 0)
         {
@@ -157,7 +156,7 @@ public partial class CiclopesResultPopup : Popup
                 Color.FromArgb("#4a6fa5"), Color.FromArgb("#7a9fd4"));
         }
 
-        var pts = response.BallPoints ?? new List<CiclopesBallPoint>();
+        var pts = response.BallPoints;
         if (pts.Count > 1)
         {
             // Convert lateral positions from meters to inches for the plot

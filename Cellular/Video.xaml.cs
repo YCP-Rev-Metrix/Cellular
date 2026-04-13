@@ -688,14 +688,12 @@ namespace Cellular
                     return;
                 }
 
-                await MainThread.InvokeOnMainThreadAsync(() =>
-                {
-                    this.ShowPopup(new Cellular.Views.CiclopesResultPopup(laneBallsResponse, fourDBodyTask));
-                });
+                var popup = new Cellular.Views.CiclopesResultPopup(laneBallsResponse, fourDBodyTask);
+                await this.ShowPopupAsync(popup);
             }
             catch (Exception ex)
             {
-                await DisplayAlert("Ciclopes Request Failed", ex.Message, "OK");
+                await DisplayAlert("Ciclopes Request Failed", $"{ex.GetType().Name}: {ex.Message}\n\n{ex.StackTrace}", "OK");
             }
             finally
             {
