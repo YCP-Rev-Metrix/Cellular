@@ -1,53 +1,78 @@
-﻿<?xml version="1.0" encoding="utf-8" ?>
+<?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-             x:Class="Cellular.LoginPage">
+             xmlns:material="clr-namespace:UraniumUI.Material.Controls;assembly=UraniumUI.Material"
+             x:Class="Cellular.LoginPage"
+             BackgroundColor="{AppThemeBinding Light={StaticResource Surface}, Dark={StaticResource OffBlack}}">
 
     <ScrollView>
-        <VerticalStackLayout
-            Padding="30,0"
-            Spacing="25">
-            <Image
-                Source="logo.png"
-                HeightRequest="185"
-                Aspect="AspectFit"
-                SemanticProperties.Description="RevMetrix Bowling Ball Logo" />
+        <VerticalStackLayout Padding="32,56,32,32" Spacing="0">
 
-            <Label
-                Text="Login"
-                Style="{StaticResource Headline}"
-                SemanticProperties.HeadingLevel="Level1" />
+            <!-- Logo -->
+            <Image Source="logo.png"
+                   HeightRequest="130"
+                   Aspect="AspectFit"
+                   HorizontalOptions="Center"
+                   Margin="0,0,0,36"
+                   SemanticProperties.Description="RevMetrix Logo" />
 
-            <Entry
-                x:Name="entryUsername"
-                Placeholder="Username"
-                MaxLength="20"
-                Style="{DynamicResource CommonEntryStyle}"/>
-            <Grid>
-                <Entry
-                    x:Name="entryPassword"
-                    Placeholder="Password"
-                    IsPassword="{Binding Source={x:Reference hideCheckbox}, Path=IsChecked}"
-                    MaxLength="20"
-                    Style="{DynamicResource CommonEntryStyle}"/>
+            <!-- Headings -->
+            <Label Text="Welcome Back"
+                   FontSize="28"
+                   FontAttributes="Bold"
+                   TextColor="{AppThemeBinding Light={StaticResource Primary}, Dark={StaticResource White}}"
+                   HorizontalOptions="Start"
+                   Margin="0,0,0,4" />
 
-                <CheckBox x:Name="hideCheckbox" IsChecked="True" HorizontalOptions="End"/>
-            </Grid>
-            <Button
-                x:Name="login"
-                Text="Login" 
-                SemanticProperties.Hint="Logs the user in"
-                Clicked="OnLoginClicked"
-                HorizontalOptions="Fill" />
+            <Label Text="Sign in to your account"
+                   FontSize="14"
+                   TextColor="{StaticResource Gray400}"
+                   HorizontalOptions="Start"
+                   Margin="0,0,0,36" />
 
-            <Label 
-                Text="New user? Click here to register!" 
-                TextColor="Blue"
-                HorizontalOptions="Center">
-                <Label.GestureRecognizers>
-                    <TapGestureRecognizer Tapped="OnRegisterTapped"/>
-                </Label.GestureRecognizers>
-            </Label>
+            <!-- Form card -->
+            <Border Stroke="{AppThemeBinding Light={StaticResource Gray200}, Dark={StaticResource Gray600}}"
+                    StrokeThickness="1"
+                    StrokeShape="RoundRectangle 16"
+                    BackgroundColor="{AppThemeBinding Light={StaticResource CardBackground}, Dark={StaticResource CardBackgroundDark}}"
+                    Padding="24"
+                    Margin="0,0,0,24">
+                <VerticalStackLayout Spacing="16">
+
+                    <material:TextField Title="Username"
+                                        x:Name="entryUsername"
+                                        MaxLength="20" />
+
+                    <material:TextField Title="Password"
+                                        x:Name="entryPassword"
+                                        IsPassword="True"
+                                        MaxLength="20" />
+
+                    <Button x:Name="login"
+                            Text="Sign In"
+                            Clicked="OnLoginClicked"
+                            HorizontalOptions="Fill"
+                            Margin="0,8,0,0" />
+
+                </VerticalStackLayout>
+            </Border>
+
+            <!-- Register link -->
+            <HorizontalStackLayout HorizontalOptions="Center" Spacing="4">
+                <Label Text="New to RevMetrix?"
+                       TextColor="{StaticResource Gray400}"
+                       VerticalOptions="Center"
+                       FontSize="14" />
+                <Label Text="Create an account"
+                       TextColor="{StaticResource Secondary}"
+                       FontAttributes="Bold"
+                       VerticalOptions="Center"
+                       FontSize="14">
+                    <Label.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="OnRegisterTapped" />
+                    </Label.GestureRecognizers>
+                </Label>
+            </HorizontalStackLayout>
 
         </VerticalStackLayout>
     </ScrollView>

@@ -35,14 +35,19 @@
                 HorizontalOptions="Center"
                 SelectedCamera="{Binding SelectedCamera}"/>
 
-            <Button x:Name="RecordBtn"
-                Text="Record"
-                Clicked="OnRecordClicked"
-                WidthRequest="90"
-                IsEnabled="False"
-                BackgroundColor="Gray"/>
-
-           
+            <HorizontalStackLayout HorizontalOptions="Center" Spacing="12">
+                <Button x:Name="RecordBtn"
+                    Text="Record"
+                    Clicked="OnRecordClicked"
+                    WidthRequest="90"
+                    IsEnabled="False"
+                    BackgroundColor="Gray"/>
+                <Button x:Name="UseCiclopesBtn"
+                    Text="Use Ciclopes"
+                    Clicked="OnUseCiclopesClicked"
+                    IsEnabled="False"
+                    BackgroundColor="Gray"/>
+            </HorizontalStackLayout>
 
         </VerticalStackLayout>
     </ScrollView>

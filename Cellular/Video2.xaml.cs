@@ -7,6 +7,8 @@ using System;
 using System.IO;
 using Cellular.Services;
 using Cellular.Data;
+using Cellular.Cloud_API;
+using Cellular.Cloud_API.Models;
 using Plugin.BLE;
 using Plugin.BLE.Abstractions.Contracts;
 using System.Linq;
@@ -41,6 +43,10 @@ namespace Cellular
         // Upload to RevMetrix API (Digital Ocean Space) - use your API credentials
         private static readonly string RevMetrixApiUsername = "string";
         private static readonly string RevMetrixApiPassword = "string";
+
+        // Keys from last successful upload — used to send to Ciclopes
+        private string? _lastVideoKey;
+        private string? _lastSdKey;
 
         // Sensor data buffering
         private SensorBufferManager? _sensorBufferManager;
@@ -384,6 +390,9 @@ namespace Cellular
                     }
                 }
                 try { File.Delete(videoPath); } catch { /* ignore */ }
+                _lastVideoKey = videoKey;
+                _lastSdKey = logKey;
+                UpdateCiclopesButtonState();
                 string msg = logKey != null
                     ? $"Video and log uploaded.\nVideo key: {videoKey}\nLog key: {logKey}"
                     : $"Video uploaded.\nKey: {videoKey}";
@@ -534,6 +543,57 @@ namespace Cellular
         }
 
         
+
+        private void UpdateCiclopesButtonState()
+        {
+            MainThread.BeginInvokeOnMainThread(() =>
+            {
+                bool hasKeys = !string.IsNullOrEmpty(_lastVideoKey);
+                UseCiclopesBtn.IsEnabled = hasKeys;
+                UseCiclopesBtn.BackgroundColor = hasKeys ? Color.FromArgb("#9880e5") : Colors.Gray;
+            });
+        }
+
+        private async void OnUseCiclopesClicked(object sender, EventArgs e)
+        {
+            if (string.IsNullOrEmpty(_lastVideoKey))
+            {
+                await DisplayAlert("Ciclopes", "No uploaded video found. Record and upload a video first.", "OK");
+                return;
+            }
+
+            UseCiclopesBtn.IsEnabled = false;
+            try
+            {
+                var controller = new ApiController();
+                var request = new CiclopesRunRequest
+                {
+                    VideoKey = _lastVideoKey,
+                    SdKey = _lastSdKey ?? string.Empty
+                };
+
+                var laneBallsTask = controller.ExecuteLaneBallsRunRequest(request);
+                var fourDBodyTask = controller.ExecuteFourDBodyRunRequest(request);
+
+                var laneBallsResponse = await laneBallsTask;
+
+                if (laneBallsResponse is null)
+                {
+                    await DisplayAlert("Ciclopes", "No lane/balls data returned.", "OK");
+                    return;
+                }
+
+                this.ShowPopup(new Cellular.Views.CiclopesResultPopup(laneBallsResponse, fourDBodyTask));
+            }
+            catch (Exception ex)
+            {
+                await DisplayAlert("Ciclopes Request Failed", ex.Message, "OK");
+            }
+            finally
+            {
+                UpdateCiclopesButtonState();
+            }
+        }
 
         private void OnDeviceDisconnected(object? sender, string macAddress)
         {

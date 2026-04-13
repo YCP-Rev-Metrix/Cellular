@@ -57,6 +57,9 @@
 	<ItemGroup>
 		<PackageReference Include="BCrypt.Net-Next" Version="4.1.0" />
 		<PackageReference Include="Camera.MAUI" Version="1.5.1" />
+		<PackageReference Include="UraniumUI" Version="2.12.1" />
+		<PackageReference Include="UraniumUI.Material" Version="2.12.1" />
+		<PackageReference Include="UraniumUI.Icons.MaterialIcons" Version="2.12.1" />
 		<PackageReference Include="Camera.MAUI.ZXing" Version="1.0.0" />
 		<PackageReference Include="CommunityToolkit.Maui" Version="14.0.1" />
 		<PackageReference Include="CommunityToolkit.Maui.Camera" Version="6.0.0" />
@@ -66,6 +69,7 @@
 		<PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="9.0.0" />
 		<PackageReference Include="Microsoft.Maui.Controls.Compatibility" Version="10.0.50" />
 		<PackageReference Include="Plugin.BLE" Version="3.2.0" />
+		<PackageReference Include="SkiaSharp.Views.Maui.Controls" Version="3.116.1" />
 		<PackageReference Include="sqlite-net-pcl" Version="1.9.172" />
 	</ItemGroup>
 
@@ -178,6 +182,10 @@
 	</ItemGroup>
 	<ItemGroup>
 		<None Include=".github\workflows\discord-webhook.yml" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<EmbeddedResource Include="settings.json" />
 	</ItemGroup>
 
 	<ItemGroup>
