@@ -1,10 +1,11 @@
-using Cellular.Data;
-using Camera.MAUI;
+﻿using Cellular.Data;
 using Cellular.Services;
 using CommunityToolkit.Maui;
 using CommunityToolkit.Maui.Core;
+using CommunityToolkit.Maui.Media;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using SkiaSharp.Views.Maui.Controls.Hosting;
 using UraniumUI;
 
 namespace Cellular
@@ -15,10 +16,12 @@ namespace Cellular
         {
             var builder = MauiApp.CreateBuilder();
             builder
-                .UseMauiApp<App>().UseMauiCameraView()
+                .UseMauiApp<App>()
                 .UseMauiCommunityToolkitCore()
                 .UseMauiCommunityToolkit()
                 .UseMauiCommunityToolkitCamera()
+                .UseMauiCommunityToolkitMediaElement(isAndroidForegroundServiceEnabled: true)
+                .UseSkiaSharp()
                 .UseUraniumUI()
                 .UseUraniumUIMaterial()
                 .ConfigureFonts(fonts =>

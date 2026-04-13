@@ -119,50 +119,43 @@
                         HeightRequest="72"
                         Style="{StaticResource AccentButton}" />
 
-                <Button x:Name="video2"
-                        Grid.Row="2" Grid.Column="0"
-                        Text="Video 2"
-                        Clicked="OnVideo2Clicked"
-                        HeightRequest="72"
-                        Style="{StaticResource AccentButton}" />
-
                 <Button x:Name="establishment"
-                        Grid.Row="2" Grid.Column="1"
+                        Grid.Row="2" Grid.Column="0"
                         Text="Establishments"
                         Clicked="OnEstablishmentClicked"
                         HeightRequest="72"
                         Style="{StaticResource AccentButton}" />
 
                 <Button x:Name="databaseVisualizer"
-                        Grid.Row="3" Grid.Column="0"
+                        Grid.Row="2" Grid.Column="1"
                         Text="SQL Database"
                         Clicked="OnDatabaseVisualizerClicked"
                         HeightRequest="72"
                         Style="{StaticResource AccentButton}" />
 
                 <Button x:Name="API"
-                        Grid.Row="3" Grid.Column="1"
+                        Grid.Row="3" Grid.Column="0"
                         Text="API Test"
                         Clicked="OnAPIClicked"
                         HeightRequest="72"
                         Style="{StaticResource AccentButton}" />
 
                 <Button x:Name="account"
-                        Grid.Row="4" Grid.Column="0"
+                        Grid.Row="3" Grid.Column="1"
                         Text="Account"
                         Clicked="OnAccountClicked"
                         HeightRequest="72"
                         Style="{StaticResource AccentButton}" />
 
                 <Button x:Name="BlankPage"
-                        Grid.Row="4" Grid.Column="1"
+                        Grid.Row="4" Grid.Column="0"
                         Text="Smart Watch"
                         Clicked="OnBlankPageClicked"
                         HeightRequest="72"
                         Style="{StaticResource AccentButton}" />
 
                 <Button x:Name="ciclopesTest"
-                        Grid.Row="5" Grid.Column="0" Grid.ColumnSpan="2"
+                        Grid.Row="4" Grid.Column="1" Grid.ColumnSpan="2"
                         Text="Ciclopes Test"
                         Clicked="OnCiclopesTestClicked"
                         HeightRequest="72"

@@ -9,7 +9,7 @@
             Padding="0"
             StrokeThickness="0"
             BackgroundColor="#f8f7fc">
-        <Grid WidthRequest="460" HeightRequest="820"
+        <Grid x:Name="MainGrid"
               RowDefinitions="*,Auto">
 
             <!-- ===== BALL PANE (lane + stats + plots) ===== -->
@@ -17,11 +17,6 @@
                   Grid.Row="0"
                   ColumnDefinitions="160,*"
                   ColumnSpacing="0">
-                <Grid.GestureRecognizers>
-                    <SwipeGestureRecognizer Direction="Left" Swiped="OnMainSwipedLeft"/>
-                    <SwipeGestureRecognizer Direction="Right" Swiped="OnMainSwipedRight"/>
-                </Grid.GestureRecognizers>
-
                 <!-- Lane column -->
                 <GraphicsView x:Name="BallPlotView"
                               Grid.Column="0"

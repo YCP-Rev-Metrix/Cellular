@@ -50,7 +50,6 @@ namespace Cellular
             arsenal.IsVisible = isLoggedIn;
             bluetooth.IsVisible = isLoggedIn;
             video.IsVisible = isLoggedIn;
-            video2.IsVisible = isLoggedIn;
             account.IsVisible = isLoggedIn;
             databaseVisualizer.IsVisible = isLoggedIn;
             EventList.IsVisible = isLoggedIn;
@@ -110,11 +109,6 @@ namespace Cellular
         private async void OnVideoClicked(object sender, EventArgs e)
         {
             await Navigation.PushAsync(new Video());
-        }
-
-        private async void OnVideo2Clicked(object sender, EventArgs e)
-        {
-            await Navigation.PushAsync(new Video2());
         }
 
         private async void OnAccountClicked(object sender, EventArgs e)

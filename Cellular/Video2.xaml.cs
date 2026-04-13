@@ -549,6 +549,7 @@ namespace Cellular
             MainThread.BeginInvokeOnMainThread(() =>
             {
                 bool hasKeys = !string.IsNullOrEmpty(_lastVideoKey);
+                UseCiclopesBtn.IsVisible = hasKeys;
                 UseCiclopesBtn.IsEnabled = hasKeys;
                 UseCiclopesBtn.BackgroundColor = hasKeys ? Color.FromArgb("#9880e5") : Colors.Gray;
             });
@@ -563,6 +564,7 @@ namespace Cellular
             }
 
             UseCiclopesBtn.IsEnabled = false;
+            UseCiclopesBtn.BackgroundColor = Colors.Gray;
             try
             {
                 var controller = new ApiController();
@@ -583,7 +585,8 @@ namespace Cellular
                     return;
                 }
 
-                this.ShowPopup(new Cellular.Views.CiclopesResultPopup(laneBallsResponse, fourDBodyTask));
+                var popup = new Cellular.Views.CiclopesResultPopup(laneBallsResponse, fourDBodyTask);
+                await this.ShowPopupAsync(popup, Cellular.Views.CiclopesResultPopup.CreatePopupOptions());
             }
             catch (Exception ex)
             {
