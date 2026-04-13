@@ -54,7 +54,7 @@
                     WidthRequest="300"
                     HeightRequest="400"
                     Source=""
-                    ShouldShowPlaybackControls="True"
+                    ShouldShowPlaybackControls="False"
                     IsVisible="False" />
             </Grid>
 
