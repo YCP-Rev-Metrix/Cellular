@@ -43,7 +43,6 @@ public partial class CiclopesResultPopup : Popup
         var popupHeight = screenHeight * 0.85;
         MainGrid.WidthRequest = popupWidth;
         MainGrid.HeightRequest = popupHeight;
-        this.Size = new Size(popupWidth, popupHeight);
 
         _mainPanes = [BallPane, PosePane];
         _plotPanels = [PlotSpeedPanel, PlotAccelPanel, PlotLateralPanel];

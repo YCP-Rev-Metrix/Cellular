@@ -688,7 +688,10 @@ namespace Cellular
                     return;
                 }
 
-                this.ShowPopup(new Cellular.Views.CiclopesResultPopup(laneBallsResponse, fourDBodyTask));
+                await MainThread.InvokeOnMainThreadAsync(() =>
+                {
+                    this.ShowPopup(new Cellular.Views.CiclopesResultPopup(laneBallsResponse, fourDBodyTask));
+                });
             }
             catch (Exception ex)
             {
