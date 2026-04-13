@@ -1,39 +1,54 @@
-﻿<?xml version="1.0" encoding="UTF-8" ?>
+<?xml version="1.0" encoding="UTF-8" ?>
 <?xaml-comp compile="true" ?>
-<ResourceDictionary 
+<ResourceDictionary
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml">
 
     <!-- Note: For Android please see also Platforms\Android\Resources\values\colors.xml -->
 
-    <Color x:Key="Primary">#512BD4</Color>
-    <Color x:Key="PrimaryDark">#ac99ea</Color>
-    <Color x:Key="PrimaryDarkText">#242424</Color>
-    <Color x:Key="Secondary">#DFD8F7</Color>
-    <Color x:Key="SecondaryDarkText">#9880e5</Color>
-    <Color x:Key="Tertiary">#2B0B98</Color>
+    <!-- Brand colors -->
+    <Color x:Key="Primary">#355070</Color>
+    <Color x:Key="PrimaryDark">#4A6D90</Color>
+    <Color x:Key="PrimaryDarkText">#D0DCE8</Color>
+    <Color x:Key="PrimaryLight">#E8EFF5</Color>
 
-    <Color x:Key="White">White</Color>
-    <Color x:Key="Black">Black</Color>
-    <Color x:Key="Magenta">#D600AA</Color>
-    <Color x:Key="MidnightBlue">#190649</Color>
-    <Color x:Key="OffBlack">#1f1f1f</Color>
+    <Color x:Key="Secondary">#FA8847</Color>
+    <Color x:Key="SecondaryDark">#C96A2E</Color>
+    <Color x:Key="SecondaryDarkText">#FDE0CC</Color>
+    <Color x:Key="SecondaryLight">#FEF0E7</Color>
 
-    <Color x:Key="Gray100">#E1E1E1</Color>
-    <Color x:Key="Gray200">#C8C8C8</Color>
-    <Color x:Key="Gray300">#ACACAC</Color>
-    <Color x:Key="Gray400">#919191</Color>
-    <Color x:Key="Gray500">#6E6E6E</Color>
-    <Color x:Key="Gray600">#404040</Color>
-    <Color x:Key="Gray900">#212121</Color>
-    <Color x:Key="Gray950">#141414</Color>
+    <Color x:Key="Tertiary">#1E3448</Color>
 
+    <!-- Neutrals -->
+    <Color x:Key="White">#FFFFFF</Color>
+    <Color x:Key="Black">#0D0D0D</Color>
+    <Color x:Key="OffBlack">#121A24</Color>
+    <Color x:Key="Surface">#F4F7FA</Color>
+    <Color x:Key="SurfaceDark">#1A2535</Color>
+    <Color x:Key="CardBackground">#FFFFFF</Color>
+    <Color x:Key="CardBackgroundDark">#1E2D3E</Color>
+
+    <!-- Grays -->
+    <Color x:Key="Gray100">#E8EDF2</Color>
+    <Color x:Key="Gray200">#CDD6DF</Color>
+    <Color x:Key="Gray300">#A8B8C6</Color>
+    <Color x:Key="Gray400">#7F96A8</Color>
+    <Color x:Key="Gray500">#5A7485</Color>
+    <Color x:Key="Gray600">#3D5464</Color>
+    <Color x:Key="Gray900">#1C2C38</Color>
+    <Color x:Key="Gray950">#111C25</Color>
+
+    <!-- Semantic -->
+    <Color x:Key="Success">#2E7D52</Color>
+    <Color x:Key="Warning">#FA8847</Color>
+    <Color x:Key="Error">#C0392B</Color>
+
+    <!-- Brushes -->
     <SolidColorBrush x:Key="PrimaryBrush" Color="{StaticResource Primary}"/>
     <SolidColorBrush x:Key="SecondaryBrush" Color="{StaticResource Secondary}"/>
     <SolidColorBrush x:Key="TertiaryBrush" Color="{StaticResource Tertiary}"/>
     <SolidColorBrush x:Key="WhiteBrush" Color="{StaticResource White}"/>
     <SolidColorBrush x:Key="BlackBrush" Color="{StaticResource Black}"/>
-
     <SolidColorBrush x:Key="Gray100Brush" Color="{StaticResource Gray100}"/>
     <SolidColorBrush x:Key="Gray200Brush" Color="{StaticResource Gray200}"/>
     <SolidColorBrush x:Key="Gray300Brush" Color="{StaticResource Gray300}"/>
@@ -42,4 +57,5 @@
     <SolidColorBrush x:Key="Gray600Brush" Color="{StaticResource Gray600}"/>
     <SolidColorBrush x:Key="Gray900Brush" Color="{StaticResource Gray900}"/>
     <SolidColorBrush x:Key="Gray950Brush" Color="{StaticResource Gray950}"/>
+
 </ResourceDictionary>

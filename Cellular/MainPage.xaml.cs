@@ -34,8 +34,13 @@ namespace Cellular
             await SoftRefreshAsync();
         }
         private void UpdateUI()
-        { 
-            // Set which buttons show up when logged in or out
+        {
+            // Panel-level visibility
+            loggedOutPanel.IsVisible = !isLoggedIn;
+            loggedInPanel.IsVisible = isLoggedIn;
+            welcomeRow.IsVisible = isLoggedIn;
+
+            // Individual control visibility
             login.IsVisible = !isLoggedIn;
             register.IsVisible = !isLoggedIn;
             guest.IsVisible = !isLoggedIn;
@@ -50,6 +55,7 @@ namespace Cellular
             EventList.IsVisible = isLoggedIn;
             establishment.IsVisible = isLoggedIn;
             API.IsVisible = isLoggedIn;
+            ciclopesTest.IsVisible = isLoggedIn;
             BlankPage.IsVisible = isLoggedIn;
         }
 
@@ -124,6 +130,12 @@ namespace Cellular
         {
             await Navigation.PushAsync(new APItestPage());
         }
+
+        private async void OnCiclopesTestClicked(object sender, EventArgs e)
+        {
+            await Navigation.PushAsync(new CiclopesTestPage());
+        }
+
         private async void OnBlankPageClicked(object sender, EventArgs e)
         {
             var svc = IPlatformApplication.Current.Services.GetService<IWatchBleService>();
