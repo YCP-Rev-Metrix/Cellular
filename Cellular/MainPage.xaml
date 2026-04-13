@@ -91,12 +91,6 @@
                   RowSpacing="12"
                   Margin="0,0,0,0">
 
-            <Button x:Name="establishment"
-                    Text="Establishments" 
-                    SemanticProperties.Hint="takes you to the establishment page"
-                    Clicked="OnEstablishmentClicked"
-                    HorizontalOptions="Fill"
-                    IsVisible="True" />
                 <Button x:Name="arsenal"
                         Grid.Row="0" Grid.Column="0"
                         Text="Ball Arsenal"
