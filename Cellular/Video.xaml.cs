@@ -164,24 +164,33 @@ namespace Cellular
             // Setup media element for packed Raw asset and diagnostics
             try
             {
-                // If the file is placed in Resources/Raw and BuildAction=MauiAsset,
-                // MediaElement can reference it by filename using FromFile.
-                mediaElement.Source = MediaSource.FromFile("lego.mp4");
+                // FromResource is the correct API for Resources/Raw MauiAsset files.
+                // On Android it resolves via Assets/ internally (ExoPlayer).
+                // FromFile is for filesystem paths and does NOT work for bundled raw assets.
+                mediaElement.Source = MediaSource.FromResource("lego.mp4");
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Failed to set media source from file: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"Failed to set media source from resource: {ex.Message}");
                 // Fallback: try a known remote URL to verify playback support on device
-                try
-                {
-                    mediaElement.Source = MediaSource.FromUri("https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4");
-                    mediaElement.IsVisible = true;
-                    mediaElement.Play();
-                }
-                catch { }
+                // try
+                // {
+                //     mediaElement.Source = MediaSource.FromUri("https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4");
+                //     mediaElement.IsVisible = true;
+                //     mediaElement.Play();
+                // }
+                // catch { }
             }
 
-            mediaElement.MediaOpened += (s, e) => System.Diagnostics.Debug.WriteLine("Media opened");
+            mediaElement.MediaOpened += (s, e) =>
+            {
+                System.Diagnostics.Debug.WriteLine("Media opened");
+                // In demo mode, start playback once Android ExoPlayer has prepared the source
+                if (isDemoPlaying)
+                {
+                    mediaElement.Play();
+                }
+            };
             mediaElement.MediaFailed += (s, e) =>
             {
                 System.Diagnostics.Debug.WriteLine($"Media failed: {e.ErrorMessage}");
@@ -1080,37 +1089,40 @@ namespace Cellular
                     DemoRecordBtn.BackgroundColor = Colors.Red;
                     try
                     {
-                        // Ensure we have a playable source for testing — use known remote URL
-                        var testUrl = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4";
+                        // Use local bundled resource for demo playback (Resources/Raw/lego.mp4)
+                        // Remote URL code commented out — kept for reference
+                        // var testUrl = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4";
+                        //
+                        // // Quick HTTP check to surface bad HTTP status codes before handing to MediaElement
+                        // try
+                        // {
+                        //     using var http = new HttpClient() { Timeout = TimeSpan.FromSeconds(10) };
+                        //     // Try HEAD first
+                        //     var headReq = new HttpRequestMessage(HttpMethod.Head, testUrl);
+                        //     var headResp = await http.SendAsync(headReq);
+                        //     if (!headResp.IsSuccessStatusCode)
+                        //     {
+                        //         // Some servers don't support HEAD; try GET as fallback
+                        //         var getResp = await http.GetAsync(testUrl, HttpCompletionOption.ResponseHeadersRead);
+                        //         if (!getResp.IsSuccessStatusCode)
+                        //         {
+                        //             await DisplayAlert("Media Error", $"Remote file returned HTTP {(int)getResp.StatusCode} {getResp.ReasonPhrase}", "OK");
+                        //             return;
+                        //         }
+                        //     }
+                        // }
+                        // catch (Exception ex)
+                        // {
+                        //     await DisplayAlert("Network Error", $"Could not reach media URL: {ex.Message}", "OK");
+                        //     return;
+                        // }
+                        //
+                        // // If HTTP check succeeded, set source and play
+                        // mediaElement.Source = MediaSource.FromUri(testUrl);
 
-                        // Quick HTTP check to surface bad HTTP status codes before handing to MediaElement
-                        try
-                        {
-                            using var http = new HttpClient() { Timeout = TimeSpan.FromSeconds(10) };
-                            // Try HEAD first
-                            var headReq = new HttpRequestMessage(HttpMethod.Head, testUrl);
-                            var headResp = await http.SendAsync(headReq);
-                            if (!headResp.IsSuccessStatusCode)
-                            {
-                                // Some servers don't support HEAD; try GET as fallback
-                                var getResp = await http.GetAsync(testUrl, HttpCompletionOption.ResponseHeadersRead);
-                                if (!getResp.IsSuccessStatusCode)
-                                {
-                                    await DisplayAlert("Media Error", $"Remote file returned HTTP {(int)getResp.StatusCode} {getResp.ReasonPhrase}", "OK");
-                                    return;
-                                }
-                            }
-                        }
-                        catch (Exception ex)
-                        {
-                            await DisplayAlert("Network Error", $"Could not reach media URL: {ex.Message}", "OK");
-                            return;
-                        }
-
-                        // If HTTP check succeeded, set source and play
-                        mediaElement.Source = MediaSource.FromUri(testUrl);
+                        // Set local resource source — Play() is triggered by the MediaOpened handler
+                        mediaElement.Source = MediaSource.FromResource("lego.mp4");
                         mediaElement.IsVisible = true;
-                        mediaElement.Play();
                     }
                     catch (Exception ex)
                     {

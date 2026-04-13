@@ -53,7 +53,7 @@
                     x:Name="mediaElement"
                     WidthRequest="300"
                     HeightRequest="400"
-                    Source="embed://lego.mp4"
+                    Source=""
                     ShouldShowPlaybackControls="True"
                     IsVisible="False" />
             </Grid>
