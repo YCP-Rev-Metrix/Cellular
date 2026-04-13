@@ -62,6 +62,8 @@
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
 
                 <Button
@@ -85,6 +87,14 @@
                     WidthRequest="90"
                     Clicked="OnDemoRecordClicked"
                     IsVisible="False"/>
+                <Button
+                    Grid.Column="3"
+                    x:Name="UseCiclopesBtn"
+                    Text="Use Ciclopes"
+                    Clicked="OnUseCiclopesClicked"
+                    IsVisible="False"
+                    WidthRequest="90"
+                    BackgroundColor="#9880e5"/>
             </Grid>
         </Grid>
     </ScrollView>
