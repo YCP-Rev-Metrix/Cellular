@@ -1023,26 +1023,6 @@ namespace Cellular
                         uiFrame.OnPropertyChanged(nameof(uiFrame.RollingScore));
                     }
                 }
-                else if (!isStrike && !isSpare && shot2 == null)
-                {
-                    // Single shot open frame (e.g., 9 pins on first shot only)
-                    if (isShot1Foul)
-                    {
-                        frameScore = 0;
-                    }
-                    else
-                    {
-                        frameScore = (shot1.Count ?? 0);
-                    }
-                    totalScore += frameScore;
-
-                    if (i < viewModel.Frames.Count)
-                    {
-                        var uiFrame = viewModel.Frames[i];
-                        uiFrame.RollingScore = totalScore;
-                        uiFrame.OnPropertyChanged(nameof(uiFrame.RollingScore));
-                    }
-                }
             }
             viewModel.TotalScore = totalScore;
             await UpdateGameAsync();
