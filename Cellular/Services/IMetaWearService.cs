@@ -9,9 +9,14 @@ namespace Cellular.Services
     public interface IMetaWearService
     {
         /// <summary>
-        /// Event fired when device is disconnected
+        /// Event fired when device is disconnected unexpectedly and all reconnect attempts have failed
         /// </summary>
         event EventHandler<string> DeviceDisconnected;
+
+        /// <summary>
+        /// Event fired when the device successfully auto-reconnects after an unexpected disconnect
+        /// </summary>
+        event EventHandler<string> DeviceReconnected;
 
         /// <summary>
         /// Event fired when accelerometer data is received
