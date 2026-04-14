@@ -43,10 +43,13 @@
                                         x:Name="entryUsername"
                                         MaxLength="20" />
 
-                    <material:TextField Title="Password"
-                                        x:Name="entryPassword"
-                                        IsPassword="True"
-                                        MaxLength="20" />
+                    <Grid>
+                        <material:TextField Title="Password"
+                            x:Name="entryPassword"
+                            IsPassword="{Binding Source={x:Reference hideCheckbox1}, Path=IsChecked}"
+                            MaxLength="20" />
+                        <CheckBox x:Name="hideCheckbox1" IsChecked="True" HorizontalOptions="End"/>
+                    </Grid>
 
                     <Button x:Name="login"
                             Text="Sign In"

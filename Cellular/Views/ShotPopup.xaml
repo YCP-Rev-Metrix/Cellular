@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<toolkit:Popup xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+               xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+               xmlns:toolkit="clr-namespace:CommunityToolkit.Maui.Views;assembly=CommunityToolkit.Maui"
+               x:Class="Cellular.Views.ShotPopup"
+               CanBeDismissedByTappingOutsideOfPopup="False"
+               BackgroundColor="Gray">
+
+    <ScrollView>
+        <StackLayout Spacing="6" Padding="12" WidthRequest="275">
+
+            <Label Text="Shot Info"
+                   FontSize="18"
+                   TextColor="Black"
+                   FontAttributes="Bold"
+                   HorizontalOptions="Center" />
+
+            <!-- Player -->
+            <Label Text="Player" FontAttributes="Bold" TextColor="Black" />
+            <Picker ItemsSource="{Binding PlayerUsers}"
+                    ItemDisplayBinding="{Binding FirstName}"
+                    SelectedItem="{Binding SelectedPlayerUser}"
+                    TextColor="Black"
+                    TitleColor="DimGray"
+                    Title="Select player" />
+
+            <!-- Strike Ball -->
+            <Label Text="Strike Ball" FontAttributes="Bold" TextColor="Black" />
+            <Picker ItemsSource="{Binding Arsenal}"
+                    ItemDisplayBinding="{Binding Name}"
+                    SelectedItem="{Binding SelectedStrikeBall}"
+                    TextColor="Black"
+                    TitleColor="DimGray"
+                    Title="Select ball" />
+
+            <!-- Spare Ball -->
+            <Label Text="Spare Ball" FontAttributes="Bold" TextColor="Black" />
+            <Picker ItemsSource="{Binding Arsenal}"
+                    ItemDisplayBinding="{Binding Name}"
+                    SelectedItem="{Binding SelectedSpareBall}"
+                    TextColor="Black"
+                    TitleColor="DimGray"
+                    Title="Select ball" />
+
+            <!-- Stance -->
+            <Label Text="Stance" FontAttributes="Bold" TextColor="Black" />
+            <StackLayout Orientation="Horizontal" Spacing="6">
+                <Picker ItemsSource="{Binding StanceWholes}"
+                        SelectedItem="{Binding SelectedStanceWhole}"
+                        TextColor="Black"
+                        TitleColor="DimGray"
+                        Title="#"
+                        HorizontalOptions="FillAndExpand" />
+                <Picker ItemsSource="{Binding StanceDecimals}"
+                        SelectedItem="{Binding SelectedStanceDecimal}"
+                        TextColor="Black"
+                        TitleColor="DimGray"
+                        Title=".x"
+                        HorizontalOptions="FillAndExpand" />
+            </StackLayout>
+
+            <!-- Ball Speed -->
+            <Label Text="Ball Speed" FontAttributes="Bold" TextColor="Black" />
+            <StackLayout Orientation="Horizontal" Spacing="6">
+                <Picker ItemsSource="{Binding SpeedWholes}"
+                        SelectedItem="{Binding SelectedSpeedWhole}"
+                        TextColor="Black"
+                        TitleColor="DimGray"
+                        Title="#"
+                        HorizontalOptions="FillAndExpand" />
+                <Picker ItemsSource="{Binding SpeedDecimals}"
+                        SelectedItem="{Binding SelectedSpeedDecimal}"
+                        TextColor="Black"
+                        TitleColor="DimGray"
+                        Title=".x"
+                        HorizontalOptions="FillAndExpand" />
+            </StackLayout>
+
+            <!-- Position -->
+            <Label Text="Position" FontAttributes="Bold" TextColor="Black" />
+            <Picker ItemsSource="{Binding PositionOptions}"
+                    SelectedItem="{Binding SelectedPosition}"
+                    TextColor="Black"
+                    TitleColor="DimGray"
+                    Title="Select position" />
+
+            <!-- Lane -->
+            <Label Text="Lane" FontAttributes="Bold" TextColor="Black" />
+            <Picker ItemsSource="{Binding LaneNumbers}"
+                    SelectedItem="{Binding SelectedLane}"
+                    TextColor="Black"
+                    TitleColor="DimGray"
+                    Title="Select lane" />
+
+            <!-- Buttons -->
+            <StackLayout Orientation="Horizontal" HorizontalOptions="Center" Spacing="20" Margin="0,8,0,0">
+                <Button Text="Close"
+                        WidthRequest="100"
+                        BackgroundColor="DarkSlateGray"
+                        TextColor="White"
+                        Clicked="OnCloseClicked" />
+            </StackLayout>
+
+        </StackLayout>
+    </ScrollView>
+
+</toolkit:Popup>

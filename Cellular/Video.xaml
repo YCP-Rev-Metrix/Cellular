@@ -42,6 +42,15 @@
                 BackgroundColor="LightSlateGray"
                 SelectedIndexChanged="ResolutionPicker_SelectedIndexChanged" />
 
+            <Button
+                Grid.Row="2"
+                x:Name="ToggleModeBtn"
+                Text="Demo Mode"
+                Clicked="OnToggleModeClicked"
+                HorizontalOptions="Center"
+                WidthRequest="120"
+                BackgroundColor="#9880e5" />
+
             <Grid Grid.Row="3">
                 <toolkit:CameraView
                     x:Name="cameraView"
@@ -68,16 +77,10 @@
 
                 <Button
                     Grid.Column="0"
-                    x:Name="ToggleModeBtn"
-                    Text="Demo"
-                    WidthRequest="90"
-                    Clicked="OnToggleModeClicked" />
-                <Button
-                    Grid.Column="1"
                     x:Name="RecordBtn"
                     Text="Record"
                     Clicked="OnRecordClicked"
-                    WidthRequest="90"
+                    WidthRequest="120"
                     IsEnabled="False"
                     BackgroundColor="Gray" />
                 <Button

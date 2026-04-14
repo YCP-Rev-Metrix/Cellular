@@ -40,6 +40,7 @@ namespace Cellular.Data
             await ImportHakesBowlingDataAsync();
 
             await EnsureCloudIdColumnsAsync(_database);
+            await BackfillSessionEstablishmentsAsync();
         }
 
         /// <summary>Adds CloudID to existing installs (SQLite CreateTable does not add new columns).</summary>
@@ -52,6 +53,7 @@ namespace Cellular.Data
             await EnsureColumnAsync(db, "game", "CloudID");
             await EnsureColumnAsync(db, "bowlingFrame", "CloudID");
             await EnsureColumnAsync(db, "shot", "CloudID");
+            await EnsureColumnAsync(db, "shot", "PlayerId");
         }
 
         private static async Task EnsureColumnAsync(SQLiteAsyncConnection db, string table, string column)
@@ -60,6 +62,57 @@ namespace Cellular.Data
             if (info.Any(c => string.Equals(c.Name, column, StringComparison.OrdinalIgnoreCase)))
                 return;
             await db.ExecuteAsync($"ALTER TABLE [{table}] ADD COLUMN {column} INTEGER NULL");
+        }
+
+        /// <summary>
+        /// One-time backfill: for every session whose Establishment is null, resolve it from
+        /// Event.Location → Establishment.NickName and update the row.
+        /// Safe to run on every launch — skips sessions that are already set.
+        /// </summary>
+        private async Task BackfillSessionEstablishmentsAsync()
+        {
+            try
+            {
+                var sessions = await _database.Table<Session>()
+                    .Where(s => s.Establishment == null)
+                    .ToListAsync();
+
+                if (sessions.Count == 0) return;
+
+                var allEvents = await _database.Table<Event>().ToListAsync();
+                var eventById = allEvents.ToDictionary(e => e.EventId, e => e);
+
+                var allEstabs = await _database.Table<Establishment>().ToListAsync();
+                // Build lookup by NickName (Event.Location stores NickName)
+                var estabByNickName = allEstabs
+                    .Where(e => !string.IsNullOrWhiteSpace(e.NickName))
+                    .ToDictionary(e => e.NickName!.Trim(), e => e, StringComparer.OrdinalIgnoreCase);
+
+                int updated = 0;
+                foreach (var session in sessions)
+                {
+                    if (!eventById.TryGetValue(session.EventId, out var ev)) continue;
+                    if (string.IsNullOrWhiteSpace(ev.Location)) continue;
+
+                    if (estabByNickName.TryGetValue(ev.Location.Trim(), out var estab))
+                    {
+                        session.Establishment = estab.EstaID;
+                        await _database.UpdateAsync(session);
+                        updated++;
+                    }
+                    else
+                    {
+                        Debug.WriteLine($"BackfillSession: no match for location '{ev.Location}'");
+                    }
+                }
+
+                if (updated > 0)
+                    Debug.WriteLine($"BackfillSessionEstablishments: updated {updated} session(s).");
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"BackfillSessionEstablishments error: {ex.Message}");
+            }
         }
 
         private async Task ImportEstabishmentsFromCsvAsync()
@@ -177,15 +230,26 @@ namespace Cellular.Data
                     Console.WriteLine("Hakes bowling data already imported — skipping import.");
                     return;
                 }
-                var csvFileName = "lineScores3.csv";
+                var csvFileName = "Fa25-LeagueScores(JoshMods-4-13-26).csv";
                 using var stream = await FileSystem.OpenAppPackageFileAsync(csvFileName);
                 using var reader = new StreamReader(stream);
+
+                //Skip first 2 lines
+                await reader.ReadLineAsync();
+                await reader.ReadLineAsync();
 
                 // 1. PRE-LOAD EVENTS (Essential to avoid async calls inside transaction)
                 var allEvents = await _database.Table<Event>().ToListAsync();
                 var eventMap = allEvents
                     .Where(e => !string.IsNullOrWhiteSpace(e.NickName))
                     .ToDictionary(e => e.NickName!.Trim(), e => e);
+
+                // PRE-LOAD ESTABLISHMENTS keyed by NickName so we can resolve
+                // Event.Location → Establishment.EstaID when creating sessions.
+                var allEstablishments = await _database.Table<Establishment>().ToListAsync();
+                var estabMap = allEstablishments
+                    .Where(e => !string.IsNullOrWhiteSpace(e.NickName))
+                    .ToDictionary(e => e.NickName!.Trim(), e => e, StringComparer.OrdinalIgnoreCase);
 
                 // PRE-LOAD BALLS so we can map ball name -> BallId when saving shots
                 var allBalls = await _database.Table<Ball>().ToListAsync();
@@ -216,8 +280,8 @@ namespace Cellular.Data
                     var block = blocks[bi];
 
                     // 1. Grab identifiers from the CSV (do this outside the transaction)
-                    string currentWeek = block.Count.Length > 3 ? block.Count[3].Trim() : "";
-                    string currentDate = block.Count.Length > 4 ? block.Count[4].Trim() : "";
+                    string currentWeek = block.Count.Length > 3 ? block.Count[4].Trim() : "";
+                    string currentDate = block.Count.Length > 4 ? block.Count[5].Trim() : "";
                     string eventName = (block.Count.Length > 1) ? block.Count[1].Trim() : string.Empty;
                     eventMap.TryGetValue(eventName, out var eventRecord);
 
@@ -226,12 +290,37 @@ namespace Cellular.Data
                     Session? newSession = null;
                     if (isNewSession)
                     {
+                        // Resolve the establishment from Event.Location.
+                        // EventPopupViewModel stores NickName; CSV imports may store FullName — try both.
+                        int? establishmentId = null;
+                        if (!string.IsNullOrWhiteSpace(eventRecord?.Location))
+                        {
+                            var loc = eventRecord.Location.Trim();
+                            if (!estabMap.TryGetValue(loc, out var estab))
+                            {
+                                // Fallback: match by nickname
+                                estab = allEstablishments.FirstOrDefault(e =>
+                                    string.Equals(e.NickName, loc, StringComparison.OrdinalIgnoreCase));
+                            }
+
+                            if (estab != null)
+                            {
+                                establishmentId = estab.EstaID;
+                                Debug.WriteLine($"Import: matched '{loc}' → EstaID {estab.EstaID} ('{estab.NickName}')");
+                            }
+                            else
+                            {
+                                Debug.WriteLine($"Import: no establishment match for '{loc}'");
+                            }
+                        }
+
                         newSession = new Session
                         {
                             EventId = eventRecord?.EventId ?? 0,
                             SessionNumber = int.TryParse(currentWeek, out var weekNum) ? weekNum : 0,
                             DateTime = DateTime.TryParse(currentDate, out var dt) ? dt : DateTime.Now,
-                            UserId = eventRecord?.UserId ?? 0
+                            UserId = eventRecord?.UserId ?? 0,
+                            Establishment = establishmentId
                         };
                     }
 
@@ -248,20 +337,20 @@ namespace Cellular.Data
                             var sessionIdForGame = (isNewSession && newSession != null) ? newSession.SessionId : currentSessionId;
 
                             // 3. CREATE GAME (Always happens for every block)
-                            var lanesA = SafeGet(block.Lane, 9);
-                            var lanesB = SafeGet(block.Lane, 10);
+                            var lanesA = SafeGet(block.Lane, 10);
+                            var lanesB = SafeGet(block.Lane, 12);
                             var game = new Game
                             {
                                 SessionId = sessionIdForGame,
                                 Lanes = string.IsNullOrWhiteSpace(lanesA) && string.IsNullOrWhiteSpace(lanesB) ? string.Empty : ($"{lanesA},{lanesB}"),
-                                GameNumber = int.TryParse(SafeGet(block.Count, 5), out var gn) ? gn : 0,
-                                StartingLane = int.TryParse(SafeGet(block.Count, 6), out var sl) ? sl : 0,
-                                Score = int.TryParse(SafeGet(block.Score, 27), out var s) ? s : 0
+                                GameNumber = int.TryParse(SafeGet(block.Count, 6), out var gn) ? gn : 0,
+                                StartingLane = int.TryParse(SafeGet(block.Count, 7), out var sl) ? sl : 0,
+                                Score = int.TryParse(SafeGet(block.Score, 28), out var s) ? s : 0
                             };
                             conn.Insert(game);
 
                             // 4. PROCESS FRAMES & SHOTS
-                            int[] shot1Indices = { 9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 29, 31 };
+                            int[] shot1Indices = { 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30, 32 };
 
                             for (int i = 0; i < shot1Indices.Length; i++)
                             {

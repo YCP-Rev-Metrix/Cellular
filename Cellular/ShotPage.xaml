@@ -159,18 +159,6 @@
                             TextColor="White"
                             HorizontalOptions="Center"/>
                     </StackLayout>
-                    <StackLayout>
-                        <Label Text="Player" />
-                        <Picker x:Name="PlayerPicker" HeightRequest="30" WidthRequest="{OnIdiom Phone=80, Tablet=100, Desktop=120}" ItemsSource="{Binding Players}" BackgroundColor="Grey"/>
-                    </StackLayout>
-                    <StackLayout>
-                        <Label Text="Strike Ball" />
-                        <Picker x:Name="BallPicker1" HeightRequest="30" WidthRequest="{OnIdiom Phone=80, Tablet=100, Desktop=120}" ItemsSource="{Binding Arsenal}" ItemDisplayBinding="{Binding Name}" SelectedItem="{Binding SelectedStrikeBall}" BackgroundColor="Grey"/>
-                    </StackLayout>
-                    <StackLayout>
-                        <Label Text="Spare Ball" />
-                        <Picker x:Name="BallPicker2" HeightRequest="30" WidthRequest="{OnIdiom Phone=80, Tablet=100, Desktop=120}" ItemsSource="{Binding Arsenal}" ItemDisplayBinding="{Binding Name}" SelectedItem="{Binding SelectedSpareBall}" BackgroundColor="Grey"/>
-                    </StackLayout>
                 </StackLayout>
 
                 <!-- Center: Pin Buttons and Board Selector -->
@@ -207,7 +195,8 @@
                     <Button Text="X" WidthRequest="40" HeightRequest="40" CornerRadius="3" Clicked="OnStrikeClicked" BackgroundColor="LightGray"/>
                 </StackLayout>
 
-                <StackLayout Grid.Row="2" Grid.Column="1" Orientation="Horizontal" Padding="0, 10" Spacing="10" HorizontalOptions="Center">
+                <StackLayout Grid.Row="2" Grid.Column="1" Orientation="Horizontal" Padding="0, 80" Spacing="10" HorizontalOptions="Center">
+                    <Button Text="Shot Info" WidthRequest="100" HeightRequest="40" CornerRadius="3" BackgroundColor="LightGray" Clicked="OnShotPopupClicked"/>
                     <Button Text="Comment" WidthRequest="100" HeightRequest="40" CornerRadius="3" BackgroundColor="LightGray" Clicked="OnCommentClicked"/>
                     <Button Text="Next" x:Name="nextButton"  WidthRequest="100" HeightRequest="40" CornerRadius="3" BackgroundColor="LightGray" Clicked="OnNextClicked"/>
                 </StackLayout>
