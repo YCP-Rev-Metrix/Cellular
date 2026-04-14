@@ -1,4 +1,5 @@
-﻿using Cellular.Data;
+﻿using Cellular.Cloud_API.Models;
+using Cellular.Data;
 using Cellular.Services;
 using Cellular.ViewModel;
 using Cellular.Views;
@@ -43,6 +44,7 @@ namespace Cellular
                 _hasAppeared = true;
                 _ = CheckIfFramesExistForGame();
                 _ = viewModel.LoadUserHand();
+                _ = viewModel.LoadLanes();
                 // Ensure frame backgrounds are computed on initial load
                 viewModel.RefreshFrameBackgrounds();
                 Debug.WriteLine("Hand: " + viewModel.Hand);
@@ -88,7 +90,7 @@ namespace Cellular
                     viewModel.pinStates ^= (short)pinBit;
                     // Update button color based on pin state
                     bool isPinDown = (viewModel.pinStates & pinBit) == 0;
-                    button.BackgroundColor = isPinDown ? Colors.LightSlateGrey : Color.FromArgb("#9880e5");
+                    button.BackgroundColor = isPinDown ? Colors.LightSlateGrey : Color.FromArgb("#FA8847");
 
                     Console.WriteLine($"Pin {pinNumber} is now {(isPinDown ? "Down" : "Up")}");
                 }
@@ -116,8 +118,8 @@ namespace Cellular
                     }
                     else
                     {
-                        // Pin was knocked down (0) -> Should be Purple
-                        button.BackgroundColor = Color.FromArgb("#9880e5");
+                        // Pin was knocked down (0) -> Should be blue
+                        button.BackgroundColor = Color.FromArgb("#FA8847");
                     }
                 }
 
@@ -196,7 +198,7 @@ namespace Cellular
                 if (foul == true && viewModel.CurrentShot == 1)
                 {
                     foreach (var pin in pins)
-                        pin.BackgroundColor = Color.FromArgb("#9880e5");
+                        pin.BackgroundColor = Color.FromArgb("#FA8847");
                 }
                 viewModel.shot1PinStates = viewModel.pinStates;
                 viewModel.pinStates = 0;
@@ -313,6 +315,20 @@ namespace Cellular
                 viewModel.Comment = text;
                 viewModel.OnPropertyChanged(nameof(viewModel.Comment));
                 Debug.WriteLine($"Comment saved: {viewModel.Comment}");
+            }
+        }
+
+        private async void OnShotPopupClicked(Object sender, EventArgs e)
+        {
+            try
+            {
+                await viewModel.LoadLanes();
+                var popup = new Views.ShotPopup(viewModel);
+                await this.ShowPopupAsync(popup);
+            }
+            catch (System.Exception ex)
+            {
+                Debug.WriteLine($"Error showing popup: {ex.Message}");
             }
         }
 
@@ -480,7 +496,7 @@ namespace Cellular
                     }
                     else if (wasUpInShot1 && !isCurrentlyUp)
                     {
-                        pins[i].BackgroundColor = Color.FromArgb("#9880e5"); // Was up, now down
+                        pins[i].BackgroundColor = Color.FromArgb("#FA8847"); // Was up, now down
                     }
                     else
                     {
@@ -489,7 +505,7 @@ namespace Cellular
                 }
                 else // Shot 1
                 {
-                    pins[i].BackgroundColor = isCurrentlyUp ? Color.FromArgb("#9880e5") : Colors.LightSlateGray;
+                    pins[i].BackgroundColor = isCurrentlyUp ? Color.FromArgb("#FA8847") : Colors.LightSlateGray;
                 }
             }
         }
@@ -524,7 +540,7 @@ namespace Cellular
                     viewModel.pinStates |= (short)(1 << i); // Set each bit from 0 to 9 to 1
                 }
                 foreach (var pin in pins)
-                    pin.BackgroundColor = Color.FromArgb("#9880e5");
+                    pin.BackgroundColor = Color.FromArgb("#FA8847");
             }
             else
             {
@@ -630,16 +646,18 @@ namespace Cellular
             if (!shotExists)
             {
                 // Create and save new shot
-                var newShot = new Shot
+                var newShot = new ViewModel.Shot
                 {
                     ShotNumber = viewModel.CurrentShot,
                     Ball = currentBall,
                     Count = GetDownedPinsForShot(shotNumber),
                     LeaveType = viewModel.pinStates,
                     Side = null,
-                    Position = null,
+                    Position = viewModel.SelectedPosition,
                     Frame = viewModel.CurrentFrame,
-                    Comment = viewModel.Comment
+                    Comment = viewModel.Comment,
+                    Speed = $"{viewModel.SelectedSpeedWhole}{viewModel.SelectedSpeedDecimal}",
+                    Stance = viewModel.SelectedStanceWhole * 2 + (viewModel.SelectedStanceDecimal == ".5" ? 1 : 0)
                 };
 
                 Debug.WriteLine($"Saving Shot: Frame {newShot.Frame}, Shot {newShot.ShotNumber}, Pins Down {newShot.Count}");
@@ -652,7 +670,7 @@ namespace Cellular
                     var newFrame = new BowlingFrame
                     {
                         FrameNumber = viewModel.CurrentFrame,
-                        Lane = null,
+                        Lane = viewModel.SelectedLane > 0 ? viewModel.SelectedLane : null,
                         Result = viewModel.frameResult,
                         GameId = viewModel.gameId,
                         Shot1 = shotNumber == 1 ? shotId : (int?)null,
@@ -699,6 +717,9 @@ namespace Cellular
                             reloadShotOne.LeaveType = viewModel.pinStates;
                             reloadShotOne.Count = GetDownedPinsForShot(1);
                             reloadShotOne.Comment = viewModel.Comment;
+                            reloadShotOne.Position = viewModel.SelectedPosition;
+                            reloadShotOne.Speed = $"{viewModel.SelectedSpeedWhole}{viewModel.SelectedSpeedDecimal}";
+                            reloadShotOne.Stance = viewModel.SelectedStanceWhole * 2 + (viewModel.SelectedStanceDecimal == ".5" ? 1 : 0);
                             await shotRepository.UpdateShotAsync(reloadShotOne);
 
                             if (viewModel.EditMode && reloadShotOne.Count == 10)
@@ -728,14 +749,17 @@ namespace Cellular
                     else
                     {
                         Debug.WriteLine("SaveShotAsync: no Shot1 id on frame; creating new Shot and linking it.");
-                        var newShot = new Shot
+                        var newShot = new ViewModel.Shot
                         {
                             ShotNumber = 1,
                             Ball = viewModel.StrikeBallId,
                             Count = GetDownedPinsForShot(1),
                             LeaveType = viewModel.pinStates,
                             Frame = viewModel.CurrentFrame,
-                            Comment = viewModel.Comment
+                            Comment = viewModel.Comment,
+                            Position = viewModel.SelectedPosition,
+                            Speed = $"{viewModel.SelectedSpeedWhole}{viewModel.SelectedSpeedDecimal}",
+                            Stance = viewModel.SelectedStanceWhole * 2 + (viewModel.SelectedStanceDecimal == ".5" ? 1 : 0)
                         };
                         shotId = await shotRepository.AddAsync(newShot);
                         if (reloadFrame != null)
@@ -759,20 +783,26 @@ namespace Cellular
                             Debug.WriteLine($"{result}");
                             int down = GetDownedPinsForShot(2);
                             reloadShotTwo.Count = down;
+                            reloadShotTwo.Position = viewModel.SelectedPosition;
+                            reloadShotTwo.Speed = $"{viewModel.SelectedSpeedWhole}{viewModel.SelectedSpeedDecimal}";
+                            reloadShotTwo.Stance = viewModel.SelectedStanceWhole * 2 + (viewModel.SelectedStanceDecimal == ".5" ? 1 : 0);
                             await shotRepository.UpdateShotAsync(reloadShotTwo);
                         }
                     }
                     else
                     {
                         Debug.WriteLine("SaveShotAsync: no Shot2 id on frame; creating new Shot and linking it.");
-                        var newShot = new Shot
+                        var newShot = new ViewModel.Shot
                         {
                             ShotNumber = 2,
                             Ball = viewModel.SpareBallId,
                             Count = GetDownedPinsForShot(2),
                             LeaveType = viewModel.pinStates,
                             Frame = viewModel.CurrentFrame,
-                            Comment = viewModel.Comment
+                            Comment = viewModel.Comment,
+                            Position = viewModel.SelectedPosition,
+                            Speed = $"{viewModel.SelectedSpeedWhole}{viewModel.SelectedSpeedDecimal}",
+                            Stance = viewModel.SelectedStanceWhole * 2 + (viewModel.SelectedStanceDecimal == ".5" ? 1 : 0),
                         };
                         shotId = await shotRepository.AddAsync(newShot);
                         if (reloadFrame != null)
@@ -894,8 +924,8 @@ namespace Cellular
                 var frame = frames[i];
                 int frameScore = 0;
 
-                Shot shot1 = null;
-                Shot shot2 = null;
+                ViewModel.Shot shot1 = null;
+                ViewModel.Shot shot2 = null;
 
                 if (frame.Shot1.HasValue)
                     shot1 = await shotRepository.GetShotById(frame.Shot1.Value);
@@ -924,7 +954,7 @@ namespace Cellular
 
                 if (isStrike)
                 {
-                    List<Shot> bonusShots = new();
+                    List<ViewModel.Shot> bonusShots = new();
 
                     for (int j = i + 1; j < frames.Count; j++)
                     {
@@ -974,7 +1004,7 @@ namespace Cellular
                     if (i + 1 < frames.Count)
                     {
                         var nextFrame = frames[i + 1];
-                        Shot bonus = null;
+                        ViewModel.Shot bonus = null;
 
                         if (nextFrame.Shot1.HasValue)
                         {
@@ -1013,26 +1043,6 @@ namespace Cellular
                     else
                     {
                         frameScore = (shot1?.Count ?? 0) + (shot2?.Count ?? 0);
-                    }
-                    totalScore += frameScore;
-
-                    if (i < viewModel.Frames.Count)
-                    {
-                        var uiFrame = viewModel.Frames[i];
-                        uiFrame.RollingScore = totalScore;
-                        uiFrame.OnPropertyChanged(nameof(uiFrame.RollingScore));
-                    }
-                }
-                else if (!isStrike && !isSpare && shot2 == null)
-                {
-                    // Single shot open frame (e.g., 9 pins on first shot only)
-                    if (isShot1Foul)
-                    {
-                        frameScore = 0;
-                    }
-                    else
-                    {
-                        frameScore = (shot1.Count ?? 0);
                     }
                     totalScore += frameScore;
 
@@ -1111,6 +1121,10 @@ namespace Cellular
             {
                 viewModel.Frames.Add(new ShotPageFrame(viewModel.Frames.Count + 1));
             }
+            if (!viewModel.GameCompleted)
+            {
+                viewModel.Frames.Add(new ShotPageFrame(viewModel.Frames.Count + 1));
+            }
 
             for (int i = 0; i < frameIds.Count; i++) // Loop through all 10 frames
             {
@@ -1135,7 +1149,7 @@ namespace Cellular
 
                         viewModel.currentFrameId = frame.FrameId;
 
-                        Shot shot1 = null, shot2 = null;
+                        ViewModel.Shot shot1 = null, shot2 = null;
 
                         if (shotIds.Count > 0)
                         {
@@ -1262,7 +1276,7 @@ namespace Cellular
         }
 
         // Helper used when reloading a saved game: process the first shot UI/state update
-        private void ProcessLoadedShotOne(ShotPageFrame existingFrame, Shot shot1)
+        private void ProcessLoadedShotOne(ShotPageFrame existingFrame, ViewModel.Shot shot1)
         {
             if (shot1 == null) return;
 
@@ -1311,7 +1325,7 @@ namespace Cellular
         }
 
         // Helper used when reloading a saved game: process the second shot UI/state update
-        private void ProcessLoadedShotTwo(ShotPageFrame existingFrame, Shot shot2)
+        private void ProcessLoadedShotTwo(ShotPageFrame existingFrame, ViewModel.Shot shot2)
         {
             if (shot2 == null) return;
 
@@ -1371,7 +1385,7 @@ namespace Cellular
         /// Handler for when a shot is received from the smartwatch via BLE.
         /// Updates the UI to display the new shot in the current frame.
         /// </summary>
-        private void OnWatchShotReceived(object? sender, Shot shot)
+        private void OnWatchShotReceived(object? sender, ViewModel.Shot shot)
         {
             // Ensure we're on the main thread for UI updates
             MainThread.BeginInvokeOnMainThread(() =>

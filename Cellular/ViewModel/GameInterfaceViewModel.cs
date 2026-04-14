@@ -9,7 +9,7 @@ using System.Diagnostics;
 
 namespace Cellular.ViewModel
 {
-    internal partial class GameInterfaceViewModel : INotifyPropertyChanged
+    public partial class GameInterfaceViewModel : INotifyPropertyChanged
     {
         private ObservableCollection<string> players;
         private ObservableCollection<Ball> arsenal;
@@ -40,6 +40,40 @@ namespace Cellular.ViewModel
         private int _strikeBallId = -1;
         private int _spareBallId = -1;
         private string _comment = "";
+        private ObservableCollection<User> _playerUsers = new();
+        private User _selectedPlayerUser;
+        private int _stanceWhole = 20;
+        private string _stanceDecimal = ".0";
+        private int _speedWhole = 17;
+        private string _speedDecimal = ".0";
+        private string _selectedPosition;
+        private int _selectedLane = 1;
+        private ObservableCollection<int> _laneNumbers = new();
+
+        public static readonly IReadOnlyList<string> Positions = new[]
+        {
+            "Left", "Brooklyn", "Nose", "High", "High Pocket",
+            "Pocket", "Light Pocket", "Light", "Right"
+        };
+
+        public static readonly IReadOnlyList<int> StanceWholeOptions =
+            Enumerable.Range(1, 50).ToList();
+
+        public static readonly IReadOnlyList<string> StanceDecimalOptions =
+            new[] { ".0", ".5" };
+
+        public static readonly IReadOnlyList<int> SpeedWholeOptions =
+            Enumerable.Range(5, 26).ToList(); // 5..30
+
+        public static readonly IReadOnlyList<string> SpeedDecimalOptions =
+            new[] { ".0", ".1", ".2", ".3", ".4", ".5", ".6", ".7", ".8", ".9" };
+
+        // Instance properties for XAML binding via BindingContext
+        public IReadOnlyList<string> PositionOptions => Positions;
+        public IReadOnlyList<int> StanceWholes => StanceWholeOptions;
+        public IReadOnlyList<string> StanceDecimals => StanceDecimalOptions;
+        public IReadOnlyList<int> SpeedWholes => SpeedWholeOptions;
+        public IReadOnlyList<string> SpeedDecimals => SpeedDecimalOptions;
         public ObservableCollection<string> Players
         {
             get => players;
@@ -172,6 +206,70 @@ namespace Cellular.ViewModel
             }
         }
 
+        public ObservableCollection<User> PlayerUsers
+        {
+            get => _playerUsers;
+            set { _playerUsers = value; OnPropertyChanged(); }
+        }
+
+        public User SelectedPlayerUser
+        {
+            get => _selectedPlayerUser;
+            set
+            {
+                if (_selectedPlayerUser != value)
+                {
+                    _selectedPlayerUser = value;
+                    OnPropertyChanged();
+                    OnPropertyChanged(nameof(SelectedPlayerId));
+                }
+            }
+        }
+
+        public int SelectedPlayerId => _selectedPlayerUser?.UserId ?? 0;
+
+        public int SelectedStanceWhole
+        {
+            get => _stanceWhole;
+            set { if (_stanceWhole != value) { _stanceWhole = value; OnPropertyChanged(); } }
+        }
+
+        public string SelectedStanceDecimal
+        {
+            get => _stanceDecimal;
+            set { if (_stanceDecimal != value) { _stanceDecimal = value; OnPropertyChanged(); } }
+        }
+
+        public int SelectedSpeedWhole
+        {
+            get => _speedWhole;
+            set { if (_speedWhole != value) { _speedWhole = value; OnPropertyChanged(); } }
+        }
+
+        public string SelectedSpeedDecimal
+        {
+            get => _speedDecimal;
+            set { if (_speedDecimal != value) { _speedDecimal = value; OnPropertyChanged(); } }
+        }
+
+        public string SelectedPosition
+        {
+            get => _selectedPosition;
+            set { if (_selectedPosition != value) { _selectedPosition = value; OnPropertyChanged(); } }
+        }
+
+        public int SelectedLane
+        {
+            get => _selectedLane;
+            set { if (_selectedLane != value) { _selectedLane = value; OnPropertyChanged(); } }
+        }
+
+        public ObservableCollection<int> LaneNumbers
+        {
+            get => _laneNumbers;
+            set { _laneNumbers = value; OnPropertyChanged(); }
+        }
+
         // Selected strike ball (bound to Picker.SelectedItem)
         public Ball SelectedStrikeBall
         {
@@ -239,6 +337,29 @@ namespace Cellular.ViewModel
         {
             var playerList = await _database.Table<User>().ToListAsync();
             Players = [.. playerList.Select(p => p.FirstName)];
+            PlayerUsers = new ObservableCollection<User>(playerList);
+            if (playerList.Count > 0)
+                SelectedPlayerUser = playerList[0];
+        }
+
+        public async Task LoadLanes()
+        {
+            var game = await _database.Table<Game>().Where(g => g.GameId == gameId).FirstOrDefaultAsync();
+            if (game == null) return;
+
+            Debug.WriteLine($"Game Id: {game.GameId} Game.sessionId: {game.SessionId}");
+            var session = await _database.Table<Session>().Where(s => s.SessionId == game.SessionId).FirstOrDefaultAsync();
+            if (session?.Establishment == null) return;
+
+            var establishment = await _database.Table<Establishment>().Where(e => e.EstaID == session.Establishment).FirstOrDefaultAsync();
+            if (establishment == null) return;
+
+            Debug.WriteLine($"Game id: {gameId},Session id: {game.SessionId}, Estab id: {session.Establishment}");
+            if (!int.TryParse(establishment.Lanes?.Trim(), out int laneCount) || laneCount <= 0)
+                return;
+
+            LaneNumbers = new ObservableCollection<int>(Enumerable.Range(1, laneCount));
+            SelectedLane = 1;
         }
 
         public async void LoadArsenal()

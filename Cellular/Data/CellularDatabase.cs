@@ -40,6 +40,7 @@ namespace Cellular.Data
             await ImportHakesBowlingDataAsync();
 
             await EnsureCloudIdColumnsAsync(_database);
+            await BackfillSessionEstablishmentsAsync();
         }
 
         /// <summary>Adds CloudID to existing installs (SQLite CreateTable does not add new columns).</summary>
@@ -52,6 +53,7 @@ namespace Cellular.Data
             await EnsureColumnAsync(db, "game", "CloudID");
             await EnsureColumnAsync(db, "bowlingFrame", "CloudID");
             await EnsureColumnAsync(db, "shot", "CloudID");
+            await EnsureColumnAsync(db, "shot", "PlayerId");
         }
 
         private static async Task EnsureColumnAsync(SQLiteAsyncConnection db, string table, string column)
@@ -60,6 +62,57 @@ namespace Cellular.Data
             if (info.Any(c => string.Equals(c.Name, column, StringComparison.OrdinalIgnoreCase)))
                 return;
             await db.ExecuteAsync($"ALTER TABLE [{table}] ADD COLUMN {column} INTEGER NULL");
+        }
+
+        /// <summary>
+        /// One-time backfill: for every session whose Establishment is null, resolve it from
+        /// Event.Location → Establishment.NickName and update the row.
+        /// Safe to run on every launch — skips sessions that are already set.
+        /// </summary>
+        private async Task BackfillSessionEstablishmentsAsync()
+        {
+            try
+            {
+                var sessions = await _database.Table<Session>()
+                    .Where(s => s.Establishment == null)
+                    .ToListAsync();
+
+                if (sessions.Count == 0) return;
+
+                var allEvents = await _database.Table<Event>().ToListAsync();
+                var eventById = allEvents.ToDictionary(e => e.EventId, e => e);
+
+                var allEstabs = await _database.Table<Establishment>().ToListAsync();
+                // Build lookup by NickName (Event.Location stores NickName)
+                var estabByNickName = allEstabs
+                    .Where(e => !string.IsNullOrWhiteSpace(e.NickName))
+                    .ToDictionary(e => e.NickName!.Trim(), e => e, StringComparer.OrdinalIgnoreCase);
+
+                int updated = 0;
+                foreach (var session in sessions)
+                {
+                    if (!eventById.TryGetValue(session.EventId, out var ev)) continue;
+                    if (string.IsNullOrWhiteSpace(ev.Location)) continue;
+
+                    if (estabByNickName.TryGetValue(ev.Location.Trim(), out var estab))
+                    {
+                        session.Establishment = estab.EstaID;
+                        await _database.UpdateAsync(session);
+                        updated++;
+                    }
+                    else
+                    {
+                        Debug.WriteLine($"BackfillSession: no match for location '{ev.Location}'");
+                    }
+                }
+
+                if (updated > 0)
+                    Debug.WriteLine($"BackfillSessionEstablishments: updated {updated} session(s).");
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"BackfillSessionEstablishments error: {ex.Message}");
+            }
         }
 
         private async Task ImportEstabishmentsFromCsvAsync()
@@ -191,6 +244,13 @@ namespace Cellular.Data
                     .Where(e => !string.IsNullOrWhiteSpace(e.NickName))
                     .ToDictionary(e => e.NickName!.Trim(), e => e);
 
+                // PRE-LOAD ESTABLISHMENTS keyed by NickName so we can resolve
+                // Event.Location → Establishment.EstaID when creating sessions.
+                var allEstablishments = await _database.Table<Establishment>().ToListAsync();
+                var estabMap = allEstablishments
+                    .Where(e => !string.IsNullOrWhiteSpace(e.NickName))
+                    .ToDictionary(e => e.NickName!.Trim(), e => e, StringComparer.OrdinalIgnoreCase);
+
                 // PRE-LOAD BALLS so we can map ball name -> BallId when saving shots
                 var allBalls = await _database.Table<Ball>().ToListAsync();
                 var ballMap = allBalls
@@ -230,12 +290,37 @@ namespace Cellular.Data
                     Session? newSession = null;
                     if (isNewSession)
                     {
+                        // Resolve the establishment from Event.Location.
+                        // EventPopupViewModel stores NickName; CSV imports may store FullName — try both.
+                        int? establishmentId = null;
+                        if (!string.IsNullOrWhiteSpace(eventRecord?.Location))
+                        {
+                            var loc = eventRecord.Location.Trim();
+                            if (!estabMap.TryGetValue(loc, out var estab))
+                            {
+                                // Fallback: match by nickname
+                                estab = allEstablishments.FirstOrDefault(e =>
+                                    string.Equals(e.NickName, loc, StringComparison.OrdinalIgnoreCase));
+                            }
+
+                            if (estab != null)
+                            {
+                                establishmentId = estab.EstaID;
+                                Debug.WriteLine($"Import: matched '{loc}' → EstaID {estab.EstaID} ('{estab.NickName}')");
+                            }
+                            else
+                            {
+                                Debug.WriteLine($"Import: no establishment match for '{loc}'");
+                            }
+                        }
+
                         newSession = new Session
                         {
                             EventId = eventRecord?.EventId ?? 0,
                             SessionNumber = int.TryParse(currentWeek, out var weekNum) ? weekNum : 0,
                             DateTime = DateTime.TryParse(currentDate, out var dt) ? dt : DateTime.Now,
-                            UserId = eventRecord?.UserId ?? 0
+                            UserId = eventRecord?.UserId ?? 0,
+                            Establishment = establishmentId
                         };
                     }
 
