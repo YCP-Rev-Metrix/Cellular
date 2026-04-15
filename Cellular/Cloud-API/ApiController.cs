@@ -23,7 +23,9 @@ public enum EntityType
     Shot,
     CiclopesAggRun,
     CiclopesLaneBallsRun,
-    CiclopesFourDBodyRun
+    CiclopesFourDBodyRun,
+    CiclopesLaneBallsQuery,
+    CiclopesFourDBodyQuery
 }
 
 public enum OperationType
@@ -448,6 +450,39 @@ public class ApiController
             throw;
         }
     }
+
+    public async Task<LaneBallsQueryResponse?> ExecuteLaneBallsQueryRequest(CiclopesQueryRequest requestData)
+    {
+        using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(120) };
+        var executor = new ApiExecutor(EntityType.CiclopesLaneBallsQuery, OperationType.Post);
+        var requestUrl = executor.GetUrl();
+
+        var requestBody = JsonSerializer.Serialize(requestData);
+        var content = new StringContent(requestBody, Encoding.UTF8, "application/json");
+
+        var response = await client.PostAsync(requestUrl, content).ConfigureAwait(false);
+        response.EnsureSuccessStatusCode();
+        var responseBody = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+        Debug.WriteLine(responseBody);
+        return JsonSerializer.Deserialize<LaneBallsQueryResponse>(responseBody, JsonOptions);
+    }
+
+    public async Task<FourDBodyQueryResponse?> ExecuteFourDBodyQueryRequest(CiclopesQueryRequest requestData)
+    {
+        using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(120) };
+        var executor = new ApiExecutor(EntityType.CiclopesFourDBodyQuery, OperationType.Post);
+        var requestUrl = executor.GetUrl();
+
+        var requestBody = JsonSerializer.Serialize(requestData);
+        var content = new StringContent(requestBody, Encoding.UTF8, "application/json");
+
+        var response = await client.PostAsync(requestUrl, content).ConfigureAwait(false);
+        response.EnsureSuccessStatusCode();
+        var responseBody = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+        Debug.WriteLine(responseBody);
+        return JsonSerializer.Deserialize<FourDBodyQueryResponse>(responseBody, JsonOptions);
+    }
+
     private static bool TryExtractTokenFromAuthBody(string authResponseBody, out string? tokenValue)
     {
         tokenValue = null;

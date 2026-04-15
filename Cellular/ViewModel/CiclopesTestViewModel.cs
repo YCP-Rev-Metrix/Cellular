@@ -19,4 +19,14 @@ public class CiclopesTestViewModel
 
         return (laneBallsTask, fourDBodyTask);
     }
+
+    public (Task<LaneBallsQueryResponse?> LaneBallsTask, Task<FourDBodyQueryResponse?> FourDBodyTask) QueryTestAsync(List<int> shotNumbers)
+    {
+        var controller = new ApiController();
+        var request = new CiclopesQueryRequest { ShotNumbers = shotNumbers };
+        return (
+            controller.ExecuteLaneBallsQueryRequest(request),
+            controller.ExecuteFourDBodyQueryRequest(request)
+        );
+    }
 }

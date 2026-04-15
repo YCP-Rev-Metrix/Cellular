@@ -21,6 +21,65 @@
                     Clicked="OnStartTestClicked"
                     WidthRequest="220"
                     Style="{StaticResource AccentButton}" />
+
+            <Button x:Name="QueryTestButton"
+                    Text="Query Test"
+                    Clicked="OnQueryTestClicked"
+                    WidthRequest="220"
+                    Style="{StaticResource AccentButton}" />
+
+            <Border x:Name="ShotDropdown"
+                    IsVisible="False"
+                    WidthRequest="220"
+                    StrokeShape="RoundRectangle 10"
+                    StrokeThickness="0"
+                    BackgroundColor="{AppThemeBinding Light={StaticResource CardBackground}, Dark={StaticResource CardBackgroundDark}}"
+                    Padding="14,10">
+                <Border.Shadow>
+                    <Shadow Brush="#30000000" Offset="0,2" Radius="6" Opacity="0.3"/>
+                </Border.Shadow>
+                <VerticalStackLayout Spacing="8">
+                    <Label Text="SELECT SHOTS"
+                           FontSize="10" FontAttributes="Bold"
+                           CharacterSpacing="1.2"
+                           TextColor="{StaticResource Secondary}"/>
+                    <HorizontalStackLayout Spacing="8">
+                        <CheckBox x:Name="Shot1Check"
+                                  CheckedChanged="OnShotCheckChanged"
+                                  Color="{StaticResource Secondary}"/>
+                        <Label Text="Shot 1"
+                               VerticalTextAlignment="Center"
+                               TextColor="{AppThemeBinding Light={StaticResource Gray950}, Dark={StaticResource White}}"/>
+                    </HorizontalStackLayout>
+                    <HorizontalStackLayout Spacing="8">
+                        <CheckBox x:Name="Shot2Check"
+                                  CheckedChanged="OnShotCheckChanged"
+                                  Color="{StaticResource Secondary}"/>
+                        <Label Text="Shot 2"
+                               VerticalTextAlignment="Center"
+                               TextColor="{AppThemeBinding Light={StaticResource Gray950}, Dark={StaticResource White}}"/>
+                    </HorizontalStackLayout>
+                    <HorizontalStackLayout Spacing="8">
+                        <CheckBox x:Name="Shot3Check"
+                                  CheckedChanged="OnShotCheckChanged"
+                                  Color="{StaticResource Secondary}"/>
+                        <Label Text="Shot 3"
+                               VerticalTextAlignment="Center"
+                               TextColor="{AppThemeBinding Light={StaticResource Gray950}, Dark={StaticResource White}}"/>
+                    </HorizontalStackLayout>
+                    <Label x:Name="SelectedShotsLabel"
+                           Text="Selected: none"
+                           FontSize="11"
+                           TextColor="{StaticResource Gray400}"
+                           Margin="0,4,0,0"/>
+                    <Button x:Name="RunQueryButton"
+                            Text="Run Query"
+                            Clicked="OnRunQueryClicked"
+                            Style="{StaticResource AccentButton}"
+                            IsEnabled="False"
+                            Margin="0,4,0,0"/>
+                </VerticalStackLayout>
+            </Border>
         </VerticalStackLayout>
 
         <!-- Loading overlay -->
