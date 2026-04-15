@@ -174,6 +174,14 @@ namespace Cellular.ViewModel
         public bool IsStrikeType => _selectedStatType == "Strike";
         public bool IsSpareType => _selectedStatType == "Spare";
 
+        // True while the Load Stats button operation is in progress — drives the loading overlay in Stats.xaml
+        private bool _isLoading;
+        public bool IsLoading
+        {
+            get => _isLoading;
+            set { if (_isLoading != value) { _isLoading = value; OnPropertyChanged(); } }
+        }
+
         /// <summary>
         /// Human-readable summary of every active filter, built when stats are loaded.
         /// Only includes criteria that are actually set so the popup stays clean.
@@ -589,13 +597,21 @@ namespace Cellular.ViewModel
             if (UserId == 0) return;
 
             var gamesFromDb = await _gameRepo.GetGamesByUserIdAsync(UserId);
-            foreach (var g in gamesFromDb.OrderByDescending(g => g.GameNumber))
+
+            // Order by session then game number so the picker reads chronologically
+            foreach (var g in gamesFromDb.OrderBy(g => g.SessionId).ThenBy(g => g.GameNumber))
             {
-                // Skip if we already have this exact game id or a game with the same game number
-                // (prevents duplicate display entries like "1, 1, 2, 2" when multiple sessions
-                // contain games with the same game number).
-                if (!Games.Any(x => x.GameId == g.GameId || x.GameNumber == g.GameNumber))
-                    Games.Add(g);
+                if (Games.Any(x => x.GameId == g.GameId)) continue; // skip true DB duplicates only
+
+                // Build label: "EventNick - GameNumber" e.g. "UPK - 1"
+                var session  = Sessions.FirstOrDefault(s => s.SessionId == g.SessionId);
+                var nickName = session != null
+                    ? (Events.FirstOrDefault(e => e.EventId == session.EventId)?.NickName
+                       ?? session.SessionNumber.ToString())
+                    : g.SessionId.ToString();
+                g.DisplayLabel = $"{nickName} W{session?.SessionNumber} - {g.GameNumber}";
+
+                Games.Add(g);
             }
         }
 
@@ -766,9 +782,13 @@ namespace Cellular.ViewModel
                             continue;
 
                         // Add game to viewmodel (only valid games after lane/frame filters)
-                        // Prevent duplicate display entries: skip if same GameId or same GameNumber already present
-                        if (!Games.Any(g => g.GameId == game.GameId || g.GameNumber == game.GameNumber))
+                        if (!Games.Any(g => g.GameId == game.GameId))
+                        {
+                            var nickName = Events.FirstOrDefault(e => e.EventId == session.EventId)?.NickName
+                                           ?? session.SessionNumber.ToString();
+                            game.DisplayLabel = $"{nickName} W{session.SessionNumber} - {game.GameNumber}";
                             Games.Add(game);
+                        }
 
                         // load frames for game
                         var frameIds = await _frameRepo.GetFrameIdsByGameIdAsync(game.GameId);

@@ -27,6 +27,7 @@ namespace Cellular
 
         private async void OnLoadStatsClicked(object sender, EventArgs e)
         {
+            _viewModel.IsLoading = true;
             try
             {
                 await _viewModel.LoadFilteredDataAsync();
@@ -40,6 +41,10 @@ namespace Cellular
             {
                 System.Diagnostics.Debug.WriteLine($"LoadStats error: {ex.Message}");
                 await DisplayAlertAsync("Error", $"Failed to load stats: {ex.Message}", "OK");
+            }
+            finally
+            {
+                _viewModel.IsLoading = false;
             }
         }
     }

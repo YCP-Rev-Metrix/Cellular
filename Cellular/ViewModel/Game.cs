@@ -18,5 +18,9 @@ namespace Cellular.ViewModel
 
         /// <summary>Server-assigned row id from the cloud API. Used to correlate local rows across devices.</summary>
         public int? CloudID { get; set; }
+
+        /// <summary>Display label for pickers — e.g. "UPK - 1". Populated at load time; never persisted.</summary>
+        [Ignore]
+        public string DisplayLabel { get; set; }
     }
 }

@@ -230,8 +230,8 @@ namespace Cellular.Data
                     Console.WriteLine("Hakes bowling data already imported — skipping import.");
                     return;
                 }
-                //var csvFileName = "Fa25-LeagueScores(JoshMods-4-13-26).csv";
-                var csvFileName = "lessLineScores.csv";
+                var csvFileName = "Fa25-LeagueScores(JoshMods-4-13-26).csv";
+                //var csvFileName = "lessLineScores.csv";
                 using var stream = await FileSystem.OpenAppPackageFileAsync(csvFileName);
                 using var reader = new StreamReader(stream);
 
