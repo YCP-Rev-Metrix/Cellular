@@ -116,6 +116,8 @@ namespace Cellular
             // Subscribe to MetaWear service events
             _metaWearService.DeviceDisconnected -= OnDeviceDisconnected; // Remove first to avoid duplicates
             _metaWearService.DeviceDisconnected += OnDeviceDisconnected;
+            _metaWearService.DeviceReconnected -= OnDeviceReconnected;
+            _metaWearService.DeviceReconnected += OnDeviceReconnected;
             _metaWearService.AccelerometerDataReceived -= OnAccelerometerDataReceived;
             _metaWearService.AccelerometerDataReceived += OnAccelerometerDataReceived;
             _metaWearService.GyroscopeDataReceived -= OnGyroscopeDataReceived;
@@ -148,16 +150,18 @@ namespace Cellular
                     // We got a different instance, update our reference to the singleton
                     // Unsubscribe from old instance
                     _metaWearService.DeviceDisconnected -= OnDeviceDisconnected;
+                    _metaWearService.DeviceReconnected -= OnDeviceReconnected;
                     _metaWearService.AccelerometerDataReceived -= OnAccelerometerDataReceived;
                     _metaWearService.GyroscopeDataReceived -= OnGyroscopeDataReceived;
                     _metaWearService.MagnetometerDataReceived -= OnMagnetometerDataReceived;
                     _metaWearService.LightSensorDataReceived -= OnLightSensorDataReceived;
-                    
+
                     // Update to singleton
                     _metaWearService = serviceFromDI;
-                    
+
                     // Re-subscribe to new instance
                     _metaWearService.DeviceDisconnected += OnDeviceDisconnected;
+                    _metaWearService.DeviceReconnected += OnDeviceReconnected;
                     _metaWearService.AccelerometerDataReceived += OnAccelerometerDataReceived;
                     _metaWearService.GyroscopeDataReceived += OnGyroscopeDataReceived;
                     _metaWearService.MagnetometerDataReceived += OnMagnetometerDataReceived;
@@ -168,7 +172,9 @@ namespace Cellular
             // Re-subscribe to events in case page was recreated
             _metaWearService.DeviceDisconnected -= OnDeviceDisconnected;
             _metaWearService.DeviceDisconnected += OnDeviceDisconnected;
-            
+            _metaWearService.DeviceReconnected -= OnDeviceReconnected;
+            _metaWearService.DeviceReconnected += OnDeviceReconnected;
+
             // Update connection status from service (service is singleton, maintains state)
             bool serviceIsConnected = _metaWearService.IsConnected;
             if (serviceIsConnected != IsConnected)
@@ -377,10 +383,18 @@ namespace Cellular
             MainThread.BeginInvokeOnMainThread(async () =>
             {
                 IsConnected = false;
-                StatusLabel.Text = "Disconnected";
-                
-                // Update IsConnected status in database
+                StatusLabel.Text = "Disconnected (reconnect failed)";
                 await UpdateIsConnectedStatusAsync(false);
+            });
+        }
+
+        private void OnDeviceReconnected(object? sender, string macAddress)
+        {
+            MainThread.BeginInvokeOnMainThread(async () =>
+            {
+                IsConnected = true;
+                StatusLabel.Text = $"Reconnected to {macAddress}";
+                await UpdateIsConnectedStatusAsync(true);
             });
         }
 
@@ -1010,47 +1024,21 @@ namespace Cellular
             await Navigation.PushAsync(graphPage);
         }
 
-        protected override async void OnDisappearing()
+        protected override void OnDisappearing()
         {
             base.OnDisappearing();
-            
-            // Check if we're navigating to SensorGraphPage - if so, don't disconnect
-            var navigationStack = Navigation.NavigationStack;
-            bool isNavigatingToGraph = navigationStack.Any(p => p is SensorGraphPage);
-            
-            // Also check if SensorGraphPage is being pushed (it might not be in stack yet)
-            // We'll use a flag to track this
-            if (!isNavigatingToGraph && !_isNavigatingToGraphPage)
+
+            // Unsubscribe from events when leaving the page (but stay connected)
+            if (!_isNavigatingToGraphPage)
             {
-                // Disconnect from device when leaving the page (but not when going to graph page)
-                if (_metaWearService.IsConnected)
-                {
-                    try
-                    {
-                        // Stop all sensors first
-                        await _metaWearService.StopAccelerometerAsync();
-                        await _metaWearService.StopGyroscopeAsync();
-                        await _metaWearService.StopMagnetometerAsync();
-                        await _metaWearService.StopLightSensorAsync();
-                        
-                        // Then disconnect
-                        await _metaWearService.DisconnectAsync();
-                    }
-                    catch (Exception ex)
-                    {
-                        // Log error but don't block navigation
-                        System.Diagnostics.Debug.WriteLine($"Error disconnecting on page disappear: {ex.Message}");
-                    }
-                }
-                
-                // Unsubscribe from events only if we're actually leaving (not going to graph)
                 _metaWearService.DeviceDisconnected -= OnDeviceDisconnected;
+                _metaWearService.DeviceReconnected -= OnDeviceReconnected;
                 _metaWearService.AccelerometerDataReceived -= OnAccelerometerDataReceived;
                 _metaWearService.GyroscopeDataReceived -= OnGyroscopeDataReceived;
                 _metaWearService.MagnetometerDataReceived -= OnMagnetometerDataReceived;
                 _metaWearService.LightSensorDataReceived -= OnLightSensorDataReceived;
             }
-            
+
             // Reset the flag
             _isNavigatingToGraphPage = false;
         }

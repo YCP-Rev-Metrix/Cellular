@@ -7,10 +7,11 @@ using System;
 using System.IO;
 using Cellular.Services;
 using Cellular.Data;
+using Cellular.Cloud_API;
+using Cellular.Cloud_API.Models;
 using Plugin.BLE;
 using Plugin.BLE.Abstractions.Contracts;
 using System.Linq;
-using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using CommunityToolkit.Maui.Extensions;
@@ -30,19 +31,19 @@ namespace Cellular
             new Size(854, 480)    // 480p / FWVGA
         };
 
-        private bool _isCameraMode = true;
         private bool isCameraStarted = false;
         private Size previewResolution = new Size(1920, 1080);
+        private bool _isCameraMode = true;
+        private bool isDemoPlaying = false;
 
         //Recording state
         private bool isRecording = false;
         private string currentVideoPath = string.Empty;
         private System.IO.FileStream? _videoFileStream;
-        // Demo mode playback state (fake record behavior)
-        private bool isDemoPlaying = false;
 
         // Stop video only after log is saved; timeout if no log save happens
         private CancellationTokenSource? _stopVideoCts;
+
 
         // Upload to RevMetrix API (Digital Ocean Space) - use your API credentials
         private static readonly string RevMetrixApiUsername = "string";
@@ -67,34 +68,6 @@ namespace Cellular
             await Permissions.RequestAsync<Permissions.Camera>();
             await Permissions.RequestAsync<Permissions.Microphone>();
 
-            // Request notification permission on Android 13+ so foreground service notifications can be shown
-#if ANDROID
-            try
-            {
-                if (Android.OS.Build.VERSION.SdkInt >= Android.OS.BuildVersionCodes.Tiramisu)
-                {
-                    // MAUI Permissions.Notification may not exist in this version; request POST_NOTIFICATIONS directly
-                    try
-                    {
-                        var permission = Android.Manifest.Permission.PostNotifications;
-                        var activity = Platform.CurrentActivity;
-                        if (activity != null && AndroidX.Core.App.ActivityCompat.CheckSelfPermission(activity, permission) != Android.Content.PM.Permission.Granted)
-                        {
-                            AndroidX.Core.App.ActivityCompat.RequestPermissions(activity, new[] { permission }, 1002);
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        System.Diagnostics.Debug.WriteLine($"Notification permission request failed: {ex.Message}");
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Notification permission request failed: {ex.Message}");
-            }
-#endif
-
             // Ensure we have the singleton service instance (Handler is available in OnAppearing)
             if (Handler?.MauiContext?.Services != null)
             {
@@ -103,6 +76,7 @@ namespace Cellular
                 {
                     // We got a different instance, update our reference to the singleton
                     _metaWearService.DeviceDisconnected -= OnDeviceDisconnected;
+                    _metaWearService.DeviceReconnected -= OnDeviceReconnected;
                     _metaWearService = serviceFromDI;
                 }
             }
@@ -110,6 +84,8 @@ namespace Cellular
             // Re-subscribe to events in case page was recreated
             _metaWearService.DeviceDisconnected -= OnDeviceDisconnected; // Remove first to avoid duplicates
             _metaWearService.DeviceDisconnected += OnDeviceDisconnected;
+            _metaWearService.DeviceReconnected -= OnDeviceReconnected;
+            _metaWearService.DeviceReconnected += OnDeviceReconnected;
 
             // Recreate sensor buffer manager if it was disposed when the page last disappeared
             if (_sensorBufferManager == null)
@@ -146,6 +122,8 @@ namespace Cellular
             // Subscribe to connection/disconnection events
             _metaWearService.DeviceDisconnected -= OnDeviceDisconnected; // Remove first to avoid duplicates
             _metaWearService.DeviceDisconnected += OnDeviceDisconnected;
+            _metaWearService.DeviceReconnected -= OnDeviceReconnected;
+            _metaWearService.DeviceReconnected += OnDeviceReconnected;
 
             // Initialize sensor buffer manager
             _sensorBufferManager = new SensorBufferManager(_metaWearService);
@@ -167,35 +145,13 @@ namespace Cellular
             cameraView.PropertyChanged += CameraView_PropertyChanged;
             cameraView.SizeChanged += CameraView_SizeChanged;
 
-            // Setup media element for packed Raw asset and diagnostics
-            try
-            {
-                // FromResource is the correct API for Resources/Raw MauiAsset files.
-                // On Android it resolves via Assets/ internally (ExoPlayer).
-                // FromFile is for filesystem paths and does NOT work for bundled raw assets.
-                mediaElement.Source = MediaSource.FromResource("lego.mp4");
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Failed to set media source from resource: {ex.Message}");
-                // Fallback: try a known remote URL to verify playback support on device
-                // try
-                // {
-                //     mediaElement.Source = MediaSource.FromUri("https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4");
-                //     mediaElement.IsVisible = true;
-                //     mediaElement.Play();
-                // }
-                // catch { }
-            }
+            // Wire up media element events for demo mode
+            try { mediaElement.Source = MediaSource.FromResource("lego.mp4"); }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"Failed to set media source: {ex.Message}"); }
 
             mediaElement.MediaOpened += (s, e) =>
             {
-                System.Diagnostics.Debug.WriteLine("Media opened");
-                // In demo mode, start playback once Android ExoPlayer has prepared the source
-                if (isDemoPlaying)
-                {
-                    mediaElement.Play();
-                }
+                if (isDemoPlaying) mediaElement.Play();
             };
             mediaElement.MediaFailed += (s, e) =>
             {
@@ -214,13 +170,10 @@ namespace Cellular
                         isDemoPlaying = false;
                         DemoRecordBtn.Text = "Play";
                         DemoRecordBtn.BackgroundColor = Color.FromArgb("#9880e5");
-
-                        // Show Ciclopes button with demo/test keys
-                        UseCiclopesBtn.IsVisible = true;
-                        UseCiclopesBtn.IsEnabled = true;
-                        UseCiclopesBtn.BackgroundColor = Color.FromArgb("#9880e5");
+                        // Show Ciclopes button with demo test keys after playback ends
                         _lastVideoKey = "videos/310fceda-dac8-4bf0-a25c-2d1ba360ea68_shot1.mp4";
                         _lastSdKey = "key";
+                        UpdateCiclopesButtonState();
                     }
                 });
             };
@@ -299,87 +252,104 @@ namespace Cellular
         private async void OnRecordClicked(object sender, EventArgs e)
         {
             if (!isRecording)
-            {
-                try
-                {
-                    // Update state and UI first
-                    isRecording = true;
-                    RecordBtn.Text = "Stop";
-                    RecordBtn.BackgroundColor = Colors.Red; // Make button red for recording
-
-                    // Define where to save the video
-                    string targetFolder = Path.Combine(FileSystem.AppDataDirectory, "MyVideos");
-
-                    // Create the directory if it doesn't exist
-                    Directory.CreateDirectory(targetFolder);
-
-                    // Create a unique filename and the full path
-                    string fileName = $"rm_{DateTime.Now:yyyyMMdd_HHmmss}.mp4";
-                    currentVideoPath = Path.Combine(targetFolder, fileName);
-
-                    // Start sensor data buffering with video filename
-                    if (_sensorBufferManager != null)
-                    {
-                        string baseFileName = Path.GetFileNameWithoutExtension(fileName);
-                        await _sensorBufferManager.StartBufferingAsync(baseFileName);
-                    }
-
-                    // Start recording
-                    _videoFileStream = File.Create(currentVideoPath);
-                    await cameraView.StartVideoRecording(_videoFileStream, CancellationToken.None);
-                }
-                catch (Exception ex)
-                {
-                    await DisplayAlert("Error", $"Failed to start recording: {ex.Message}", "OK");
-
-                    // Reset button state
-                    isRecording = false;
-                    RecordBtn.Text = "Record";
-                    RecordBtn.BackgroundColor = Color.FromArgb("#9880e5");
-
-                    // Stop buffering if it was started
-                    if (_sensorBufferManager != null)
-                    {
-                        await _sensorBufferManager.StopBufferingAsync();
-                    }
-
-                    CleanupStream();
-                }
-            }
+                await StartRecordingAsync();
             else
+                await StopRecordingAsync();
+        }
+
+        /// <summary>
+        /// Core start-recording logic shared by the phone button and the watch command.
+        /// Must be called on the main thread.
+        /// </summary>
+        private async Task StartRecordingAsync()
+        {
+            try
             {
-                // User clicked Stop: stop sensor buffering first. Video keeps recording until log is saved (or timeout).
-                try
+                isRecording = true;
+                RecordBtn.Text = "Stop";
+                RecordBtn.BackgroundColor = Colors.Red;
+
+                string targetFolder = Path.Combine(FileSystem.AppDataDirectory, "MyVideos");
+                Directory.CreateDirectory(targetFolder);
+                string fileName = $"rm_{DateTime.Now:yyyyMMdd_HHmmss}.mp4";
+                currentVideoPath = Path.Combine(targetFolder, fileName);
+
+                if (_sensorBufferManager != null)
                 {
-                    _stopVideoCts?.Cancel();
-                    _stopVideoCts = new CancellationTokenSource();
-                    var cts = _stopVideoCts;
+                    string baseFileName = Path.GetFileNameWithoutExtension(fileName);
+                    await _sensorBufferManager.StartBufferingAsync(baseFileName);
+                }
 
-                    if (_sensorBufferManager != null)
-                        await _sensorBufferManager.StopBufferingAsync();
+                // On Android, the toolkit reuses the same Recorder between recordings.
+                // After the first stop, the Recorder's MediaCodec audio encoder is left in a
+                // stale CONFIGURED state. Calling PrepareRecording on it fails with error code 6
+                // (C2_NO_MEMORY) because the encoder slot is still partially occupied.
+                // RebuildVideoCapture() disposes the stale Recorder and creates a fresh one
+                // WITHOUT touching the Preview — so no black screen, no handler disconnect needed.
+#if ANDROID
+                // Two-stage rebuild to reliably release the native MediaCodec audio encoder slot:
+                //   Stage 1 (in StopVideoAndUploadVideoOnlyAsync): disposes the Recorder from the
+                //     previous recording immediately after stop, starting native cleanup early.
+                //   Stage 2 (here): disposes whatever the upload-dialog's MainActivity pause may have
+                //     corrupted, creates a clean Recorder B that has never seen a STOPPING state,
+                //     then waits 600ms so the native encoder slot from stage 1 is fully free before
+                //     PrepareRecording runs.
+                AndroidCameraReset.RebuildVideoCapture(cameraView);
+                await Task.Delay(600);
+#endif
+                _videoFileStream = File.Create(currentVideoPath);
+                await cameraView.StartVideoRecording(_videoFileStream, CancellationToken.None);
+            }
+            catch (Exception ex)
+            {
+                await DisplayAlert("Error", $"Failed to start recording: {ex.Message}", "OK");
+                isRecording = false;
+                RecordBtn.Text = "Record";
+                RecordBtn.BackgroundColor = Color.FromArgb("#9880e5");
+                if (_sensorBufferManager != null)
+                    await _sensorBufferManager.StopBufferingAsync();
+                CleanupStream();
+            }
+        }
 
-                    // If we get OnContinuousSaveComplete, we'll stop the video there and upload both. Otherwise after 5s stop video and upload video only.
-                    _ = Task.Run(async () =>
+        /// <summary>
+        /// Core stop-recording logic shared by the phone button and the watch command.
+        /// Stops sensor buffering immediately; video stops after the log saves or after a 5-second timeout.
+        /// Must be called on the main thread.
+        /// </summary>
+        private async Task StopRecordingAsync()
+        {
+            try
+            {
+                _stopVideoCts?.Cancel();
+                _stopVideoCts = new CancellationTokenSource();
+                var cts = _stopVideoCts;
+
+                if (_sensorBufferManager != null)
+                    await _sensorBufferManager.StopBufferingAsync();
+
+                // If OnContinuousSaveComplete fires, it will cancel this and stop the video after
+                // saving the log. Otherwise fall back to stopping after 5 seconds with video only.
+                _ = Task.Run(async () =>
+                {
+                    try
                     {
-                        try
-                        {
-                            await Task.Delay(5000, cts.Token);
-                        }
-                        catch (OperationCanceledException)
-                        {
-                            return;
-                        }
-                        MainThread.BeginInvokeOnMainThread(async () =>
-                        {
-                            if (!isRecording) return;
-                            await StopVideoAndUploadVideoOnlyAsync();
-                        });
+                        await Task.Delay(5000, cts.Token);
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        return;
+                    }
+                    MainThread.BeginInvokeOnMainThread(async () =>
+                    {
+                        if (!isRecording) return;
+                        await StopVideoAndUploadVideoOnlyAsync();
                     });
-                }
-                catch (Exception ex)
-                {
-                    await DisplayAlert("Error", $"Failed to stop recording: {ex.Message}", "OK");
-                }
+                });
+            }
+            catch (Exception ex)
+            {
+                await DisplayAlert("Error", $"Failed to stop recording: {ex.Message}", "OK");
             }
         }
 
@@ -394,24 +364,44 @@ namespace Cellular
         }
 
         /// <summary>
+        /// <summary>
         /// Stops the video and uploads only the video (no log). Used when log save never completed (timeout).
         /// </summary>
         private async Task StopVideoAndUploadVideoOnlyAsync()
         {
             if (!isRecording || string.IsNullOrEmpty(currentVideoPath)) return;
+            RecordBtn.IsEnabled = false;
             try
             {
+                // Stop camera BEFORE resetting isRecording so the user cannot start a new
+                // recording while StopVideoRecording is still in progress.
+                await cameraView.StopVideoRecording(CancellationToken.None);
+
+#if ANDROID
+                // Stage 1 of the two-stage native encoder reset: dispose the stale Recorder
+                // immediately after the recording stops so the native c2.android.aac.encoder
+                // slot starts releasing as early as possible. By the time the user dismisses the
+                // upload dialog and presses Record again, the hardware should be free for Stage 2.
+                AndroidCameraReset.RebuildVideoCapture(cameraView);
+#endif
+
+                CleanupStream();
                 isRecording = false;
                 RecordBtn.Text = "Record";
                 RecordBtn.BackgroundColor = Color.FromArgb("#9880e5");
-                await cameraView.StopVideoRecording(CancellationToken.None);
-                CleanupStream();
                 if (File.Exists(currentVideoPath))
                     await SaveAndUploadVideoAsync(currentVideoPath, logBytesForUpload: null, logFileNameForUpload: null, folderToSaveVideoTo: null);
             }
             catch (Exception ex)
             {
+                isRecording = false;
+                RecordBtn.Text = "Record";
+                RecordBtn.BackgroundColor = Color.FromArgb("#9880e5");
                 await DisplayAlert("Error", $"Failed to stop/upload video: {ex.Message}", "OK");
+            }
+            finally
+            {
+                RecordBtn.IsEnabled = true;
             }
         }
 
@@ -424,36 +414,42 @@ namespace Cellular
         /// <param name="folderToSaveVideoTo">Folder to save video on phone (same as log); we use FileSaver so the video is actually written on all platforms.</param>
         private async Task SaveAndUploadVideoAsync(string videoPath, byte[]? logBytesForUpload, string? logFileNameForUpload, string? folderToSaveVideoTo)
         {
+            // Guard: if the video file is missing or empty the camera encoder never wrote any frames
+            // (e.g. a stale stop-timer fired before the encoder was ready). Skip silently.
+            if (!File.Exists(videoPath) || new FileInfo(videoPath).Length == 0)
+            {
+                try { if (File.Exists(videoPath)) File.Delete(videoPath); } catch { }
+                await DisplayAlert("Recording Error", "The recording was empty — the camera encoder had not started writing when stop was triggered. Please try recording again.", "OK");
+                return;
+            }
+
             // Save video to the phone using FileSaver (same folder as log when provided). On Android, folder path may be denied — retry with no initial path.
             string? savedVideoPath = null;
             string? saveFolder = folderToSaveVideoTo ?? App.LastSavePath;
-            if (File.Exists(videoPath))
+            string videoFileName = Path.GetFileName(videoPath);
+            for (int attempt = 0; attempt < 2; attempt++)
             {
-                string videoFileName = Path.GetFileName(videoPath);
-                for (int attempt = 0; attempt < 2; attempt++)
+                try
                 {
-                    try
+                    using var videoStream = File.OpenRead(videoPath);
+                    var initialPath = attempt == 0 ? (saveFolder ?? "") : "";
+                    var saveResult = await FileSaver.Default.SaveAsync(initialPath, videoFileName, videoStream, CancellationToken.None);
+                    if (saveResult.IsSuccessful)
                     {
-                        using var videoStream = File.OpenRead(videoPath);
-                        var initialPath = attempt == 0 ? (saveFolder ?? "") : "";
-                        var saveResult = await FileSaver.Default.SaveAsync(initialPath, videoFileName, videoStream, CancellationToken.None);
-                        if (saveResult.IsSuccessful)
-                        {
-                            savedVideoPath = saveResult.FilePath;
-                            if (!string.IsNullOrEmpty(savedVideoPath))
-                                App.LastSavePath = Path.GetDirectoryName(savedVideoPath);
-                        }
-                        break;
+                        savedVideoPath = saveResult.FilePath;
+                        if (!string.IsNullOrEmpty(savedVideoPath))
+                            App.LastSavePath = Path.GetDirectoryName(savedVideoPath);
                     }
-                    catch (Exception ex) when (attempt == 0 && (ex.Message.Contains("denied", StringComparison.OrdinalIgnoreCase) || ex.Message.Contains("access", StringComparison.OrdinalIgnoreCase)))
-                    {
-                        continue; // Retry with empty initial path so user picks location
-                    }
-                    catch (Exception ex)
-                    {
-                        await DisplayAlert("Save Video", $"Video will upload to cloud but could not save to phone: {ex.Message}", "OK");
-                        break;
-                    }
+                    break;
+                }
+                catch (Exception ex) when (attempt == 0 && (ex.Message.Contains("denied", StringComparison.OrdinalIgnoreCase) || ex.Message.Contains("access", StringComparison.OrdinalIgnoreCase)))
+                {
+                    continue; // Retry with empty initial path so user picks location
+                }
+                catch (Exception ex)
+                {
+                    await DisplayAlert("Save Video", $"Video will upload to cloud but could not save to phone: {ex.Message}", "OK");
+                    break;
                 }
             }
 
@@ -500,6 +496,22 @@ namespace Cellular
         {
             base.OnDisappearing();
 
+            // Cancel any pending "stop after 5s" timeout so it cannot fire against
+            // the next recording when the user returns to this page.
+            _stopVideoCts?.Cancel();
+            _stopVideoCts = null;
+
+            // If the user navigated away while a recording was active, reset the state
+            // so the page is clean when they return.
+            if (isRecording)
+            {
+                isRecording = false;
+                RecordBtn.Text = "Record";
+                RecordBtn.BackgroundColor = Color.FromArgb("#9880e5");
+                RecordBtn.IsEnabled = true;
+                _ = cameraView.StopVideoRecording(CancellationToken.None);
+            }
+
             // Stop buffering if active
             if (_sensorBufferManager != null)
             {
@@ -512,25 +524,11 @@ namespace Cellular
                 _sensorBufferManager = null;
             }
 
-            // Don't unsubscribe from DeviceDisconnected here - we want to keep listening
-            // The service maintains connection across page navigation
-
             isCameraStarted = false;
 
             // Unsubscribe from watch recording events
             _watchBleService.WatchStartRecordingRequested -= async (s, e) => await BeginExternalRecording();
             _watchBleService.WatchStopRecordingRequested -= async (s, e) => await EndExternalRecording();
-
-            // Clean up stream if recording
-            CleanupStream();
-
-            // Stop demo playback if active and hide demo button
-            try { mediaElement.Stop(); } catch { }
-            isDemoPlaying = false;
-            if (DemoRecordBtn != null)
-            {
-                DemoRecordBtn.IsVisible = false;
-            }
 
             CleanupStream();
         }
@@ -606,16 +604,29 @@ namespace Cellular
                         logSavedDirectory = App.LastSavePath;
                     }
 
-                    // Stop the video recording now that the log is saved (or user cancelled)
+                    // Stop the video recording now that the log is saved (or user cancelled).
+                    // Keep RecordBtn disabled until the camera fully stops to prevent
+                    // StartVideoRecording being called while StopVideoRecording is in progress.
                     if (isRecording && !string.IsNullOrEmpty(currentVideoPath))
                     {
-                        isRecording = false;
-                        RecordBtn.Text = "Record";
-                        RecordBtn.BackgroundColor = Color.FromArgb("#9880e5");
-                        await cameraView.StopVideoRecording(CancellationToken.None);
-                        CleanupStream();
-                        if (File.Exists(currentVideoPath))
-                            await SaveAndUploadVideoAsync(currentVideoPath, logBytesForUpload, logFileNameForUpload, folderToSaveVideoTo: logSavedDirectory);
+                        RecordBtn.IsEnabled = false;
+                        try
+                        {
+                            await cameraView.StopVideoRecording(CancellationToken.None);
+                            CleanupStream();
+                            isRecording = false;
+                            RecordBtn.Text = "Record";
+                            RecordBtn.BackgroundColor = Color.FromArgb("#9880e5");
+                            if (File.Exists(currentVideoPath))
+                                await SaveAndUploadVideoAsync(currentVideoPath, logBytesForUpload, logFileNameForUpload, folderToSaveVideoTo: logSavedDirectory);
+                        }
+                        finally
+                        {
+                            isRecording = false;
+                            RecordBtn.Text = "Record";
+                            RecordBtn.BackgroundColor = Color.FromArgb("#9880e5");
+                            RecordBtn.IsEnabled = true;
+                        }
                     }
 
                     try { if (File.Exists(e.FilePath)) File.Delete(e.FilePath); } catch (Exception deleteEx) { System.Diagnostics.Debug.WriteLine($"[Video2] Error deleting temp log: {deleteEx.Message}"); }
@@ -642,6 +653,76 @@ namespace Cellular
 
         
 
+        private void OnToggleModeClicked(object sender, EventArgs e)
+        {
+            _isCameraMode = !_isCameraMode;
+
+            if (_isCameraMode)
+            {
+                cameraView.IsVisible = true;
+                mediaElement.IsVisible = false;
+                mediaElement.Stop();
+
+                if (isDemoPlaying)
+                {
+                    try { mediaElement.Stop(); } catch { }
+                    isDemoPlaying = false;
+                    RecordBtn.Text = "Record";
+                    RecordBtn.BackgroundColor = Color.FromArgb("#9880e5");
+                }
+
+                ToggleModeBtn.Text = "Demo Mode";
+                RecordBtn.IsEnabled = true;
+                DemoRecordBtn.IsVisible = false;
+                UseCiclopesBtn.IsVisible = false;
+            }
+            else
+            {
+                cameraView.IsVisible = false;
+                mediaElement.IsVisible = true;
+
+                ToggleModeBtn.Text = "Default Mode";
+                DemoRecordBtn.IsVisible = true;
+                DemoRecordBtn.Text = "Play";
+                DemoRecordBtn.BackgroundColor = Color.FromArgb("#9880e5");
+                RecordBtn.IsEnabled = false;
+            }
+        }
+
+        private async void OnDemoRecordClicked(object sender, EventArgs e)
+        {
+            try
+            {
+                if (!isDemoPlaying)
+                {
+                    isDemoPlaying = true;
+                    DemoRecordBtn.Text = "Stop";
+                    DemoRecordBtn.BackgroundColor = Colors.Red;
+                    UseCiclopesBtn.IsVisible = false;
+                    try
+                    {
+                        mediaElement.Source = MediaSource.FromResource("lego.mp4");
+                        mediaElement.IsVisible = true;
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"Demo play failed: {ex.Message}");
+                    }
+                }
+                else
+                {
+                    isDemoPlaying = false;
+                    try { mediaElement.Stop(); } catch { }
+                    DemoRecordBtn.Text = "Play";
+                    DemoRecordBtn.BackgroundColor = Color.FromArgb("#9880e5");
+                }
+            }
+            catch (Exception ex)
+            {
+                await DisplayAlert("Error", $"Demo playback failed: {ex.Message}", "OK");
+            }
+        }
+
         private void UpdateCiclopesButtonState()
         {
             MainThread.BeginInvokeOnMainThread(() =>
@@ -662,9 +743,6 @@ namespace Cellular
             }
 
             UseCiclopesBtn.IsEnabled = false;
-            UseCiclopesBtn.BackgroundColor = Colors.Gray;
-            CiclopesSpinner.IsVisible = true;
-            CiclopesSpinner.IsRunning = true;
             try
             {
                 var controller = new ApiController();
@@ -678,9 +756,6 @@ namespace Cellular
                 var fourDBodyTask = controller.ExecuteFourDBodyRunRequest(request);
 
                 var laneBallsResponse = await laneBallsTask;
-
-                CiclopesSpinner.IsRunning = false;
-                CiclopesSpinner.IsVisible = false;
 
                 if (laneBallsResponse is null)
                 {
@@ -697,20 +772,25 @@ namespace Cellular
             }
             finally
             {
-                CiclopesSpinner.IsRunning = false;
-                CiclopesSpinner.IsVisible = false;
                 UpdateCiclopesButtonState();
             }
         }
 
         private void OnDeviceDisconnected(object? sender, string macAddress)
         {
-            // Update icon and record button when device disconnects
             MainThread.BeginInvokeOnMainThread(async () =>
             {
-                // Update IsConnected status in database
                 await UpdateIsConnectedStatusAsync(false);
+                UpdateConnectionStatusIcon();
+                await UpdateRecordButtonStateAsync();
+            });
+        }
 
+        private void OnDeviceReconnected(object? sender, string macAddress)
+        {
+            MainThread.BeginInvokeOnMainThread(async () =>
+            {
+                await UpdateIsConnectedStatusAsync(true);
                 UpdateConnectionStatusIcon();
                 await UpdateRecordButtonStateAsync();
             });
@@ -727,7 +807,6 @@ namespace Cellular
                     MmsConnectionToolbarItem.IconImageSource = new FontImageSource
                     {
                         Glyph = "●",
-                        FontFamily = "Arial",
                         Size = 20,
                         Color = Colors.Green
                     };
@@ -738,7 +817,6 @@ namespace Cellular
                     MmsConnectionToolbarItem.IconImageSource = new FontImageSource
                     {
                         Glyph = "●",
-                        FontFamily = "Arial",
                         Size = 20,
                         Color = Colors.Red
                     };
@@ -869,7 +947,6 @@ namespace Cellular
                 MmsConnectionToolbarItem.IconImageSource = new FontImageSource
                 {
                     Glyph = "●",
-                    FontFamily = "Arial",
                     Size = 20,
                     Color = Colors.Orange
                 };
@@ -1003,12 +1080,11 @@ namespace Cellular
 
                 MainThread.BeginInvokeOnMainThread(() =>
                 {
-                    // When in player/demo mode, allow the Record button to act as a fake-record (play/stop)
-                    RecordBtn.IsEnabled = connected || !_isCameraMode;
-                    // Only update color if not currently recording (camera) or playing (demo)
-                    if (!isRecording && !isDemoPlaying)
+                    RecordBtn.IsEnabled = connected;
+                    // Only update color if not currently recording
+                    if (!isRecording)
                     {
-                        RecordBtn.BackgroundColor = (connected || !_isCameraMode) ? Color.FromArgb("#9880e5") : Colors.Gray;
+                        RecordBtn.BackgroundColor = connected ? Color.FromArgb("#9880e5") : Colors.Gray;
                     }
                 });
             }
@@ -1041,198 +1117,25 @@ namespace Cellular
         }
 
         /// <summary>
-        /// Starts video recording when triggered by watch external command
+        /// Starts video recording when triggered by the watch. Mirrors pressing Record on the phone.
         /// </summary>
         public async Task BeginExternalRecording()
         {
             if (!isCameraStarted || isRecording)
                 return;
 
-            await MainThread.InvokeOnMainThreadAsync(async () =>
-            {
-                try
-                {
-                    // Prepare Folder and Path
-                    string targetFolder = Path.Combine(FileSystem.CacheDirectory, "Videos");
-                    Directory.CreateDirectory(targetFolder);
-                    string fileName = $"rm_{DateTime.Now:yyyyMMdd_HHmmss}.mp4";
-                    currentVideoPath = Path.Combine(targetFolder, fileName);
-
-                    // Open Stream (Use Create to overwrite if exists)
-                    _videoFileStream = File.Create(currentVideoPath);
-
-                    // Start Recording
-                    await cameraView.StartVideoRecording(_videoFileStream, CancellationToken.None);
-
-                    isRecording = true;
-                    RecordBtn.Text = "Stop Recording";
-                    RecordBtn.BackgroundColor = Colors.Red;
-
-                    System.Diagnostics.Debug.WriteLine("[Video2] External recording started from watch command");
-                }
-                catch (Exception ex)
-                {
-                    System.Diagnostics.Debug.WriteLine($"[Video2] BeginExternalRecording failed: {ex.Message}");
-                    CleanupStream();
-                    isRecording = false;
-                    RecordBtn.Text = "Record";
-                    RecordBtn.BackgroundColor = Colors.DeepSkyBlue;
-                }
-            });
+            await MainThread.InvokeOnMainThreadAsync(StartRecordingAsync);
         }
 
         /// <summary>
-        /// Stops video recording when triggered by watch external command
+        /// Stops video recording when triggered by the watch. Mirrors pressing Stop on the phone.
         /// </summary>
         public async Task EndExternalRecording()
         {
             if (!isRecording)
                 return;
 
-            await MainThread.InvokeOnMainThreadAsync(async () =>
-            {
-                try
-                {
-                    // Stop Recording
-                    await cameraView.StopVideoRecording(CancellationToken.None);
-
-                    // Cleanup the stream to flush data to disk
-                    CleanupStream();
-
-                    // Save to phone (FileSaver) and upload to RevMetrix, same as timeout / manual flows
-                    if (File.Exists(currentVideoPath))
-                        await SaveAndUploadVideoAsync(currentVideoPath, logBytesForUpload: null, logFileNameForUpload: null, folderToSaveVideoTo: null);
-
-                    isRecording = false;
-                    RecordBtn.Text = "Record";
-                    RecordBtn.BackgroundColor = Colors.DeepSkyBlue;
-
-                    System.Diagnostics.Debug.WriteLine("[Video2] External recording stopped from watch command");
-                }
-                catch (Exception ex)
-                {
-                    System.Diagnostics.Debug.WriteLine($"[Video2] EndExternalRecording failed: {ex.Message}");
-                }
-            });
-        }
-
-        private void OnToggleModeClicked(object sender, EventArgs e)
-        {
-            _isCameraMode = !_isCameraMode;
-
-            if (_isCameraMode)
-            {
-                // Switch to Camera Mode
-                cameraView.IsVisible = true;
-                mediaElement.IsVisible = false;
-
-                // Stop the video to save resources
-                mediaElement.Stop();
-
-                // If demo playback was active, stop it and reset state
-                if (isDemoPlaying)
-                {
-                    try { mediaElement.Stop(); } catch { }
-                    isDemoPlaying = false;
-                    RecordBtn.Text = "Record";
-                    RecordBtn.BackgroundColor = Color.FromArgb("#9880e5");
-                }
-
-                ToggleModeBtn.Text = "Demo Mode";
-                RecordBtn.IsEnabled = true; // Enable recording logic
-                if (DemoRecordBtn != null)
-                {
-                    DemoRecordBtn.IsVisible = false;
-                }
-                // Hide Ciclopes button when leaving demo mode
-                UseCiclopesBtn.IsVisible = false;
-            }
-            else
-            {
-                // Switch to Video Player Mode
-                cameraView.IsVisible = false;
-                mediaElement.IsVisible = true;
-
-                // Optionally auto-play the video
-                // mediaElement.Play(); 
-
-                ToggleModeBtn.Text = "Default Mode";
-                // Show demo playback button in player mode
-                if (DemoRecordBtn != null)
-                {
-                    DemoRecordBtn.IsVisible = true;
-                    DemoRecordBtn.Text = "Play";
-                    DemoRecordBtn.BackgroundColor = Color.FromArgb("#9880e5");
-                }
-                // Disable actual recording in player mode
-                RecordBtn.IsEnabled = false;
-            }
-        }
-
-        private async void OnDemoRecordClicked(object sender, EventArgs e)
-        {
-            try
-            {
-                if (!isDemoPlaying)
-                {
-                    isDemoPlaying = true;
-                    DemoRecordBtn.Text = "Stop";
-                    DemoRecordBtn.BackgroundColor = Colors.Red;
-                    UseCiclopesBtn.IsVisible = false;
-                    try
-                    {
-                        // Use local bundled resource for demo playback (Resources/Raw/lego.mp4)
-                        // Remote URL code commented out — kept for reference
-                        // var testUrl = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4";
-                        //
-                        // // Quick HTTP check to surface bad HTTP status codes before handing to MediaElement
-                        // try
-                        // {
-                        //     using var http = new HttpClient() { Timeout = TimeSpan.FromSeconds(10) };
-                        //     // Try HEAD first
-                        //     var headReq = new HttpRequestMessage(HttpMethod.Head, testUrl);
-                        //     var headResp = await http.SendAsync(headReq);
-                        //     if (!headResp.IsSuccessStatusCode)
-                        //     {
-                        //         // Some servers don't support HEAD; try GET as fallback
-                        //         var getResp = await http.GetAsync(testUrl, HttpCompletionOption.ResponseHeadersRead);
-                        //         if (!getResp.IsSuccessStatusCode)
-                        //         {
-                        //             await DisplayAlert("Media Error", $"Remote file returned HTTP {(int)getResp.StatusCode} {getResp.ReasonPhrase}", "OK");
-                        //             return;
-                        //         }
-                        //     }
-                        // }
-                        // catch (Exception ex)
-                        // {
-                        //     await DisplayAlert("Network Error", $"Could not reach media URL: {ex.Message}", "OK");
-                        //     return;
-                        // }
-                        //
-                        // // If HTTP check succeeded, set source and play
-                        // mediaElement.Source = MediaSource.FromUri(testUrl);
-
-                        // Set local resource source — Play() is triggered by the MediaOpened handler
-                        mediaElement.Source = MediaSource.FromResource("lego.mp4");
-                        mediaElement.IsVisible = true;
-                    }
-                    catch (Exception ex)
-                    {
-                        System.Diagnostics.Debug.WriteLine($"Demo play failed: {ex.Message}");
-                    }
-                }
-                else
-                {
-                    isDemoPlaying = false;
-                    try { mediaElement.Stop(); } catch { }
-                    DemoRecordBtn.Text = "Play";
-                    DemoRecordBtn.BackgroundColor = Color.FromArgb("#9880e5");
-                }
-            }
-            catch (Exception ex)
-            {
-                await DisplayAlert("Error", $"Demo playback failed: {ex.Message}", "OK");
-            }
+            await MainThread.InvokeOnMainThreadAsync(StopRecordingAsync);
         }
     }
 }
