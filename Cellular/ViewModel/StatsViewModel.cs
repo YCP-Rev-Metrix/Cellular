@@ -152,8 +152,8 @@ namespace Cellular.ViewModel
         // Strike-type stats
         public int TotalStrikes { get; set; }
         public double StrikesPerGame { get; set; }
-        public double CarryRate { get; set; }       // pocket strikes / pocket first-ball shots (frames 1-10)
-        public double PocketPercent { get; set; }   // pocket first-ball shots / total frames (frames 1-10)
+        public double CarryPercent { get; set; }    // 
+        public double PocketPercent { get; set; }   // 
         public double CountAverage { get; set; }    // avg pins knocked down on first ball
         public int StrikeAttempts { get; set; }     // total frames attempted including fill balls (up to 12)
 
@@ -909,7 +909,12 @@ namespace Cellular.ViewModel
                     s1.Position != null &&
                     !s1.Position.Contains("pocket", StringComparison.OrdinalIgnoreCase));
 
-                CountAverage  = CalculateCountAverage(Shots);
+                CountAverage = CalculateCountAverage(Shots);
+
+                PocketPercent = (double)TotalPocketCount / StrikeAttempts;
+                CarryPercent = (double)(TotalStrikes - BNLDCount) / TotalPocketCount;
+
+                Debug.WriteLine($"Pocket: {PocketPercent}, Carry: {CarryPercent}");
 
                 // Spare-type stats
                 TotalSpares = BowlingFrames.Count(f => f.Result == "Spare");
@@ -936,7 +941,7 @@ namespace Cellular.ViewModel
                 OnPropertyChanged(nameof(LightPocketCount));
                 OnPropertyChanged(nameof(TotalPocketCount));
                 OnPropertyChanged(nameof(BNLDCount));
-                OnPropertyChanged(nameof(CarryRate));
+                OnPropertyChanged(nameof(CarryPercent));
                 OnPropertyChanged(nameof(PocketPercent));
                 OnPropertyChanged(nameof(CountAverage));
                 OnPropertyChanged(nameof(TotalSpares));
@@ -1051,15 +1056,6 @@ namespace Cellular.ViewModel
             var scores = games.Select(game => game.Score);
             return StatsCalculator.CalculateAverage(scores);
         }
-
-        // Pocket positions: the three zones considered "in the pocket"
-        private static readonly HashSet<string> PocketPositions = new(StringComparer.OrdinalIgnoreCase)
-        {
-            "pocket", "high pocket", "light pocket", "l-pocket", "h-pocket"
-        };
-
-        private static bool IsPocketPosition(string? position)
-            => position != null && PocketPositions.Contains(position);
 
 
         /// <summary>
