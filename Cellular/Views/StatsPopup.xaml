@@ -155,10 +155,10 @@
                     </Grid.RowDefinitions>
 
                     <Label Grid.Row="0" Grid.Column="0"
-                           Text="{Binding TotalSpares, StringFormat='Total Spares: {0}'}"
+                           Text="{Binding TotalSpares, StringFormat='Spares: {0}'}"
                            HorizontalOptions="Center" TextColor="Black" FontSize="14" />
                     <Label Grid.Row="0" Grid.Column="1"
-                           Text="{Binding TotalOpens, StringFormat='Total Opens: {0}'}"
+                           Text="{Binding TotalOpens, StringFormat='Opens: {0}'}"
                            HorizontalOptions="Center" TextColor="Black" FontSize="14" />
 
                     <Label Grid.Row="1" Grid.Column="0"
