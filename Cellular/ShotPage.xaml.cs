@@ -154,6 +154,7 @@ namespace Cellular
                 viewModel.pinStates = ShotCalculator.CalculateShotType(viewModel.pinStates, 1);
                 //Save shot to DB
                 viewModel.firstShotId = await SaveShotAsync(1);
+                viewModel.SelectedPosition = null;
 
                 ApplyFirstShotColors(currentFrame);
 
@@ -215,6 +216,7 @@ namespace Cellular
                 viewModel.pinStates = ShotCalculator.CalculateShotType(viewModel.pinStates, 2);
                 //Save shot to DB
                 viewModel.secondShotId = await SaveShotAsync(2);
+                viewModel.SelectedPosition = null;
 
                 ApplySecondShotColors(currentFrame);
                 if (string.IsNullOrEmpty(currentFrame.ShotTwoBox))
