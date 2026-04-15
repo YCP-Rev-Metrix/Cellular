@@ -176,12 +176,12 @@ public partial class CiclopesResultPopup : Popup
             var speedValues = kin.Select(k => (float)(k.MeanSpeedMps * MpsToMph)).ToArray();
             var speedLabels = kin.Select(k => $"Q{k.Quarter}").ToArray();
             SpeedPlotView.Drawable = new CiclopesBarPlotDrawable(speedValues, speedLabels,
-                Color.FromArgb("#7c6bc4"), Color.FromArgb("#a594e0"));
+                Color.FromArgb("#355070"), Color.FromArgb("#FA8847"));
 
             var accelValues = kin.Select(k => (float)(k.MeanAccelerationMps2 * Mps2ToFtps2)).ToArray();
             var accelLabels = kin.Select(k => $"Q{k.Quarter}").ToArray();
             AccelPlotView.Drawable = new CiclopesBarPlotDrawable(accelValues, accelLabels,
-                Color.FromArgb("#4a6fa5"), Color.FromArgb("#7a9fd4"));
+                Color.FromArgb("#4A6D90"), Color.FromArgb("#FA8847"));
         }
 
         var pts = response.BallPoints;

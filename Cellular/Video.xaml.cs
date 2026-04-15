@@ -146,7 +146,7 @@ namespace Cellular
             cameraView.SizeChanged += CameraView_SizeChanged;
 
             // Wire up media element events for demo mode
-            try { mediaElement.Source = MediaSource.FromResource("lego.mp4"); }
+            try { mediaElement.Source = MediaSource.FromResource("shot1.mp4"); }
             catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"Failed to set media source: {ex.Message}"); }
 
             mediaElement.MediaOpened += (s, e) =>
@@ -701,7 +701,7 @@ namespace Cellular
                     UseCiclopesBtn.IsVisible = false;
                     try
                     {
-                        mediaElement.Source = MediaSource.FromResource("lego.mp4");
+                        mediaElement.Source = MediaSource.FromResource("shot1.mp4");
                         mediaElement.IsVisible = true;
                     }
                     catch (Exception ex)

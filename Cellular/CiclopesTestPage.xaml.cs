@@ -20,6 +20,7 @@ public partial class CiclopesTestPage : ContentPage
     private async void OnStartTestClicked(object sender, EventArgs e)
     {
         StartTestButton.IsEnabled = false;
+        LoadingOverlay.IsVisible = true;
 
         try
         {
@@ -42,6 +43,7 @@ public partial class CiclopesTestPage : ContentPage
         }
         finally
         {
+            LoadingOverlay.IsVisible = false;
             StartTestButton.IsEnabled = true;
         }
     }

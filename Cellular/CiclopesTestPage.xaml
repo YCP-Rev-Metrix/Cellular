@@ -2,12 +2,37 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="Cellular.CiclopesTestPage"
-             Title="Ciclopes Test">
-    <Grid Padding="20">
-        <Button x:Name="StartTestButton"
-                Text="Start Test"
-                HorizontalOptions="Center"
-                VerticalOptions="Center"
-                Clicked="OnStartTestClicked"/>
+             Title="Ciclopes Test"
+             BackgroundColor="{AppThemeBinding Light={StaticResource Surface}, Dark={StaticResource OffBlack}}">
+
+    <Grid>
+        <VerticalStackLayout VerticalOptions="Center"
+                             HorizontalOptions="Center"
+                             Spacing="24"
+                             Padding="24">
+            <Image Source="logo.png"
+                   HeightRequest="140"
+                   Aspect="AspectFit"
+                   HorizontalOptions="Center"
+                   SemanticProperties.Description="RevMetrix Logo" />
+
+            <Button x:Name="StartTestButton"
+                    Text="Start Test"
+                    Clicked="OnStartTestClicked"
+                    WidthRequest="220"
+                    Style="{StaticResource AccentButton}" />
+        </VerticalStackLayout>
+
+        <!-- Loading overlay -->
+        <Grid x:Name="LoadingOverlay"
+              IsVisible="False"
+              BackgroundColor="{AppThemeBinding Light=#B0000000, Dark=#B0000000}">
+            <ActivityIndicator IsRunning="True"
+                               Color="{StaticResource Secondary}"
+                               WidthRequest="56"
+                               HeightRequest="56"
+                               HorizontalOptions="Center"
+                               VerticalOptions="Center"/>
+        </Grid>
     </Grid>
 </ContentPage>
