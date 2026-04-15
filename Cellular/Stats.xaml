@@ -3,7 +3,6 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="Cellular.Stats"
              xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
-             xmlns:cv="clr-namespace:Camera.MAUI;assembly=Camera.MAUI"
              xmlns:vm="clr-namespace:Cellular.ViewModel">
 
     <ScrollView>
@@ -20,29 +19,28 @@
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
 
-                <!-- Four rows for the 8 pickers (2 columns x 4 rows) -->
+                <!-- Rows: dates | session+event | game+ball | lanes+frame | house | statType | buttons -->
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" /> <!-- house -->
                     <RowDefinition Height="Auto" /> <!-- statType -->
                     <RowDefinition Height="Auto" /> <!-- buttons -->
                 </Grid.RowDefinitions>
 
                 <!-- Left column -->
                 <DatePicker Grid.Row="0" Grid.Column="0"
-                            MinimumDate="{Binding MinDate}"
-                            MaximumDate="{Binding MaxDate}"
-                            Date="{Binding SelectedDate}"
                             x:Name="StartDate"
+                            Date="{Binding StartDateDisplay, Mode=TwoWay}"
                             WidthRequest="140" />
 
                 <Picker Grid.Row="1" Grid.Column="0"
                         x:Name="SessionPicker"
                         Title="Session"
                         ItemsSource="{Binding Sessions}"
-                        ItemDisplayBinding="{Binding SessionNumber}"
+                        ItemDisplayBinding="{Binding DisplayName}"
                         SelectedItem="{Binding SelectedSession}"
                         WidthRequest="140" />
 
@@ -63,17 +61,15 @@
 
                 <!-- Right column -->
                 <DatePicker Grid.Row="0" Grid.Column="1"
-                            MinimumDate="{Binding MinDate}"
-                            MaximumDate="{Binding MaxDate}"
-                            Date="{Binding SelectedDate}"
                             x:Name="EndDate"
+                            Date="{Binding EndDateDisplay, Mode=TwoWay}"
                             WidthRequest="140" />
 
                 <Picker Grid.Row="1" Grid.Column="1"
                         x:Name="EventPicker"
                         Title="Event"
                         ItemsSource="{Binding Events}"
-                        ItemDisplayBinding="{Binding Name}"
+                        ItemDisplayBinding="{Binding LongName}"
                         SelectedItem="{Binding SelectedEvent}"
                         WidthRequest="140" />
 
@@ -92,18 +88,29 @@
                         SelectedItem="{Binding SelectedFrame}"
                         WidthRequest="140" />
 
-                <!-- StatType centered below the pickers -->
+                <!-- House (establishment) centered below the lane/frame row -->
                 <HorizontalStackLayout Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="2"
+                                       HorizontalOptions="Center" Spacing="8" Padding="0,10,0,0">
+                    <Picker x:Name="HousePicker"
+                            Title="House"
+                            ItemsSource="{Binding Establishments}"
+                            ItemDisplayBinding="{Binding NickName}"
+                            SelectedItem="{Binding SelectedEstablishment}"
+                            WidthRequest="200" />
+                </HorizontalStackLayout>
+
+                <!-- StatType centered below house -->
+                <HorizontalStackLayout Grid.Row="5" Grid.Column="0" Grid.ColumnSpan="2"
                                        HorizontalOptions="Center" Spacing="8" Padding="0,10,0,0">
                     <Picker x:Name="StatTypePicker"
                             Title="Stat Type"
-                            ItemsSource="{Binding StatTypes}"   
+                            ItemsSource="{Binding StatTypes}"
                             SelectedItem="{Binding SelectedStatType}"
                             WidthRequest="200" />
                 </HorizontalStackLayout>
 
                 <!-- Load Stats and Clear buttons side-by-side centered -->
-                <HorizontalStackLayout Grid.Row="5" Grid.Column="0" Grid.ColumnSpan="2"
+                <HorizontalStackLayout Grid.Row="6" Grid.Column="0" Grid.ColumnSpan="2"
                                        HorizontalOptions="Center" Spacing="12" Padding="0,10,0,0">
                     <Button x:Name="LoadStatsButton" Text="Load Stats" WidthRequest="120" />
                     <Button Text="Clear" WidthRequest="120"

@@ -625,6 +625,20 @@ namespace Cellular
             await shotRepository.InitAsync();
             await frameRepository.InitAsync();
 
+            string dbPosition = viewModel.SelectedPosition switch
+            {
+                "Left" => "left",
+                "Brooklyn" => "brooklyn",
+                "Nose" => "nose",
+                "High" => "high",
+                "High Pocket" => "h-pocket",
+                "Pocket" => "pocket",
+                "Light Pocket" => "l-pocket",
+                "Light" => "light",
+                "Right" => "right",
+                    _ => viewModel.SelectedPosition?.ToLower() ?? "none"
+            };
+
             // Use same canonical lookup as DoesShotExistAsync (GameId + FrameNumber)
             var reloadFrame = await conn.Table<BowlingFrame>()
                                 .Where(f => f.GameId == viewModel.gameId && f.FrameNumber == viewModel.CurrentFrame)

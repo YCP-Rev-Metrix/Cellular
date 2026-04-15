@@ -106,6 +106,7 @@ namespace Cellular.ViewModel
             Sessions.Clear();
             foreach (var session in sessionsFromDb)
             {
+                session.BuildDisplayName(SelectedEventName);
                 Sessions.Add(session);
                 Debug.WriteLine("This is the session ID " + session.SessionId + " For " + session.SessionNumber + " and EventId: " + session.EventId);
             }
