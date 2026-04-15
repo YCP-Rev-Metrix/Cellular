@@ -33,8 +33,6 @@ namespace Cellular
 
         private bool isCameraStarted = false;
         private Size previewResolution = new Size(1920, 1080);
-        private bool _isCameraMode = true;
-        private bool isDemoPlaying = false;
 
         //Recording state
         private bool isRecording = false;
@@ -145,13 +143,35 @@ namespace Cellular
             cameraView.PropertyChanged += CameraView_PropertyChanged;
             cameraView.SizeChanged += CameraView_SizeChanged;
 
-            // Wire up media element events for demo mode
-            try { mediaElement.Source = MediaSource.FromResource("shot1.mp4"); }
-            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"Failed to set media source: {ex.Message}"); }
+            // Setup media element for packed Raw asset and diagnostics
+            try
+            {
+                // FromResource is the correct API for Resources/Raw MauiAsset files.
+                // On Android it resolves via Assets/ internally (ExoPlayer).
+                // FromFile is for filesystem paths and does NOT work for bundled raw assets.
+                mediaElement.Source = MediaSource.FromResource("lego.mp4");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Failed to set media source from resource: {ex.Message}");
+                // Fallback: try a known remote URL to verify playback support on device
+                // try
+                // {
+                //     mediaElement.Source = MediaSource.FromUri("https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4");
+                //     mediaElement.IsVisible = true;
+                //     mediaElement.Play();
+                // }
+                // catch { }
+            }
 
             mediaElement.MediaOpened += (s, e) =>
             {
-                if (isDemoPlaying) mediaElement.Play();
+                System.Diagnostics.Debug.WriteLine("Media opened");
+                // In demo mode, start playback once Android ExoPlayer has prepared the source
+                if (isDemoPlaying)
+                {
+                    mediaElement.Play();
+                }
             };
             mediaElement.MediaFailed += (s, e) =>
             {
@@ -170,10 +190,13 @@ namespace Cellular
                         isDemoPlaying = false;
                         DemoRecordBtn.Text = "Play";
                         DemoRecordBtn.BackgroundColor = Color.FromArgb("#9880e5");
-                        // Show Ciclopes button with demo test keys after playback ends
+
+                        // Show Ciclopes button with demo/test keys
+                        UseCiclopesBtn.IsVisible = true;
+                        UseCiclopesBtn.IsEnabled = true;
+                        UseCiclopesBtn.BackgroundColor = Color.FromArgb("#9880e5");
                         _lastVideoKey = "videos/310fceda-dac8-4bf0-a25c-2d1ba360ea68_shot1.mp4";
                         _lastSdKey = "key";
-                        UpdateCiclopesButtonState();
                     }
                 });
             };
@@ -653,82 +676,11 @@ namespace Cellular
 
         
 
-        private void OnToggleModeClicked(object sender, EventArgs e)
-        {
-            _isCameraMode = !_isCameraMode;
-
-            if (_isCameraMode)
-            {
-                cameraView.IsVisible = true;
-                mediaElement.IsVisible = false;
-                mediaElement.Stop();
-
-                if (isDemoPlaying)
-                {
-                    try { mediaElement.Stop(); } catch { }
-                    isDemoPlaying = false;
-                    RecordBtn.Text = "Record";
-                    RecordBtn.BackgroundColor = Color.FromArgb("#9880e5");
-                }
-
-                ToggleModeBtn.Text = "Demo Mode";
-                RecordBtn.IsEnabled = true;
-                DemoRecordBtn.IsVisible = false;
-                UseCiclopesBtn.IsVisible = false;
-            }
-            else
-            {
-                cameraView.IsVisible = false;
-                mediaElement.IsVisible = true;
-
-                ToggleModeBtn.Text = "Default Mode";
-                DemoRecordBtn.IsVisible = true;
-                DemoRecordBtn.Text = "Play";
-                DemoRecordBtn.BackgroundColor = Color.FromArgb("#9880e5");
-                RecordBtn.IsEnabled = false;
-            }
-        }
-
-        private async void OnDemoRecordClicked(object sender, EventArgs e)
-        {
-            try
-            {
-                if (!isDemoPlaying)
-                {
-                    isDemoPlaying = true;
-                    DemoRecordBtn.Text = "Stop";
-                    DemoRecordBtn.BackgroundColor = Colors.Red;
-                    UseCiclopesBtn.IsVisible = false;
-                    try
-                    {
-                        mediaElement.Source = MediaSource.FromResource("shot1.mp4");
-                        mediaElement.IsVisible = true;
-                    }
-                    catch (Exception ex)
-                    {
-                        System.Diagnostics.Debug.WriteLine($"Demo play failed: {ex.Message}");
-                    }
-                }
-                else
-                {
-                    isDemoPlaying = false;
-                    try { mediaElement.Stop(); } catch { }
-                    DemoRecordBtn.Text = "Play";
-                    DemoRecordBtn.BackgroundColor = Color.FromArgb("#9880e5");
-                }
-            }
-            catch (Exception ex)
-            {
-                await DisplayAlert("Error", $"Demo playback failed: {ex.Message}", "OK");
-            }
-        }
-
         private void UpdateCiclopesButtonState()
         {
             MainThread.BeginInvokeOnMainThread(() =>
             {
                 bool hasKeys = !string.IsNullOrEmpty(_lastVideoKey);
-                UseCiclopesBtn.IsVisible = hasKeys;
                 UseCiclopesBtn.IsEnabled = hasKeys;
                 UseCiclopesBtn.BackgroundColor = hasKeys ? Color.FromArgb("#9880e5") : Colors.Gray;
             });
@@ -763,12 +715,11 @@ namespace Cellular
                     return;
                 }
 
-                var popup = new Cellular.Views.CiclopesResultPopup(laneBallsResponse, fourDBodyTask);
-                await this.ShowPopupAsync(popup, Cellular.Views.CiclopesResultPopup.CreatePopupOptions());
+                this.ShowPopup(new Cellular.Views.CiclopesResultPopup(laneBallsResponse, fourDBodyTask));
             }
             catch (Exception ex)
             {
-                await DisplayAlert("Ciclopes Request Failed", $"{ex.GetType().Name}: {ex.Message}\n\n{ex.StackTrace}", "OK");
+                await DisplayAlert("Ciclopes Request Failed", ex.Message, "OK");
             }
             finally
             {

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-             x:Class="Cellular.Bluetooth">
+             x:Class="Cellular.SmartDot">
 
     <ScrollView>
         <VerticalStackLayout
@@ -56,7 +56,7 @@
                             <Label
                                 Grid.Row="0"
                                 Grid.Column="0"
-                                Text="{Binding Name}"
+                                Text="{Binding DisplayName}"
                                 FontSize="16"
                                 FontAttributes="Bold" />
                             
@@ -97,15 +97,13 @@
             <!-- Device Info Section -->
             <Frame x:Name="DeviceInfoFrame"
                    IsVisible="False"
-                   BorderColor="Gray"
-                   BackgroundColor="{AppThemeBinding Light=#F5F5F5, Dark=#2A2A2A}"
-                   Padding="16"
+                   BorderColor="LightGray"
+                   Padding="12"
                    CornerRadius="8"
-                   HasShadow="False"
-                   Margin="0,10,0,0">
-                <VerticalStackLayout Spacing="8">
-                    <Label Text="Device"
-                           FontSize="18"
+                   HasShadow="False">
+                <VerticalStackLayout Spacing="6">
+                    <Label Text="Device Info"
+                           FontSize="16"
                            FontAttributes="Bold" />
 
                     <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto" ColumnSpacing="12" RowSpacing="6">
@@ -155,6 +153,123 @@
             <Label x:Name="LightThresholdStatusLabel"
                    FontSize="13"
                    TextColor="Gray" />
+
+            <!-- Record Duration Setting -->
+            <Label
+                Text="Record Duration (seconds):"
+                FontSize="16"
+                FontAttributes="Bold"
+                Margin="0,15,0,0" />
+            <Label
+                Text="How long data is recorded after the light sensor threshold is hit."
+                FontSize="13"
+                TextColor="Gray" />
+            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                <Entry x:Name="RecordDurationEntry"
+                       Grid.Column="0"
+                       Keyboard="Numeric"
+                       Placeholder="e.g. 4"
+                       ReturnType="Done" />
+                <Button x:Name="SaveDurationButton"
+                        Grid.Column="1"
+                        Text="Save"
+                        Clicked="OnSaveRecordDurationClicked"
+                        WidthRequest="80" />
+            </Grid>
+            <Label x:Name="RecordDurationStatusLabel"
+                   FontSize="13"
+                   TextColor="Gray" />
+
+            <!-- Device Controls -->
+            <VerticalStackLayout x:Name="DeviceControlsSection" IsVisible="False" Spacing="0">
+            <Label Text="Device Controls"
+                   FontSize="18"
+                   FontAttributes="Bold"
+                   Margin="0,20,0,5" />
+            <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
+                <Button x:Name="ResetDeviceButton"
+                        Grid.Column="0"
+                        Text="Reset Device"
+                        Clicked="OnResetDeviceClicked"
+                        IsEnabled="{Binding IsConnected}"
+                        BackgroundColor="#E74C3C" />
+                <Button x:Name="SleepModeButton"
+                        Grid.Column="1"
+                        Text="Sleep Mode"
+                        Clicked="OnSleepModeClicked"
+                        IsEnabled="{Binding IsConnected}"
+                        BackgroundColor="#3498DB" />
+            </Grid>
+            </VerticalStackLayout>
+
+            <!-- Sensor Configuration -->
+            <VerticalStackLayout x:Name="SensorConfigSection" IsVisible="False" Spacing="0">
+            <Label Text="Sensor Configuration"
+                   FontSize="18"
+                   FontAttributes="Bold"
+                   Margin="0,20,0,5" />
+
+            <!-- Accelerometer Config -->
+            <Frame BorderColor="LightGray" Padding="12" CornerRadius="8" HasShadow="False">
+                <VerticalStackLayout Spacing="6">
+                    <Label Text="Accelerometer" FontSize="16" FontAttributes="Bold" />
+                    <Label Text="Scale (G):" FontSize="14" TextColor="Gray" />
+                    <Picker x:Name="AccelScalePicker" Title="Select Scale" />
+                    <Label Text="Frequency (Hz):" FontSize="14" TextColor="Gray" />
+                    <Picker x:Name="AccelFreqPicker" Title="Select Frequency" />
+                </VerticalStackLayout>
+            </Frame>
+
+            <!-- Ambient Light Config -->
+            <Frame BorderColor="LightGray" Padding="12" CornerRadius="8" HasShadow="False" Margin="0,8,0,0">
+                <VerticalStackLayout Spacing="6">
+                    <Label Text="Ambient Light" FontSize="16" FontAttributes="Bold" />
+                    <Label Text="Gain:" FontSize="14" TextColor="Gray" />
+                    <Picker x:Name="LightGainPicker" Title="Select Gain" />
+                    <Label Text="Integration Time:" FontSize="14" TextColor="Gray" />
+                    <Picker x:Name="LightIntegTimePicker" Title="Select Integration Time" />
+                    <Label Text="Sampling Rate:" FontSize="14" TextColor="Gray" />
+                    <Picker x:Name="LightSamplingRatePicker" Title="Select Sampling Rate" />
+                </VerticalStackLayout>
+            </Frame>
+
+            <!-- Barometer Config -->
+            <Frame BorderColor="LightGray" Padding="12" CornerRadius="8" HasShadow="False" Margin="0,8,0,0">
+                <VerticalStackLayout Spacing="6">
+                    <Label Text="Barometer" FontSize="16" FontAttributes="Bold" />
+                    <Label Text="Oversampling:" FontSize="14" TextColor="Gray" />
+                    <Picker x:Name="BaroOversamplingPicker" Title="Select Oversampling" />
+                    <Label Text="Averaging (IIR Filter):" FontSize="14" TextColor="Gray" />
+                    <Picker x:Name="BaroAveragingPicker" Title="Select Averaging" />
+                    <Label Text="Standby Time:" FontSize="14" TextColor="Gray" />
+                    <Picker x:Name="BaroStandbyTimePicker" Title="Select Standby Time" />
+                </VerticalStackLayout>
+            </Frame>
+
+            <!-- Gyroscope Config -->
+            <Frame BorderColor="LightGray" Padding="12" CornerRadius="8" HasShadow="False" Margin="0,8,0,0">
+                <VerticalStackLayout Spacing="6">
+                    <Label Text="Gyroscope" FontSize="16" FontAttributes="Bold" />
+                    <Label Text="Frequency (Hz):" FontSize="14" TextColor="Gray" />
+                    <Picker x:Name="GyroFreqPicker" Title="Select Frequency" />
+                    <Label Text="Range (°/s):" FontSize="14" TextColor="Gray" />
+                    <Picker x:Name="GyroRangePicker" Title="Select Range" />
+                </VerticalStackLayout>
+            </Frame>
+
+            <!-- Magnetometer Config -->
+            <Frame BorderColor="LightGray" Padding="12" CornerRadius="8" HasShadow="False" Margin="0,8,0,0">
+                <VerticalStackLayout Spacing="6">
+                    <Label Text="Magnetometer" FontSize="16" FontAttributes="Bold" />
+                    <Label x:Name="MagFrequencyLabel" FontSize="14" TextColor="Gray" />
+                </VerticalStackLayout>
+            </Frame>
+
+            <Button x:Name="SaveSensorConfigButton"
+                    Text="Save Sensor Configuration"
+                    Clicked="OnSaveSensorConfigClicked"
+                    Margin="0,8,0,0" />
+            </VerticalStackLayout>
 
             <!-- Sensor Controls -->
             <Label

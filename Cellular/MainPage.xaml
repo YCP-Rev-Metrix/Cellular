@@ -79,6 +79,7 @@
                             Style="{StaticResource AccentButton}"
                             Opacity="0.6" />
 
+           
                 </VerticalStackLayout>
             </Border>
 
@@ -107,8 +108,8 @@
 
                 <Button x:Name="bluetooth"
                         Grid.Row="2" Grid.Column="0"
-                        Text="Bluetooth"
-                        Clicked="OnBluetoothClicked"
+                        Text="SmartDot"
+                        Clicked="Access SmartDot device"
                         HeightRequest="72"
                         Style="{StaticResource AccentButton}" />
 
