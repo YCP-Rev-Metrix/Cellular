@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<toolkit:Popup xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+               xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+               xmlns:toolkit="clr-namespace:CommunityToolkit.Maui.Views;assembly=CommunityToolkit.Maui"
+               x:Class="Cellular.Views.EstablishmentEditorPopup"
+               CanBeDismissedByTappingOutsideOfPopup="False"
+               BackgroundColor="Gray">
+
+    <StackLayout Spacing="2" WidthRequest="275">
+
+        <Label Text="Edit Establishment" 
+                   FontSize="18" 
+                   TextColor="Black"
+                   FontAttributes="Bold" 
+                   HorizontalOptions="Center" />
+        <Label Text="Name" FontAttributes="Bold" TextColor="Black" />
+        <Entry x:Name="NameEntry" Placeholder="Full Name" Text="{Binding FullName}" />
+        <Label Text="Nickname" FontAttributes="Bold" TextColor="Black" />
+        <Entry x:Name="NickEntry" Placeholder="Nick Name" Text="{Binding NickName}" />
+        <Label Text="Type" FontAttributes="Bold" TextColor="Black" />
+        <Entry x:Name="TypeEntry" Placeholder="Type" Text="{Binding Type}" />
+        <Label Text="# of Lanes" FontAttributes="Bold" TextColor="Black" />
+        <Entry x:Name="LanesEntry" Placeholder="Lanes" Text="{Binding Lanes}" />
+        <Label Text="Address" FontAttributes="Bold" TextColor="Black" />
+        <Entry x:Name="AddressEntry" Placeholder="Address" Text="{Binding Address}" />
+        <Label Text="Phone Number" FontAttributes="Bold" TextColor="Black" />
+        <Entry x:Name="PhoneEntry" Placeholder="Phone Number" Text="{Binding PhoneNumber}" />
+        <Label Text="HomeHouse" FontAttributes="Bold" TextColor="Black" />
+        <CheckBox IsChecked="{Binding HomeHouse}"  HorizontalOptions="Start"/>
+        <Label Text="Enabled" FontAttributes="Bold" TextColor="Black" />
+        <CheckBox IsChecked="{Binding Enabled}"  HorizontalOptions="Start"/>
+
+        <StackLayout Orientation="Horizontal" HorizontalOptions="Center" Spacing="20">
+
+            <Button Text="Cancel" 
+                        WidthRequest="100" 
+                        BackgroundColor="LightGray"
+                        Clicked="OnCancelClicked" />
+
+            <Button Text="Save" 
+                        WidthRequest="100" 
+                        BackgroundColor="DarkSlateGray"
+                        TextColor="White"
+                        Clicked="OnSaveClicked" />
+
+        </StackLayout>
+
+    </StackLayout>
+</toolkit:Popup>

@@ -3,120 +3,173 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="Cellular.MainPage"
              xmlns:local="clr-namespace:Cellular.ViewModel"
-             x:DataType="local:MainViewModel">
+             x:DataType="local:MainViewModel"
+             BackgroundColor="{AppThemeBinding Light={StaticResource Surface}, Dark={StaticResource OffBlack}}">
 
     <ScrollView>
-        <VerticalStackLayout Padding="30,0" Spacing="25">
+        <VerticalStackLayout Padding="24,40,24,32" Spacing="0">
+
+            <!-- Header -->
             <Image Source="logo.png"
-                   HeightRequest="185"
+                   HeightRequest="110"
                    Aspect="AspectFit"
-                   SemanticProperties.Description="RevMetrix Bowling Ball Logo" />
+                   HorizontalOptions="Center"
+                   Margin="0,0,0,12"
+                   SemanticProperties.Description="RevMetrix Logo" />
 
             <Label Text="RevMetrix"
-                   Style="{StaticResource Headline}"
-                   SemanticProperties.HeadingLevel="Level1" />
+                   FontSize="30"
+                   FontAttributes="Bold"
+                   HorizontalOptions="Center"
+                   TextColor="{AppThemeBinding Light={StaticResource Primary}, Dark={StaticResource White}}"
+                   Margin="0,0,0,4" />
 
-            <!-- Displays a welcome message when logged in-->
-            <HorizontalStackLayout HorizontalOptions="Center" Spacing="5">
-                <Label Text="Welcome," FontSize="18" 
-                       x:Name="welcome"/>
-
-                <Label Text="{Binding FirstName}" FontSize="18" FontAttributes="Bold"
-                    x:Name="user"/>
+            <!-- Welcome row — shown when logged in -->
+            <HorizontalStackLayout x:Name="welcomeRow"
+                                   HorizontalOptions="Center"
+                                   Spacing="4"
+                                   IsVisible="False"
+                                   Margin="0,4,0,28">
+                <Label x:Name="welcome"
+                       Text="Welcome back,"
+                       FontSize="15"
+                       TextColor="{StaticResource Gray400}"
+                       VerticalOptions="Center" />
+                <Label x:Name="user"
+                       Text="{Binding FirstName}"
+                       FontSize="15"
+                       FontAttributes="Bold"
+                       TextColor="{StaticResource Secondary}"
+                       VerticalOptions="Center" />
             </HorizontalStackLayout>
 
-            <!-- Show only when logged out -->
-            <Button x:Name="login"
-                    Text="Login"
-                    SemanticProperties.Hint="Takes you to the login page"
-                    Clicked="OnLoginClicked"
-                    HorizontalOptions="Fill"
-                    IsVisible="False" />
+            <!-- Logged-out panel -->
+            <Border x:Name="loggedOutPanel"
+                    IsVisible="True"
+                    Stroke="{AppThemeBinding Light={StaticResource Gray200}, Dark={StaticResource Gray600}}"
+                    StrokeThickness="1"
+                    StrokeShape="RoundRectangle 16"
+                    BackgroundColor="{AppThemeBinding Light={StaticResource CardBackground}, Dark={StaticResource CardBackgroundDark}}"
+                    Padding="24"
+                    Margin="0,8,0,0">
+                <VerticalStackLayout Spacing="12">
 
-            <Button x:Name="register"
-                    Text="Register" 
-                    SemanticProperties.Hint="Takes you to the register page"
-                    Clicked="OnRegisterClicked"
-                    HorizontalOptions="Fill"
-                    IsVisible="False" />
+                    <Label Text="Get Started"
+                           FontSize="18"
+                           FontAttributes="Bold"
+                           HorizontalOptions="Center"
+                           TextColor="{AppThemeBinding Light={StaticResource Primary}, Dark={StaticResource White}}"
+                           Margin="0,0,0,4" />
 
-            <Button x:Name="guest"
-                    Text="Guest" 
-                    SemanticProperties.Hint="Logs user in as guest"
-                    Clicked="OnGuestClicked"
-                    HorizontalOptions="Fill"
-                    IsVisible="False" />
+                    <Button x:Name="login"
+                            Text="Sign In"
+                            Clicked="OnLoginClicked"
+                            HorizontalOptions="Fill" />
 
-            <!-- Show only when logged in -->
-            <Button x:Name="arsenal"
-                    Text="Ball Arsenal" 
-                    SemanticProperties.Hint="Go to your ball arsenal"
-                    Clicked="OnArsenalClicked"
-                    HorizontalOptions="Fill"
-                    IsVisible="True" />
+                    <Button x:Name="register"
+                            Text="Register"
+                            Clicked="OnRegisterClicked"
+                            HorizontalOptions="Fill"
+                            Style="{StaticResource AccentButton}" />
 
-            <Button x:Name="EventList"
-                    Text="Event List" 
-                    SemanticProperties.Hint="Goes to the event list page"
-                    Clicked="OnEventListClicked"
-                    HorizontalOptions="Fill"
-                    IsVisible="True" />
+                    <Button x:Name="guest"
+                            Text="Continue as Guest"
+                            Clicked="OnGuestClicked"
+                            HorizontalOptions="Fill"
+                            Style="{StaticResource AccentButton}"
+                            Opacity="0.6" />
 
-            <Button x:Name="bluetooth"
-                    Text="SmartDot"
-                    SemanticProperties.Hint="Access SmartDot device"
-                    Clicked="OnBluetoothClicked"
-                    HorizontalOptions="Fill"
-                    IsVisible="True" />
+           
+                </VerticalStackLayout>
+            </Border>
 
-            <Button x:Name="video"
-                    Text="Video" 
-                    SemanticProperties.Hint="Access video for Ciclopes"
-                    Clicked="OnVideoClicked"
-                    HorizontalOptions="Fill"
-                    IsVisible="True" />
+            <!-- Logged-in nav grid -->
+            <Grid x:Name="loggedInPanel"
+                  IsVisible="False"
+                  ColumnDefinitions="*,*"
+                  RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto"
+                  ColumnSpacing="12"
+                  RowSpacing="12"
+                  Margin="0,0,0,0">
 
-            <Button x:Name="video2"
-                    Text="Video2" 
-                    SemanticProperties.Hint="Access video for Ciclopes"
-                    Clicked="OnVideo2Clicked"
-                    HorizontalOptions="Fill"
-                    IsVisible="True" />
+                <Button x:Name="arsenal"
+                        Grid.Row="0" Grid.Column="0"
+                        Text="Ball Arsenal"
+                        Clicked="OnArsenalClicked"
+                        HeightRequest="72"
+                        Style="{StaticResource AccentButton}" />
 
-            <Button x:Name="establishment"
-                    Text="Establishments" 
-                    SemanticProperties.Hint="takes you to the establishment page"
-                    Clicked="OnEstablishmentClicked"
-                    HorizontalOptions="Fill"
-                    IsVisible="True" />
+                <Button x:Name="EventList"
+                        Grid.Row="0" Grid.Column="1"
+                        Text="Event List"
+                        Clicked="OnEventListClicked"
+                        HeightRequest="72"
+                        Style="{StaticResource AccentButton}" />
 
-            <Button x:Name="databaseVisualizer"
-                    Text="SQL Database" 
-                    SemanticProperties.Hint="View local SQL database"
-                    Clicked="OnDatabaseVisualizerClicked"
-                    HorizontalOptions="Fill"
-                    IsVisible="True" />
+                <Button x:Name="bluetooth"
+                        Grid.Row="2" Grid.Column="0"
+                        Text="SmartDot"
+                        Clicked="Access SmartDot device"
+                        HeightRequest="72"
+                        Style="{StaticResource AccentButton}" />
 
-            <Button x:Name="API"
-                    Text="API Test Page" 
-                    SemanticProperties.Hint="takes you to the API page"
-                    Clicked="OnAPIClicked"
-                    HorizontalOptions="Fill"
-                    IsVisible="True" /> 
+                <Button x:Name="video"
+                        Grid.Row="1" Grid.Column="1"
+                        Text="Ciclopes"
+                        Clicked="OnVideoClicked"
+                        HeightRequest="72"
+                        Style="{StaticResource AccentButton}" />
 
-            <Button x:Name="account"
-                    Text="Account" 
-                    SemanticProperties.Hint="takes you to the account page"
-                    Clicked="OnAccountClicked"
-                    HorizontalOptions="Fill"
-                    IsVisible="True" />
+                <Button x:Name="establishment"
+                        Grid.Row="1" Grid.Column="0"
+                        Text="Establishments"
+                        Clicked="OnEstablishmentClicked"
+                        HeightRequest="72"
+                        Style="{StaticResource AccentButton}" />
 
-            <Button x:Name="BlankPage"
-                Text="Smart Watch" 
-                SemanticProperties.Hint="takes you to the blank page"
-                Clicked="OnBlankPageClicked"
-                HorizontalOptions="Fill"
-                IsVisible="True" />
+                <Button x:Name="databaseVisualizer"
+                        Grid.Row="5" Grid.Column="0"
+                        Text="SQL Database"
+                        Clicked="OnDatabaseVisualizerClicked"
+                        HeightRequest="72"
+                        Style="{StaticResource AccentButton}" />
+
+                <Button x:Name="API"
+                        Grid.Row="4" Grid.Column="0"
+                        Text="API Test"
+                        Clicked="OnAPIClicked"
+                        HeightRequest="72"
+                        Style="{StaticResource AccentButton}" />
+
+                <Button x:Name="account"
+                        Grid.Row="3" Grid.Column="1"
+                        Text="Account"
+                        Clicked="OnAccountClicked"
+                        HeightRequest="72"
+                        Style="{StaticResource AccentButton}" />
+
+                <Button x:Name="stats"
+                        Grid.Row="2" Grid.Column="1"
+                        Text="Stats"
+                        Clicked="OnStatsClicked"
+                        HeightRequest="72"
+                        Style="{StaticResource AccentButton}" />
+
+                <Button x:Name="BlankPage"
+                        Grid.Row="3" Grid.Column="0"
+                        Text="Smart Watch"
+                        Clicked="OnBlankPageClicked"
+                        HeightRequest="72"
+                        Style="{StaticResource AccentButton}" />
+
+                <Button x:Name="ciclopesTest"
+                        Grid.Row="4" Grid.Column="1" Grid.ColumnSpan="2"
+                        Text="Ciclopes Test"
+                        Clicked="OnCiclopesTestClicked"
+                        HeightRequest="72"
+                        Style="{StaticResource AccentButton}" />
+
+            </Grid>
 
         </VerticalStackLayout>
     </ScrollView>

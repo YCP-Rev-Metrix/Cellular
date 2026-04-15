@@ -154,16 +154,21 @@ namespace Cellular.Services
                 return;
             }
 
+            // Stop any in-progress continuous save timer before resetting state
+            _continuousSaveTimer?.Dispose();
+            _continuousSaveTimer = null;
+
             lock (_bufferLock)
             {
                 _sensorBuffer.Clear();
                 _allSavedPoints.Clear();
-                _isBuffering = true;
+                _isBuffering = false; // Temporarily false while we restart sensors
                 _hasTriggeredSave = false;
                 _isContinuousSaving = false;
+                _continuousSaveStartTime = null;
                 _continuousSaveEndTime = null;
                 _baseFileName = baseFileName;
-                
+
                 // Reset accelerometer derivative tracking
                 _prevAccelX = null;
                 _prevAccelY = null;
@@ -177,15 +182,30 @@ namespace Cellular.Services
 
             try
             {
+                
+                // Always stop all sensors first to ensure a clean state between recordings
+                await _metaWearService.StopAccelerometerAsync();
+                await _metaWearService.StopGyroscopeAsync();
+                await _metaWearService.StopMagnetometerAsync();
+                await _metaWearService.StopLightSensorAsync();
+                await Task.Delay(150); // Brief settle time for BLE stack
+
                 // Start all sensors needed for buffering, using saved configuration
                 await _metaWearService.StartAccelerometerAsync(AccelSampleRate, AccelRange);
                 await _metaWearService.StartGyroscopeAsync(GyroSampleRate, GyroRange);
                 await _metaWearService.StartMagnetometerAsync(MagSampleRate);
                 await _metaWearService.StartLightSensorAsync(LightSampleRate, (byte)LightGain, (byte)LightIntegrationTime, (byte)LightMeasurementRate);
+
+                lock (_bufferLock)
+                {
+                    _isBuffering = true;
+                }
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Error starting sensors for buffering: {ex.Message}");
+                // Ensure buffering is off if sensors failed to start
+                lock (_bufferLock) { _isBuffering = false; }
             }
         }
 

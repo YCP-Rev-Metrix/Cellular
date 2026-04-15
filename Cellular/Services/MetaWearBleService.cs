@@ -72,6 +72,9 @@ namespace Cellular.Services
         private DateTime _lastMagnetometerLogTime = DateTime.MinValue; // Track last log time for magnetometer
         private bool _isDebugLogging = false; // Guard to prevent re-entrancy in DebugLog
         private const int GattWriteTimeoutMs = 3000;
+        private Guid _savedDeviceId = Guid.Empty;      // Saved before clearing on disconnect, used for reconnect
+        private bool _intentionalDisconnect = false;    // Set true in DisconnectAsync to suppress auto-reconnect
+        private CancellationTokenSource? _reconnectCts; // Cancels in-progress reconnect on intentional disconnect
         // Current accelerometer LSB/g (set from range in Start; auto-corrected for MMS 2g in parser)
         private float _accelLsbPerG = ACC_SCALE_16G;
 
@@ -115,7 +118,8 @@ namespace Cellular.Services
             }
         }
 
-        public event EventHandler<string> DeviceDisconnected;
+        public event EventHandler<string>? DeviceDisconnected;
+        public event EventHandler<string>? DeviceReconnected;
         public event EventHandler<MetaWearAccelerometerData> AccelerometerDataReceived;
         public event EventHandler<MetaWearGyroscopeData> GyroscopeDataReceived;
         public event EventHandler<MetaWearMagnetometerData> MagnetometerDataReceived;
@@ -138,6 +142,7 @@ namespace Cellular.Services
         {
             if (e.Device.Id == _device?.Id)
             {
+                var disconnectedId = _device.Id; // Save before clearing
                 _isDeviceConnected = false;
                 _device = null;
                 _metaWearService = null;
@@ -146,10 +151,92 @@ namespace Cellular.Services
                 _cachedDeviceInfo = null;
                 _accelerometerActive = false;
                 _gyroscopeActive = false;
+                _magnetometerActive = false;
+                _lightSensorActive = false;
                 _notificationHandlerAttached = false;
-                
-                DeviceDisconnected?.Invoke(this, MacAddress);
+
+                if (!_intentionalDisconnect)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[MetaWear] Unexpected disconnect — starting auto-reconnect for {disconnectedId}");
+                    _reconnectCts?.Cancel();
+                    _reconnectCts = new CancellationTokenSource();
+                    _ = AutoReconnectAsync(disconnectedId, _reconnectCts.Token);
+                }
+                else
+                {
+                    DeviceDisconnected?.Invoke(this, disconnectedId.ToString());
+                }
             }
+        }
+
+        /// <summary>
+        /// Scans for and reconnects to the device after an unexpected disconnect.
+        /// Fires DeviceReconnected on success or DeviceDisconnected after all attempts fail.
+        /// Pattern from MetaWear Android SDK: call connectAsync() in onUnexpectedDisconnect handler.
+        /// </summary>
+        private async Task AutoReconnectAsync(Guid deviceId, CancellationToken ct)
+        {
+            int[] delaysMs = { 1500, 3000, 6000 };
+
+            for (int attempt = 0; attempt < delaysMs.Length; attempt++)
+            {
+                if (ct.IsCancellationRequested) break;
+
+                System.Diagnostics.Debug.WriteLine($"[MetaWear] Reconnect attempt {attempt + 1}/{delaysMs.Length} — waiting {delaysMs[attempt]}ms");
+
+                try { await Task.Delay(delaysMs[attempt], ct); }
+                catch (OperationCanceledException) { break; }
+
+                if (ct.IsCancellationRequested) break;
+
+                try
+                {
+                    System.Diagnostics.Debug.WriteLine($"[MetaWear] Scanning for {deviceId}...");
+
+                    IDevice? found = null;
+                    using var scanCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+                    scanCts.CancelAfter(5000);
+
+                    void OnFound(object? s, Plugin.BLE.Abstractions.EventArgs.DeviceEventArgs de)
+                    {
+                        if (de.Device.Id == deviceId)
+                        {
+                            found = de.Device;
+                            try { scanCts.Cancel(); } catch { }
+                        }
+                    }
+
+                    _adapter.DeviceDiscovered += OnFound;
+                    try { await _adapter.StartScanningForDevicesAsync(cancellationToken: scanCts.Token); }
+                    catch (OperationCanceledException) { }
+                    finally
+                    {
+                        _adapter.DeviceDiscovered -= OnFound;
+                        try { await _adapter.StopScanningForDevicesAsync(); } catch { }
+                    }
+
+                    if (found == null || ct.IsCancellationRequested) continue;
+
+                    _device = found;
+                    System.Diagnostics.Debug.WriteLine($"[MetaWear] Device found — running GATT setup...");
+
+                    bool success = await SetupGattAsync();
+                    if (success)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[MetaWear] Auto-reconnect succeeded on attempt {attempt + 1}");
+                        DeviceReconnected?.Invoke(this, deviceId.ToString());
+                        return;
+                    }
+                }
+                catch (OperationCanceledException) { break; }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[MetaWear] Reconnect attempt {attempt + 1} failed: {ex.Message}");
+                }
+            }
+
+            System.Diagnostics.Debug.WriteLine("[MetaWear] Auto-reconnect failed after all attempts — firing DeviceDisconnected");
+            DeviceDisconnected?.Invoke(this, deviceId.ToString());
         }
 
 
@@ -181,16 +268,31 @@ namespace Cellular.Services
             try
             {
                 DebugLog($"Connecting to device: {_device.Name} ({_device.Id})");
-                
-                // Connect to device 
-                // Plugin.BLE handles platform differences automatically
-                // Don't rely on DeviceState enum - just connect and verify by accessing services
                 await _adapter.ConnectToDeviceAsync(_device);
-                
+                return await SetupGattAsync();
+            }
+            catch (Exception ex)
+            {
+                DebugLog($"Error in ConnectToDeviceAsync: {ex.Message}");
+                DebugLog($"Stack trace: {ex.StackTrace}");
+                _isDeviceConnected = false;
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Runs GATT service/characteristic discovery, enables notifications, and stops any
+        /// stale sensors. Called after BLE connection is established (initial connect or auto-reconnect).
+        /// </summary>
+        private async Task<bool> SetupGattAsync()
+        {
+            if (_device == null)
+                return false;
+
+            try
+            {
                 DebugLog("Device connected, waiting for services to stabilize...");
-                
-                // Wait a bit for connection to stabilize 
-                await Task.Delay(1000); // Increased delay for service discovery
+                await Task.Delay(1000);
 
                 // Discover services - this will fail if not connected
                 DebugLog("Discovering services...");
@@ -446,7 +548,7 @@ namespace Cellular.Services
             }
             catch (Exception ex)
             {
-                DebugLog($"Error in ConnectToDeviceAsync: {ex.Message}");
+                DebugLog($"Error in SetupGattAsync: {ex.Message}");
                 DebugLog($"Stack trace: {ex.StackTrace}");
                 _isDeviceConnected = false;
                 return false;
@@ -455,9 +557,15 @@ namespace Cellular.Services
 
         public async Task DisconnectAsync()
         {
+            // Cancel any pending auto-reconnect and mark this as intentional so
+            // OnDeviceDisconnected does not try to reconnect again.
+            _intentionalDisconnect = true;
+            _reconnectCts?.Cancel();
+            _reconnectCts = null;
+
             try
             {
-                // Stop notifications first 
+                // Stop notifications first
                 if (_notificationCharacteristic != null)
                 {
                     if (_notificationHandlerAttached)
@@ -506,6 +614,10 @@ namespace Cellular.Services
             catch (Exception ex)
             {
                 DebugLog($"Error in DisconnectAsync: {ex.Message}");
+            }
+            finally
+            {
+                _intentionalDisconnect = false;
             }
         }
 

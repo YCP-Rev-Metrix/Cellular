@@ -20,7 +20,12 @@ public enum EntityType
     Frame,
     Game,
     Session,
-    Shot
+    Shot,
+    CiclopesAggRun,
+    CiclopesLaneBallsRun,
+    CiclopesFourDBodyRun,
+    CiclopesLaneBallsQuery,
+    CiclopesFourDBodyQuery
 }
 
 public enum OperationType
@@ -80,6 +85,11 @@ internal static class RevMetrixTokenCache
 
 public class ApiController
 {
+    private static readonly JsonSerializerOptions JsonOptions = new()
+    {
+        PropertyNameCaseInsensitive = true
+    };
+
     /// <summary>Orphan cleanup; uses the same phone login as <see cref="ExecuteRequest"/>.</summary>
     public async Task<string?> DeleteOrphanedAppDataAsync(string username, string password)
     {
@@ -134,6 +144,37 @@ public class ApiController
         }
     }
 
+    public async Task<CiclopesRunResponse?> ExecuteCiclopesRunRequest(CiclopesRunRequest requestData)
+    {
+        using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(120) };
+        ApiExecutor executor = new ApiExecutor(EntityType.CiclopesAggRun, OperationType.Post);
+        string requestUrl = executor.GetUrl();
+
+        var requestBody = JsonSerializer.Serialize(requestData);
+        var content = new StringContent(requestBody, Encoding.UTF8, "application/json");
+
+        HttpResponseMessage response = await client.PostAsync(requestUrl, content).ConfigureAwait(false);
+
+        try
+        {
+            response.EnsureSuccessStatusCode();
+            var responseBody = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+
+            Debug.WriteLine(responseBody);
+
+            return JsonSerializer.Deserialize<CiclopesRunResponse>(responseBody, JsonOptions);
+        }
+        catch (HttpRequestException httpEx)
+        {
+            Debug.WriteLine("HTTP Request failed: " + httpEx);
+            throw;
+        }
+        catch (JsonException jsonEx)
+        {
+            Debug.WriteLine("JSON parse failed: " + jsonEx);
+            throw;
+        }
+    }
     /// <summary>
     /// Executes the API request and returns the response body as a string.
     /// Optionally invokes onAuthResponse when the authorization response is received.
@@ -344,6 +385,102 @@ public class ApiController
             Debug.WriteLine("Request failed: " + ex);
             throw;
         }
+    }
+
+    public async Task<LaneBallsRunResponse?> ExecuteLaneBallsRunRequest(CiclopesRunRequest requestData)
+    {
+        using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(120) };
+        ApiExecutor executor = new ApiExecutor(EntityType.CiclopesLaneBallsRun, OperationType.Post);
+        string requestUrl = executor.GetUrl();
+
+        var requestBody = JsonSerializer.Serialize(requestData);
+        var content = new StringContent(requestBody, Encoding.UTF8, "application/json");
+
+        HttpResponseMessage response = await client.PostAsync(requestUrl, content).ConfigureAwait(false);
+
+        try
+        {
+            response.EnsureSuccessStatusCode();
+            var responseBody = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+
+            Debug.WriteLine(responseBody);
+
+            return JsonSerializer.Deserialize<LaneBallsRunResponse>(responseBody, JsonOptions);
+        }
+        catch (HttpRequestException httpEx)
+        {
+            Debug.WriteLine("HTTP Request failed: " + httpEx);
+            throw;
+        }
+        catch (JsonException jsonEx)
+        {
+            Debug.WriteLine("JSON parse failed: " + jsonEx);
+            throw;
+        }
+    }
+
+    public async Task<FourDBodyRunResponse?> ExecuteFourDBodyRunRequest(CiclopesRunRequest requestData)
+    {
+        using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(120) };
+        ApiExecutor executor = new ApiExecutor(EntityType.CiclopesFourDBodyRun, OperationType.Post);
+        string requestUrl = executor.GetUrl();
+
+        var requestBody = JsonSerializer.Serialize(requestData);
+        var content = new StringContent(requestBody, Encoding.UTF8, "application/json");
+
+        HttpResponseMessage response = await client.PostAsync(requestUrl, content).ConfigureAwait(false);
+
+        try
+        {
+            response.EnsureSuccessStatusCode();
+            var responseBody = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+
+            Debug.WriteLine(responseBody);
+
+            return JsonSerializer.Deserialize<FourDBodyRunResponse>(responseBody, JsonOptions);
+        }
+        catch (HttpRequestException httpEx)
+        {
+            Debug.WriteLine("HTTP Request failed: " + httpEx);
+            throw;
+        }
+        catch (JsonException jsonEx)
+        {
+            Debug.WriteLine("JSON parse failed: " + jsonEx);
+            throw;
+        }
+    }
+
+    public async Task<LaneBallsQueryResponse?> ExecuteLaneBallsQueryRequest(CiclopesQueryRequest requestData)
+    {
+        using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(120) };
+        var executor = new ApiExecutor(EntityType.CiclopesLaneBallsQuery, OperationType.Post);
+        var requestUrl = executor.GetUrl();
+
+        var requestBody = JsonSerializer.Serialize(requestData);
+        var content = new StringContent(requestBody, Encoding.UTF8, "application/json");
+
+        var response = await client.PostAsync(requestUrl, content).ConfigureAwait(false);
+        response.EnsureSuccessStatusCode();
+        var responseBody = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+        Debug.WriteLine(responseBody);
+        return JsonSerializer.Deserialize<LaneBallsQueryResponse>(responseBody, JsonOptions);
+    }
+
+    public async Task<FourDBodyQueryResponse?> ExecuteFourDBodyQueryRequest(CiclopesQueryRequest requestData)
+    {
+        using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(120) };
+        var executor = new ApiExecutor(EntityType.CiclopesFourDBodyQuery, OperationType.Post);
+        var requestUrl = executor.GetUrl();
+
+        var requestBody = JsonSerializer.Serialize(requestData);
+        var content = new StringContent(requestBody, Encoding.UTF8, "application/json");
+
+        var response = await client.PostAsync(requestUrl, content).ConfigureAwait(false);
+        response.EnsureSuccessStatusCode();
+        var responseBody = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+        Debug.WriteLine(responseBody);
+        return JsonSerializer.Deserialize<FourDBodyQueryResponse>(responseBody, JsonOptions);
     }
 
     private static bool TryExtractTokenFromAuthBody(string authResponseBody, out string? tokenValue)

@@ -69,6 +69,8 @@ namespace Cellular.ViewModel
                 {
                     _selectedEvent = value;
                     OnPropertyChanged();
+                    // Automatically resolve the establishment from the event's location
+                    _ = ResolveEstablishmentForEventAsync(value);
                 }
             }
         }
@@ -104,6 +106,7 @@ namespace Cellular.ViewModel
             Sessions.Clear();
             foreach (var session in sessionsFromDb)
             {
+                session.BuildDisplayName(SelectedEventName);
                 Sessions.Add(session);
                 Debug.WriteLine("This is the session ID " + session.SessionId + " For " + session.SessionNumber + " and EventId: " + session.EventId);
             }
@@ -215,8 +218,58 @@ namespace Cellular.ViewModel
             };
             await _GameRepository.AddAsync(game);
         }
+        /// <summary>
+        /// Looks up the Establishment whose NickName matches the event's Location field
+        /// (Event.Location is set to SelectedEstablishment.NickName when the event is created)
+        /// and assigns it to SelectedEstablishment.
+        /// </summary>
+        private async Task ResolveEstablishmentForEventAsync(Event ev)
+        {
+            if (ev == null || string.IsNullOrWhiteSpace(ev.Location)) return;
+
+            try
+            {
+                var all = await _EstablishmentRepository.GetEstablishmentsByUserIdAsync(Preferences.Get("UserId", 0));
+
+                // Try NickName first (set by EventPopupViewModel), then FullName (may be used in CSV imports)
+                var match = all.FirstOrDefault(e =>
+                                string.Equals(e.NickName, ev.Location, StringComparison.OrdinalIgnoreCase))
+                         ?? all.FirstOrDefault(e =>
+                                string.Equals(e.FullName, ev.Location, StringComparison.OrdinalIgnoreCase));
+
+                if (match != null)
+                {
+                    SelectedEstablishment = match;
+                    Debug.WriteLine($"ResolveEstablishment: matched '{ev.Location}' → EstaID {match.EstaID} ('{match.NickName}')");
+                }
+                else
+                {
+                    Debug.WriteLine($"ResolveEstablishment: no match for '{ev.Location}'. Available: {string.Join(", ", all.Select(e => e.NickName))}");
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"ResolveEstablishment error: {ex.Message}");
+            }
+        }
+
         public async Task AddSession()
         {
+            // Resolve establishment from the current event when it hasn't been set via the picker.
+            // SessionPopup creates its own fresh ViewModel instance so SelectedEvent is never set;
+            // we always fall back to loading the event directly from the EventId preference.
+            if (SelectedEstablishment == null)
+            {
+                int eventId = Preferences.Get("EventId", 0);
+                if (eventId > 0)
+                {
+                    var db = new CellularDatabase().GetConnection();
+                    var ev = await db.Table<Event>().Where(e => e.EventId == eventId).FirstOrDefaultAsync();
+                    if (ev != null)
+                        await ResolveEstablishmentForEventAsync(ev);
+                }
+            }
+
             int sessionNumber = await getSessionNumberMaxAsync();
             SessionDateTime = DateTimeCalculator.CombineDateAndTime(SessionDate, SessionTime);
             Session session = new Session
@@ -224,9 +277,11 @@ namespace Cellular.ViewModel
                 UserId = Preferences.Get("UserId", 0),
                 SessionNumber = sessionNumber,
                 EventId = Preferences.Get("EventId", 0),
+                Establishment = SelectedEstablishment?.EstaID,
                 DateTime = SessionDateTime
             };
             await _SessionRepository.AddAsync(session);
+            Debug.WriteLine($"AddSession: saved with Establishment={session.Establishment}");
         }
 
         // INotifyPropertyChanged implementation and helper

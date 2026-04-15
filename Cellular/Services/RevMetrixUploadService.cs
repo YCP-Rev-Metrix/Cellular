@@ -11,7 +11,8 @@ namespace Cellular.Services;
 /// </summary>
 public class RevMetrixUploadService
 {
-    private readonly HttpClient _client = new HttpClient { Timeout = TimeSpan.FromSeconds(60) };
+    // 5 minutes — large video files on a mobile connection can take longer than 60 s
+    private readonly HttpClient _client = new HttpClient { Timeout = TimeSpan.FromMinutes(5) };
 
     /// <summary>
     /// Get a Bearer token via POST /api/posts/Authorize with username/password.
@@ -54,6 +55,10 @@ public class RevMetrixUploadService
 
     private async Task<string> UploadFileAsync(string bearerToken, Stream fileStream, string fileName, string folder, string contentType, CancellationToken cancellationToken = default)
     {
+        // Validate the stream has content before sending — avoids a confusing server error
+        if (fileStream.CanSeek && fileStream.Length == 0)
+            throw new InvalidOperationException($"EMPTY_FILE:{fileName}");
+
         using var form = new MultipartFormDataContent();
         using var fileContent = new StreamContent(fileStream);
         fileContent.Headers.ContentType = new MediaTypeHeaderValue(contentType);
@@ -64,11 +69,24 @@ public class RevMetrixUploadService
         request.Content = form;
 
         var response = await _client.SendAsync(request, cancellationToken).ConfigureAwait(false);
-        response.EnsureSuccessStatusCode();
-        var json = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
-        using var doc = JsonDocument.Parse(json);
+
+        // Always read the body before throwing so the API's error detail is visible in the alert
+        var responseBody = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            var detail = string.IsNullOrWhiteSpace(responseBody)
+                ? response.ReasonPhrase
+                : responseBody;
+            throw new HttpRequestException(
+                $"{(int)response.StatusCode} {response.ReasonPhrase} — {detail}",
+                inner: null,
+                statusCode: response.StatusCode);
+        }
+
+        using var doc = JsonDocument.Parse(responseBody);
         if (doc.RootElement.TryGetProperty("key", out var keyProp))
             return keyProp.GetString() ?? throw new InvalidOperationException("Upload response missing 'key'");
-        throw new InvalidOperationException("Upload response missing 'key'");
+        throw new InvalidOperationException($"Upload response missing 'key'. Response: {responseBody}");
     }
 }

@@ -34,8 +34,13 @@ namespace Cellular
             await SoftRefreshAsync();
         }
         private void UpdateUI()
-        { 
-            // Set which buttons show up when logged in or out
+        {
+            // Panel-level visibility
+            loggedOutPanel.IsVisible = !isLoggedIn;
+            loggedInPanel.IsVisible = isLoggedIn;
+            welcomeRow.IsVisible = isLoggedIn;
+
+            // Individual control visibility
             login.IsVisible = !isLoggedIn;
             register.IsVisible = !isLoggedIn;
             guest.IsVisible = !isLoggedIn;
@@ -45,12 +50,13 @@ namespace Cellular
             arsenal.IsVisible = isLoggedIn;
             bluetooth.IsVisible = isLoggedIn;
             video.IsVisible = isLoggedIn;
-            video2.IsVisible = isLoggedIn;
+            stats.IsVisible = isLoggedIn;
             account.IsVisible = isLoggedIn;
             databaseVisualizer.IsVisible = isLoggedIn;
             EventList.IsVisible = isLoggedIn;
             establishment.IsVisible = isLoggedIn;
             API.IsVisible = isLoggedIn;
+            ciclopesTest.IsVisible = isLoggedIn;
             BlankPage.IsVisible = isLoggedIn;
         }
 
@@ -106,11 +112,6 @@ namespace Cellular
             await Navigation.PushAsync(new Video());
         }
 
-        private async void OnVideo2Clicked(object sender, EventArgs e)
-        {
-            await Navigation.PushAsync(new Video2());
-        }
-
         private async void OnAccountClicked(object sender, EventArgs e)
         {
             await Navigation.PushAsync(new AccountPage());
@@ -130,6 +131,17 @@ namespace Cellular
         {
             await Navigation.PushAsync(new APItestPage());
         }
+
+        private async void OnStatsClicked(object sender, EventArgs e)
+        {
+            await Navigation.PushAsync(new Stats());
+        }
+
+        private async void OnCiclopesTestClicked(object sender, EventArgs e)
+        {
+            await Navigation.PushAsync(new CiclopesTestPage());
+        }
+
         private async void OnBlankPageClicked(object sender, EventArgs e)
         {
             var svc = IPlatformApplication.Current.Services.GetService<IWatchBleService>();

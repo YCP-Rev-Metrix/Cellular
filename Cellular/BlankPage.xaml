@@ -19,6 +19,28 @@
                 Style="{StaticResource Headline}"
                 SemanticProperties.HeadingLevel="Level1" />
 
+            <!-- Default Watch Section -->
+            <StackLayout x:Name="DefaultWatchStack" IsVisible="False" Spacing="10">
+                <Label
+                    Text="Default Watch"
+                    FontSize="16"
+                    FontAttributes="Bold" />
+
+                <Button
+                    x:Name="DefaultWatchButton"
+                    Text="Connect to Default Watch"
+                    Clicked="OnDefaultWatchConnectClicked"
+                    HorizontalOptions="Fill" />
+
+                <Button
+                    x:Name="RemoveDefaultButton"
+                    Text="Remove Default Watch"
+                    Clicked="OnChangeDefaultWatchClicked"
+                    HorizontalOptions="Fill" />
+
+                <BoxView HeightRequest="1" Color="LightGray" />
+            </StackLayout>
+
             <!-- Scan Button -->
             <Button
                 x:Name="ScanButton"
@@ -59,13 +81,6 @@
                                 Text="{Binding Name}"
                                 FontSize="16"
                                 FontAttributes="Bold" />
-
-                            <Label
-                                Grid.Row="1"
-                                Grid.Column="0"
-                                Text="{Binding Id}"
-                                FontSize="12"
-                                TextColor="Gray" />
 
                             <Label
                                 Grid.Row="0"

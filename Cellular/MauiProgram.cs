@@ -1,10 +1,12 @@
 ﻿using Cellular.Data;
-using Camera.MAUI;
 using Cellular.Services;
 using CommunityToolkit.Maui;
 using CommunityToolkit.Maui.Core;
+using CommunityToolkit.Maui.Media;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using SkiaSharp.Views.Maui.Controls.Hosting;
+using UraniumUI;
 
 namespace Cellular
 {
@@ -14,21 +16,26 @@ namespace Cellular
         {
             var builder = MauiApp.CreateBuilder();
             builder
-                .UseMauiApp<App>().UseMauiCameraView()
+                .UseMauiApp<App>()
                 .UseMauiCommunityToolkitCore()
                 .UseMauiCommunityToolkit()
                 .UseMauiCommunityToolkitCamera()
+                .UseMauiCommunityToolkitMediaElement(isAndroidForegroundServiceEnabled: true)
+                .UseSkiaSharp()
+                .UseUraniumUI()
+                .UseUraniumUIMaterial()
                 .ConfigureFonts(fonts =>
             {
                 fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
                 fonts.AddFont("OpenSans-Semibold.ttf", "OpenSansSemibold");
+                fonts.AddMaterialIconFonts();
             });
             // Register services with dependency injection (DI)
             builder.Services.AddSingleton<CellularDatabase>(); // Register CellularDatabase as a Singleton
             builder.Services.AddSingleton<UserRepository>();
             builder.Services.AddSingleton<IMetaWearService, MetaWearBleService>();
             builder.Services.AddSingleton<IWatchBleService, WatchBleService>();
-            
+
 #if DEBUG
             builder.Logging.AddDebug();
 #endif

@@ -69,12 +69,15 @@ namespace Cellular
                 {
                     // Hide blocking overlay so the system action sheet is usable on all platforms.
                     _viewModel.IsSyncBusy = false;
+                    const string overwriteLocalWithCloud = "Overwrite Local with Cloud Data";
+                    const string overwriteCloudWithLocal = "Overwrite Cloud with Local Data";
+
                     string action = await DisplayActionSheet(
-                        "Cloud data differs from your local data. Use cloud data or keep local data?",
+                        "The Cloud User and the Local User Differ",
                         "Cancel",
                         null,
-                        "Use cloud",
-                        "Keep local");
+                        overwriteLocalWithCloud,
+                        overwriteCloudWithLocal);
 
                     if (action == "Cancel")
                     {
@@ -84,7 +87,7 @@ namespace Cellular
 
                     _viewModel.IsSyncBusy = true;
 
-                    if (action == "Use cloud")
+                    if (action == overwriteLocalWithCloud)
                     {
                         var cloud = await syncService.FetchCloudDataAsync(syncUserId: userId);
                         if (cloud.Error != null)
@@ -114,7 +117,7 @@ namespace Cellular
                             return;
                         }
                     }
-                    else if (action == "Keep local")
+                    else if (action == overwriteCloudWithLocal)
                     {
                         // Make cloud match local: delete cloud data, then push local.
                         var replaceErr = await syncService.ReplaceCloudWithLocalAsync(userId);
@@ -169,11 +172,6 @@ namespace Cellular
         private async void OnEditAccountClicked(object sender, EventArgs e)
         {
             await Navigation.PushAsync(new EditAccountPage(_userRepository));
-        }
-
-        private async void OnStatsClicked(object sender, EventArgs e)
-        {
-            await Navigation.PushAsync(new Stats());
         }
     }
 }
