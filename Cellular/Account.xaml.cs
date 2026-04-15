@@ -173,10 +173,5 @@ namespace Cellular
         {
             await Navigation.PushAsync(new EditAccountPage(_userRepository));
         }
-
-        private async void OnStatsClicked(object sender, EventArgs e)
-        {
-            await Navigation.PushAsync(new Stats());
-        }
     }
 }

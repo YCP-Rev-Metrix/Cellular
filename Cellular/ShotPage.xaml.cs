@@ -154,6 +154,7 @@ namespace Cellular
                 viewModel.pinStates = ShotCalculator.CalculateShotType(viewModel.pinStates, 1);
                 //Save shot to DB
                 viewModel.firstShotId = await SaveShotAsync(1);
+                viewModel.SelectedPosition = null;
 
                 ApplyFirstShotColors(currentFrame);
 
@@ -215,6 +216,7 @@ namespace Cellular
                 viewModel.pinStates = ShotCalculator.CalculateShotType(viewModel.pinStates, 2);
                 //Save shot to DB
                 viewModel.secondShotId = await SaveShotAsync(2);
+                viewModel.SelectedPosition = null;
 
                 ApplySecondShotColors(currentFrame);
                 if (string.IsNullOrEmpty(currentFrame.ShotTwoBox))
@@ -624,6 +626,20 @@ namespace Cellular
             var frameRepository = new FrameRepository(conn);
             await shotRepository.InitAsync();
             await frameRepository.InitAsync();
+
+            string dbPosition = viewModel.SelectedPosition switch
+            {
+                "Left" => "left",
+                "Brooklyn" => "brooklyn",
+                "Nose" => "nose",
+                "High" => "high",
+                "High Pocket" => "h-pocket",
+                "Pocket" => "pocket",
+                "Light Pocket" => "l-pocket",
+                "Light" => "light",
+                "Right" => "right",
+                    _ => viewModel.SelectedPosition?.ToLower() ?? "none"
+            };
 
             // Use same canonical lookup as DoesShotExistAsync (GameId + FrameNumber)
             var reloadFrame = await conn.Table<BowlingFrame>()
@@ -1116,12 +1132,9 @@ namespace Cellular
             }
 
             // Add UI frames so there is one UI frame per saved frame.
-            // Use '<' (not '<=') to avoid creating an extra frame (off-by-one).
+            // Do NOT add the "next" frame here — GameCompleted isn't known yet.
+            // The next bowlable frame is added after the loop once GameCompleted is accurate.
             while (viewModel.Frames.Count < frameIds.Count)
-            {
-                viewModel.Frames.Add(new ShotPageFrame(viewModel.Frames.Count + 1));
-            }
-            if (!viewModel.GameCompleted)
             {
                 viewModel.Frames.Add(new ShotPageFrame(viewModel.Frames.Count + 1));
             }
@@ -1253,6 +1266,25 @@ namespace Cellular
                         viewModel.CurrentFrame = nextFrameNumber;
                         viewModel.CurrentShot = 1;
                     }
+                }
+            }
+
+            // Now that GameCompleted is accurate, add the next bowlable frame for in-progress games.
+            // Frames 10-12 are fully handled by the shouldAddNext block above.
+            if (!viewModel.GameCompleted && viewModel.CurrentFrame < 10)
+            {
+                // For frames 1-9 strikes: ProcessLoadedShotOne doesn't advance CurrentFrame,
+                // so advance it manually here before adding the next frame.
+                var activeFrame = viewModel.Frames.FirstOrDefault(f => f.FrameNumber == viewModel.CurrentFrame);
+                if (activeFrame?.ShotOneBox == "X")
+                {
+                    viewModel.CurrentFrame++;
+                    viewModel.CurrentShot = 1;
+                }
+
+                if (!viewModel.Frames.Any(f => f.FrameNumber == viewModel.CurrentFrame))
+                {
+                    viewModel.Frames.Add(new ShotPageFrame(viewModel.CurrentFrame));
                 }
             }
 
