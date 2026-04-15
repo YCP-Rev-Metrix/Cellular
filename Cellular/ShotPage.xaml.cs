@@ -323,6 +323,18 @@ namespace Cellular
             try
             {
                 await viewModel.LoadLanes();
+
+                // Auto-select the current logged-in user
+                if (viewModel.PlayerUsers != null && viewModel.PlayerUsers.Count > 0)
+                {
+                    var currentUser = viewModel.PlayerUsers.FirstOrDefault(u => u.UserId == viewModel.UserId);
+                    if (currentUser != null)
+                    {
+                        viewModel.SelectedPlayerUser = currentUser;
+                        Debug.WriteLine($"OnShotPopupClicked: Auto-selected current user {currentUser.FirstName} (ID: {currentUser.UserId})");
+                    }
+                }
+
                 var popup = new Views.ShotPopup(viewModel);
                 await this.ShowPopupAsync(popup);
             }
@@ -1218,8 +1230,13 @@ namespace Cellular
 
                     bool shouldAddNext = false;
 
+                    // For frames 1-9: If it was a strike, advance to next frame
+                    if (lastFrameNumber >= 1 && lastFrameNumber <= 9 && lastWasStrike)
+                    {
+                        shouldAddNext = true;
+                    }
                     // If the last saved frame is frame 10 and it was a strike or spare, add frame 11
-                    if (lastFrameNumber == 10 && (lastWasStrike || lastWasSpare10))
+                    else if (lastFrameNumber == 10 && (lastWasStrike || lastWasSpare10))
                     {
                         shouldAddNext = true;
                     }
@@ -1383,18 +1400,19 @@ namespace Cellular
 
         /// <summary>
         /// Handler for when a shot is received from the smartwatch via BLE.
-        /// Updates the UI to display the new shot in the current frame.
+        /// Updates the UI to display the new shot in the current frame and advances the game state.
+        /// The shot has already been saved to the database by WatchBleService.
         /// </summary>
-        private void OnWatchShotReceived(object? sender, ViewModel.Shot shot)
+        private async void OnWatchShotReceived(object? sender, ViewModel.Shot shot)
         {
             // Ensure we're on the main thread for UI updates
-            MainThread.BeginInvokeOnMainThread(() =>
+            MainThread.BeginInvokeOnMainThread(async () =>
             {
                 try
                 {
                     Debug.WriteLine($"OnWatchShotReceived: Shot received from watch - Frame {shot.Frame}, Shot {shot.ShotNumber}, Pins Down {shot.Count}");
 
-                    // Find the frame in the UI by frame ID
+                    // Find the frame in the UI by frame number (not frame ID)
                     var currentFrame = viewModel.Frames.FirstOrDefault(f => f.FrameNumber == viewModel.CurrentFrame);
                     if (currentFrame == null)
                     {
@@ -1405,14 +1423,7 @@ namespace Cellular
                     // Only process if shot is actually linked to a frame
                     if (shot.Frame == null || shot.Frame <= 0)
                     {
-                        Debug.WriteLine($"OnWatchShotReceived: ERROR - Shot has no valid frame ID! This should never happen.");
-                        return;
-                    }
-
-                    // Only process if the shot belongs to the currently displayed frame
-                    if (shot.Frame != viewModel.currentFrameId)
-                    {
-                        Debug.WriteLine($"OnWatchShotReceived: Shot is for frame {shot.Frame}, but currently viewing frame {viewModel.currentFrameId}. Skipping UI update.");
+                        Debug.WriteLine($"OnWatchShotReceived: ERROR - Shot has no valid frame ID!");
                         return;
                     }
 
@@ -1420,13 +1431,14 @@ namespace Cellular
                     bool isFoul = ((shot.LeaveType ?? 0) & (1 << 10)) != 0;
                     int pinsStanding = (shot.LeaveType ?? 0) & 0x3FF;
 
-                    // Update pin states in view model for UI refresh
+                    // Restore pin states from the shot
                     viewModel.pinStates = (short)(shot.LeaveType ?? 0);
+                    viewModel.currentFrameId = shot.Frame.Value;
 
-                    // Update the shot box display
+                    // Update the shot box display based on shot number
                     if (shot.ShotNumber == 1)
                     {
-                        // First shot display
+                        // First shot
                         if (isFoul)
                         {
                             currentFrame.ShotOneBox = "F";
@@ -1444,37 +1456,226 @@ namespace Cellular
                             currentFrame.ShotOneBox = shot.Count.ToString();
                         }
 
-                        Debug.WriteLine($"OnWatchShotReceived: Updated Shot 1 display - {currentFrame.ShotOneBox}");
+                        // Store shot1 pin state for next shot processing
+                        viewModel.shot1PinStates = viewModel.pinStates;
+                        viewModel.firstShotId = shot.ShotId;
+
+                        Debug.WriteLine($"OnWatchShotReceived: Shot 1 - Display: {currentFrame.ShotOneBox}, IsFoul: {isFoul}");
+
+                        // Check if game is over after shot 1
+                        SetIsGameOver();
+
+                        // If strike, handle frame advancement
+                        if (shot.Count == 10 && !isFoul && viewModel.GameCompleted == false)
+                        {
+                            Debug.WriteLine($"OnWatchShotReceived: Strike detected on frame {viewModel.CurrentFrame}!");
+
+                            // Apply colors for shot 1 BEFORE advancing frame
+                            ApplyFirstShotColors(currentFrame);
+
+                            // Save the frame for strike
+                            await SaveFrameAsync(true, false);
+
+                            // Frame 10 strike: Create frame 11 and move to it for bonus shots
+                            if (viewModel.CurrentFrame == 10)
+                            {
+                                Debug.WriteLine($"OnWatchShotReceived: Strike on frame 10, moving to frame 11 for bonus frames");
+
+                                // Create frame 11 if not already exists
+                                if (!viewModel.Frames.Any(f => f.FrameNumber == 11))
+                                {
+                                    viewModel.Frames.Add(new ShotPageFrame(11));
+                                }
+
+                                // Advance to frame 11
+                                viewModel.CurrentFrame++;
+                                viewModel.CurrentShot = 1;
+                                viewModel.pinStates = 0x3FF; // All pins standing for next frame
+                            }
+                            // Frame 11 strike: Create frame 12 if frame 10 was also strike
+                            else if (viewModel.CurrentFrame == 11)
+                            {
+                                var frame10 = viewModel.Frames.FirstOrDefault(f => f.FrameNumber == 10);
+                                bool frame10WasStrike = frame10 != null && frame10.ShotOneBox == "X";
+
+                                if (frame10WasStrike)
+                                {
+                                    Debug.WriteLine($"OnWatchShotReceived: Strike on frame 11 and frame 10 was also strike, creating frame 12");
+
+                                    // Create frame 12 if not already exists
+                                    if (!viewModel.Frames.Any(f => f.FrameNumber == 12))
+                                    {
+                                        viewModel.Frames.Add(new ShotPageFrame(12));
+                                    }
+
+                                    // Advance to frame 12 shot 1 (second bonus shot for frame 11)
+                                    viewModel.CurrentShot = 2;
+                                    viewModel.pinStates = 0x3FF; // Reset pins for shot 2
+                                }
+                                else
+                                {
+                                    // Frame 10 was spare or open, frame 11 can only have 1 shot
+                                    Debug.WriteLine($"OnWatchShotReceived: Strike on frame 11 but frame 10 was not strike, ending game after shot 1");
+                                    viewModel.GameCompleted = true;
+                                }
+                            }
+                            else
+                            {
+                                // Frames 1-9: Strike completes frame, advance to next frame
+                                Debug.WriteLine($"OnWatchShotReceived: Strike on frame {viewModel.CurrentFrame}, advancing to next frame.");
+
+                                // Advance to next frame
+                                viewModel.CurrentFrame++;
+                                viewModel.CurrentShot = 1;
+                                viewModel.pinStates = 0x3FF; // All pins standing for next frame
+
+                                // Add new UI frame if needed
+                                if (viewModel.CurrentFrame <= 12)
+                                {
+                                    if (!viewModel.Frames.Any(f => f.FrameNumber == viewModel.CurrentFrame))
+                                    {
+                                        viewModel.Frames.Add(new ShotPageFrame(viewModel.CurrentFrame));
+                                    }
+                                }
+                            }
+
+                            // Refetch currentFrame after advancing to new frame
+                            currentFrame = viewModel.Frames.FirstOrDefault(f => f.FrameNumber == viewModel.CurrentFrame);
+                        }
+                        else if (!isFoul && viewModel.GameCompleted == false)
+                        {
+                            // Not a strike, move to shot 2
+                            viewModel.CurrentShot = 2;
+                            Debug.WriteLine($"OnWatchShotReceived: Not a strike. Advancing to Shot 2.");
+
+                            // Apply colors for shot 1
+                            ApplyFirstShotColors(currentFrame);
+                        }
+                        else if (isFoul || viewModel.GameCompleted == true)
+                        {
+                            // Foul on shot 1 or game already completed, still apply colors
+                            ApplyFirstShotColors(currentFrame);
+                        }
                     }
                     else if (shot.ShotNumber == 2)
                     {
-                        // Second shot display
+                        // Second shot
                         if (isFoul)
                         {
                             currentFrame.ShotTwoBox = "F";
                         }
-                        else if (shot.Count == 10)
+                        else
                         {
-                            // Spare - all remaining pins knocked down
-                            currentFrame.ShotTwoBox = "/";
+                            int firstShotCount = GetDownedPinsForFrameView(0b1111111111, viewModel.shot1PinStates);
+                            int totalKnocked = GetDownedPinsForFrameView(viewModel.shot1PinStates, viewModel.pinStates);
+
+                            if (totalKnocked == 10)
+                            {
+                                currentFrame.ShotTwoBox = "/"; // Spare
+                            }
+                            else if (shot.Count == 0)
+                            {
+                                currentFrame.ShotTwoBox = "-"; // Miss
+                            }
+                            else
+                            {
+                                currentFrame.ShotTwoBox = shot.Count.ToString();
+                            }
                         }
-                        else if (shot.Count == 0)
+
+                        viewModel.secondShotId = shot.ShotId;
+                        Debug.WriteLine($"OnWatchShotReceived: Shot 2 - Display: {currentFrame.ShotTwoBox}, IsFoul: {isFoul}");
+
+                        // Determine frame result
+                        int totalPins = GetDownedPinsForFrameView(viewModel.shot1PinStates, viewModel.pinStates);
+                        if (totalPins == 10)
                         {
-                            currentFrame.ShotTwoBox = "-";
+                            viewModel.frameResult = "Spare";
+                            await SaveFrameAsync(false, true);
                         }
                         else
                         {
-                            currentFrame.ShotTwoBox = shot.Count.ToString();
+                            viewModel.frameResult = "Open";
+                            await SaveFrameAsync(false, false);
                         }
 
-                        Debug.WriteLine($"OnWatchShotReceived: Updated Shot 2 display - {currentFrame.ShotTwoBox}");
+                        // Check if we need to add frame 11 (for 10th frame spare)
+                        // Frame 11 is only added here if shot 2 is a spare
+                        // (If shot 1 was a strike, frame 11 was already created and we're already in it)
+                        if (viewModel.CurrentFrame == 10)
+                        {
+                            bool isSpareonFrame10 = currentFrame.ShotTwoBox == "/";
+                            bool wasStrikeOnFrame10 = currentFrame.ShotOneBox == "X";
+
+                            if (isSpareonFrame10 && !wasStrikeOnFrame10 && !viewModel.Frames.Any(f => f.FrameNumber == 11))
+                            {
+                                Debug.WriteLine($"OnWatchShotReceived: Frame 10 shot 2 is a spare, adding frame 11");
+                                viewModel.Frames.Add(new ShotPageFrame(11));
+                            }
+                            else if (!isSpareonFrame10 && !wasStrikeOnFrame10)
+                            {
+                                // Open frame on frame 10 - game is complete, no frame 11
+                                Debug.WriteLine($"OnWatchShotReceived: Frame 10 is open, no frame 11 needed");
+                            }
+                        }
+
+                        // Check if this is frame 11 shot 2 and if it's a strike (creates frame 12)
+                        if (viewModel.CurrentFrame == 11 && shot.Count == 10 && !isFoul)
+                        {
+                            var frame10 = viewModel.Frames.FirstOrDefault(f => f.FrameNumber == 10);
+                            bool frame10WasStrike = frame10 != null && frame10.ShotOneBox == "X";
+
+                            if (frame10WasStrike && !viewModel.Frames.Any(f => f.FrameNumber == 12))
+                            {
+                                Debug.WriteLine($"OnWatchShotReceived: Frame 11 shot 2 is a strike and frame 10 was a strike, adding frame 12");
+                                viewModel.Frames.Add(new ShotPageFrame(12));
+                            }
+                        }
+
+                        // Apply colors for shot 2 BEFORE advancing frame
+                        ApplySecondShotColors(currentFrame);
+
+                        // Check if game is over
+                        SetIsGameOver();
+
+                        // Advance to next frame if game not complete
+                        if (viewModel.GameCompleted != true)
+                        {
+                            viewModel.CurrentFrame++;
+                            viewModel.CurrentShot = 1;
+                            viewModel.frameResult = null;
+                            viewModel.pinStates = 0x3FF; // All pins standing for next frame
+                            viewModel.firstShotId = -1;
+                            viewModel.secondShotId = -1;
+
+                            // Add new UI frame if needed
+                            if (viewModel.CurrentFrame <= 12)
+                            {
+                                if (!viewModel.Frames.Any(f => f.FrameNumber == viewModel.CurrentFrame))
+                                {
+                                    viewModel.Frames.Add(new ShotPageFrame(viewModel.CurrentFrame));
+                                }
+                            }
+
+                            // Refetch currentFrame after advancing to new frame
+                            currentFrame = viewModel.Frames.FirstOrDefault(f => f.FrameNumber == viewModel.CurrentFrame);
+                        }
                     }
 
-                    // Refresh UI to show updated pin states and shot box
-                    ReloadButtonColors();
+                    // Update score and refresh UI
+                    await UpdateScore();
+                    ReloadButtonColors(viewModel.CurrentShot);
+                    viewModel.RefreshFrameBackgrounds();
                     viewModel.OnPropertyChanged(nameof(viewModel.Frames));
 
-                    Debug.WriteLine($"OnWatchShotReceived: UI updated successfully for shot {shot.ShotNumber}");
+                    // Only notify property changes if currentFrame is valid
+                    if (currentFrame != null)
+                    {
+                        currentFrame.OnPropertyChanged(nameof(currentFrame.CenterPinColors));
+                        currentFrame.OnPropertyChanged(nameof(currentFrame.PinColors));
+                    }
+
+                    Debug.WriteLine($"OnWatchShotReceived: UI updated and game advanced successfully");
                 }
                 catch (Exception ex)
                 {
