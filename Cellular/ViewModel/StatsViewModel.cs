@@ -336,13 +336,7 @@ namespace Cellular.ViewModel
                 {
                     _selectedLane = value;
                     OnPropertyChanged();
-                    // parse to integer or set -1
-                    if (int.TryParse(_selectedLane, out var lane))
-                        SelectedLaneInt = lane;
-                    else
-                        SelectedLaneInt = -1;
-
-                    _ = LoadFilteredDataAsync();
+                    SelectedLaneInt = int.TryParse(_selectedLane, out var lane) ? lane : -1;
                 }
             }
         }
@@ -356,12 +350,7 @@ namespace Cellular.ViewModel
                 {
                     _selectedFrame = value;
                     OnPropertyChanged();
-                    if (int.TryParse(_selectedFrame, out var frame))
-                        SelectedFrameInt = frame;
-                    else
-                        SelectedFrameInt = -1;
-
-                    _ = LoadFilteredDataAsync();
+                    SelectedFrameInt = int.TryParse(_selectedFrame, out var frame) ? frame : -1;
                 }
             }
         }
@@ -375,8 +364,7 @@ namespace Cellular.ViewModel
                 {
                     _selectedSession = value;
 
-                    // When suppressed (Sessions collection is being repopulated) do not update the
-                    // id or trigger a reload — the load already in progress will restore us.
+                    // Suppress fires when the Games collection is cleared mid-load — ignore those.
                     if (_suppressSelectedSessionSetter)
                     {
                         OnPropertyChanged(nameof(SelectedSession));
@@ -385,11 +373,12 @@ namespace Cellular.ViewModel
 
                     OnPropertyChanged(nameof(SelectedSession));
                     SelectedSessionId = _selectedSession?.SessionId ?? -1;
-                    _ = LoadFilteredDataAsync();
+
+                    // Update the Games dropdown to match the newly selected session.
+                    _ = CascadeSessionSelectionAsync();
                 }
             }
         }
-
 
         public Event SelectedEvent
         {
@@ -401,8 +390,9 @@ namespace Cellular.ViewModel
                     _selectedEvent = value;
                     OnPropertyChanged();
                     SelectedEventId = _selectedEvent?.EventId ?? -1;
-                    // refresh everything using the active filters
-                    _ = LoadFilteredDataAsync();
+
+                    // Update the Sessions and Games dropdowns to match the newly selected event.
+                    _ = CascadeEventSelectionAsync();
                 }
             }
         }
@@ -412,12 +402,11 @@ namespace Cellular.ViewModel
             get => _selectedGame;
             set
             {
-                // Always update backing field so UI reflects current state
                 if (_selectedGame != value)
                 {
                     _selectedGame = value;
 
-                    // When suppressed we must not change SelectedGameId nor trigger reloads.
+                    // Suppress fires when the Games collection is cleared mid-load — ignore those.
                     if (_suppressSelectedGameSetter)
                     {
                         OnPropertyChanged(nameof(SelectedGame));
@@ -426,9 +415,7 @@ namespace Cellular.ViewModel
 
                     OnPropertyChanged(nameof(SelectedGame));
                     SelectedGameId = _selectedGame?.GameId ?? -1;
-
-                    // When a specific game is selected we still want frames/shots limited to current filters.
-                    _ = LoadFilteredDataAsync();
+                    // No cascade needed — game is a leaf selection.
                 }
             }
         }
@@ -443,7 +430,6 @@ namespace Cellular.ViewModel
                     _selected_ball = value;
                     OnPropertyChanged();
                     SelectedBallId = _selected_ball?.BallId ?? -1;
-                    _ = LoadFilteredDataAsync();
                 }
             }
         }
@@ -458,7 +444,6 @@ namespace Cellular.ViewModel
                     _selectedEstablishment = value;
                     OnPropertyChanged();
                     SelectedEstablishmentId = _selectedEstablishment?.EstaID ?? -1;
-                    _ = LoadFilteredDataAsync();
                 }
             }
         }
@@ -475,7 +460,7 @@ namespace Cellular.ViewModel
                     OnPropertyChanged(nameof(IsGameType));
                     OnPropertyChanged(nameof(IsStrikeType));
                     OnPropertyChanged(nameof(IsSpareType));
-                    _ = LoadFilteredDataAsync();
+                    // Stat type is a leaf selection — no cascade needed.
                 }
             }
         }
@@ -648,8 +633,146 @@ namespace Cellular.ViewModel
                 Establishments.Add(e);
         }
 
-        // Re-entrancy guard: prevents a second call from starting while one is already running.
+        // Re-entrancy guard: prevents a second full data load from starting while one is already running.
         private bool _isLoadingFilteredData = false;
+
+        // Guard for dropdown cascade updates (event→sessions, session→games).
+        private bool _isCascading = false;
+
+        /// <summary>
+        /// Called when the user selects a new Event.
+        /// Clears stale session/game selections and repopulates both dropdowns
+        /// without doing the expensive frames+shots load.
+        /// </summary>
+        private async Task CascadeEventSelectionAsync()
+        {
+            if (_isCascading) return;
+            _isCascading = true;
+            _suppressSelectedSessionSetter = true;
+            _suppressSelectedGameSetter = true;
+            try
+            {
+                // Clear dependent selections — the old session/game no longer apply.
+                _selectedSession = null;
+                _selectedSessionId = -1;
+                OnPropertyChanged(nameof(SelectedSession));
+
+                _selectedGame = null;
+                _selectedGameId = -1;
+                OnPropertyChanged(nameof(SelectedGame));
+
+                Sessions.Clear();
+                Games.Clear();
+
+                if (SelectedEventId == -1)
+                {
+                    // No event selected — restore full lists.
+                    await LoadSessionsAsync();
+                    await LoadGamesAsync();
+                    return;
+                }
+
+                // Populate sessions for this event.
+                var sessionsForEvent = await _sessionRepo.GetSessionsByUserIdAndEventAsync(UserId, SelectedEventId);
+                foreach (var s in sessionsForEvent.OrderByDescending(s => s.SessionNumber))
+                {
+                    var nick = Events.FirstOrDefault(e => e.EventId == s.EventId)?.NickName ?? string.Empty;
+                    s.BuildDisplayName(nick);
+                    Sessions.Add(s);
+                }
+
+                // Populate games for all of that event's sessions.
+                foreach (var sess in sessionsForEvent.OrderBy(s => s.SessionNumber))
+                {
+                    var gamesForSession = await _gameRepo.GetGamesListBySessionAsync(sess.SessionId, UserId);
+                    var nick = Events.FirstOrDefault(e => e.EventId == sess.EventId)?.NickName ?? sess.SessionNumber.ToString();
+                    foreach (var g in gamesForSession.OrderBy(g => g.GameNumber))
+                    {
+                        if (!Games.Any(x => x.GameId == g.GameId))
+                        {
+                            g.DisplayLabel = $"{nick} W{sess.SessionNumber} - {g.GameNumber}";
+                            Games.Add(g);
+                        }
+                    }
+                }
+            }
+            finally
+            {
+                _isCascading = false;
+                _suppressSelectedSessionSetter = false;
+                _suppressSelectedGameSetter = false;
+                OnPropertyChanged(nameof(Sessions));
+                OnPropertyChanged(nameof(Games));
+                OnPropertyChanged(nameof(SelectedSession));
+                OnPropertyChanged(nameof(SelectedGame));
+            }
+        }
+
+        /// <summary>
+        /// Called when the user selects a new Session.
+        /// Clears the stale game selection and repopulates the Games dropdown
+        /// without doing the expensive frames+shots load.
+        /// </summary>
+        private async Task CascadeSessionSelectionAsync()
+        {
+            if (_isCascading) return;
+            _isCascading = true;
+            _suppressSelectedGameSetter = true;
+            try
+            {
+                // Clear game selection — old game may belong to a different session.
+                _selectedGame = null;
+                _selectedGameId = -1;
+                OnPropertyChanged(nameof(SelectedGame));
+                Games.Clear();
+
+                if (SelectedSessionId == -1)
+                {
+                    // Session cleared — restore games for the current event (or all).
+                    if (SelectedEventId != -1)
+                    {
+                        foreach (var sess in Sessions)
+                        {
+                            var gamesForSession = await _gameRepo.GetGamesListBySessionAsync(sess.SessionId, UserId);
+                            var nick = Events.FirstOrDefault(e => e.EventId == sess.EventId)?.NickName ?? sess.SessionNumber.ToString();
+                            foreach (var g in gamesForSession.OrderBy(g => g.GameNumber))
+                            {
+                                if (!Games.Any(x => x.GameId == g.GameId))
+                                {
+                                    g.DisplayLabel = $"{nick} W{sess.SessionNumber} - {g.GameNumber}";
+                                    Games.Add(g);
+                                }
+                            }
+                        }
+                    }
+                    else
+                    {
+                        await LoadGamesAsync();
+                    }
+                    return;
+                }
+
+                // Populate games for the selected session only.
+                var session = Sessions.FirstOrDefault(s => s.SessionId == SelectedSessionId);
+                if (session == null) return;
+
+                var games = await _gameRepo.GetGamesListBySessionAsync(SelectedSessionId, UserId);
+                var nickName = Events.FirstOrDefault(e => e.EventId == session.EventId)?.NickName
+                               ?? session.SessionNumber.ToString();
+                foreach (var g in games.OrderBy(g => g.GameNumber))
+                {
+                    g.DisplayLabel = $"{nickName} W{session.SessionNumber} - {g.GameNumber}";
+                    Games.Add(g);
+                }
+            }
+            finally
+            {
+                _isCascading = false;
+                _suppressSelectedGameSetter = false;
+                OnPropertyChanged(nameof(Games));
+                OnPropertyChanged(nameof(SelectedGame));
+            }
+        }
 
         // Core: load only valid games, frames and shots into the viewmodel based on active filters.
         public async Task LoadFilteredDataAsync()
