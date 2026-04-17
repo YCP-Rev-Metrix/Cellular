@@ -109,7 +109,7 @@
                 <Button x:Name="bluetooth"
                         Grid.Row="2" Grid.Column="0"
                         Text="SmartDot"
-                        Clicked="Access SmartDot device"
+                        Clicked="OnBluetoothClicked"
                         HeightRequest="72"
                         Style="{StaticResource AccentButton}" />
 
