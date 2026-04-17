@@ -59,6 +59,9 @@ namespace Cellular
         private readonly IAdapter _adapter = CrossBluetoothLE.Current.Adapter;
         private IWatchBleService _watchBleService;
 
+        private bool _isCameraMode = true;
+        private bool isDemoPlaying = false;
+
 
         protected override async void OnAppearing()
         {
