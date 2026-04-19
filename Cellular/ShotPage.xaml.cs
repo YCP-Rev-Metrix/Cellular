@@ -90,7 +90,7 @@ namespace Cellular
                     viewModel.pinStates ^= (short)pinBit;
                     // Update button color based on pin state
                     bool isPinDown = (viewModel.pinStates & pinBit) == 0;
-                    button.BackgroundColor = isPinDown ? Colors.LightSlateGrey : Color.FromArgb("#FA8847");
+                    button.BackgroundColor = isPinDown ? Colors.LightSlateGrey : Color.FromArgb("#33539c");
 
                     Console.WriteLine($"Pin {pinNumber} is now {(isPinDown ? "Down" : "Up")}");
                 }
@@ -119,7 +119,7 @@ namespace Cellular
                     else
                     {
                         // Pin was knocked down (0) -> Should be blue
-                        button.BackgroundColor = Color.FromArgb("#FA8847");
+                        button.BackgroundColor = Color.FromArgb("#33539c");
                     }
                 }
 
@@ -199,7 +199,7 @@ namespace Cellular
                 if (foul == true && viewModel.CurrentShot == 1)
                 {
                     foreach (var pin in pins)
-                        pin.BackgroundColor = Color.FromArgb("#FA8847");
+                        pin.BackgroundColor = Color.FromArgb("#33539c");
                 }
                 viewModel.shot1PinStates = viewModel.pinStates;
                 viewModel.pinStates = 0;
@@ -498,7 +498,7 @@ namespace Cellular
                     }
                     else if (wasUpInShot1 && !isCurrentlyUp)
                     {
-                        pins[i].BackgroundColor = Color.FromArgb("#FA8847"); // Was up, now down
+                        pins[i].BackgroundColor = Color.FromArgb("#33539c"); // Was up, now down
                     }
                     else
                     {
@@ -507,7 +507,7 @@ namespace Cellular
                 }
                 else // Shot 1
                 {
-                    pins[i].BackgroundColor = isCurrentlyUp ? Color.FromArgb("#FA8847") : Colors.LightSlateGray;
+                    pins[i].BackgroundColor = isCurrentlyUp ? Color.FromArgb("#33539c") : Colors.LightSlateGray;
                 }
             }
         }
@@ -542,7 +542,7 @@ namespace Cellular
                     viewModel.pinStates |= (short)(1 << i); // Set each bit from 0 to 9 to 1
                 }
                 foreach (var pin in pins)
-                    pin.BackgroundColor = Color.FromArgb("#FA8847");
+                    pin.BackgroundColor = Color.FromArgb("#33539c");
             }
             else
             {

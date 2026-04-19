@@ -171,8 +171,8 @@ namespace Cellular.ViewModel
 
         // Type visibility helpers
         public bool IsGameType => _selectedStatType == "Game";
-        public bool IsStrikeType => _selectedStatType == "Strike";
-        public bool IsSpareType => _selectedStatType == "Spare";
+        public bool IsFirstBallType => _selectedStatType == "First Ball";
+        public bool IsSecondBallType => _selectedStatType == "Second Ball";
 
         // True while the Load Stats button operation is in progress — drives the loading overlay in Stats.xaml
         private bool _isLoading;
@@ -458,8 +458,8 @@ namespace Cellular.ViewModel
                     _selectedStatType = value;
                     OnPropertyChanged();
                     OnPropertyChanged(nameof(IsGameType));
-                    OnPropertyChanged(nameof(IsStrikeType));
-                    OnPropertyChanged(nameof(IsSpareType));
+                    OnPropertyChanged(nameof(IsFirstBallType));
+                    OnPropertyChanged(nameof(IsSecondBallType));
                     // Stat type is a leaf selection — no cascade needed.
                 }
             }
@@ -536,8 +536,8 @@ namespace Cellular.ViewModel
 
             StatTypes.Clear();
             StatTypes.Add("Game");
-            StatTypes.Add("Strike");
-            StatTypes.Add("Spare");
+            StatTypes.Add("First Ball");
+            StatTypes.Add("Second Ball");
         }
 
         // Public initialization to load DB-backed collections
@@ -1091,8 +1091,8 @@ namespace Cellular.ViewModel
                 OnPropertyChanged(nameof(TotalOpens));
                 OnPropertyChanged(nameof(SpareConversionRate));
                 OnPropertyChanged(nameof(IsGameType));
-                OnPropertyChanged(nameof(IsStrikeType));
-                OnPropertyChanged(nameof(IsSpareType));
+                OnPropertyChanged(nameof(IsFirstBallType));
+                OnPropertyChanged(nameof(IsSecondBallType));
 
                 BuildFilterSummary();
             }

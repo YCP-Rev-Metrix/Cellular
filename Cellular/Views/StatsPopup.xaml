@@ -75,8 +75,8 @@
             </VerticalStackLayout>
 
             <!-- ======================== STRIKE TYPE ======================== -->
-            <VerticalStackLayout IsVisible="{Binding IsStrikeType}" Spacing="8">
-                <Label Text="Strike Stats"
+            <VerticalStackLayout IsVisible="{Binding IsFirstBallType}" Spacing="8">
+                <Label Text="First Ball Stats"
                        FontSize="17" FontAttributes="Bold"
                        TextColor="DarkSlateGray" HorizontalOptions="Center" />
 
@@ -137,8 +137,8 @@
             </VerticalStackLayout>
 
             <!-- ======================== SPARE TYPE ======================== -->
-            <VerticalStackLayout IsVisible="{Binding IsSpareType}" Spacing="8">
-                <Label Text="Spare Stats"
+            <VerticalStackLayout IsVisible="{Binding IsSecondBallType}" Spacing="8">
+                <Label Text="Second Ball Stats"
                        FontSize="17" FontAttributes="Bold"
                        TextColor="DarkSlateGray" HorizontalOptions="Center" />
 
