@@ -42,6 +42,7 @@ namespace Cellular
         private readonly GameRepository _gameRepository;
         private readonly FrameRepository _frameRepository;
         private readonly ShotRepository _shotRepository;
+        private readonly EstablishmentRepository _establishmentRepository;
 
         private ObservableCollection<BluetoothDeviceWatch> _devices;
         private BluetoothDeviceWatch? _selectedDevice;
@@ -112,6 +113,7 @@ namespace Cellular
             _gameRepository = new GameRepository(dbConnection);
             _frameRepository = new FrameRepository(dbConnection);
             _shotRepository = new ShotRepository(dbConnection);
+            _establishmentRepository = new EstablishmentRepository(dbConnection);
 
             // Get userId for sync context initialization
             int userId = Preferences.Get("UserId", -1);
@@ -119,7 +121,7 @@ namespace Cellular
             // Initialize the watch BLE service with repositories for shot packet handling and sync context
             // User will be fetched on-demand when needed for sending data to watch
             _watchBleService.SetRepositories(_gameRepository, _frameRepository, _shotRepository,
-                _sessionRepository, _ballRepository, _eventRepository, null, userId);
+                _sessionRepository, _ballRepository, _eventRepository, null, userId, _establishmentRepository);
 
             Devices = BlankPageStore.SavedDevices ?? new ObservableCollection<BluetoothDeviceWatch>();
             _selectedDevice = BlankPageStore.SavedSelected;
@@ -431,7 +433,7 @@ namespace Cellular
 
                 System.Diagnostics.Debug.WriteLine($"PHONE BLE SEND → Sending binary packet for user {user.UserName}");
 
-                bool success = await _watchBleService.SendJsonToWatch(userId, _sessionRepository, _ballRepository, _eventRepository, _gameRepository, user, _frameRepository, _shotRepository);
+                bool success = await _watchBleService.SendJsonToWatch(userId, _sessionRepository, _ballRepository, _eventRepository, _gameRepository, user, _frameRepository, _shotRepository, _establishmentRepository);
 
                 if (success)
                 {
@@ -484,7 +486,7 @@ namespace Cellular
                 }
 
                 var user = await _userRepository.GetUserByIdAsync(userId);
-                bool success = await _watchBleService.SendJsonToWatch(userId, _sessionRepository, _ballRepository, _eventRepository, _gameRepository, user, _frameRepository, _shotRepository);
+                bool success = await _watchBleService.SendJsonToWatch(userId, _sessionRepository, _ballRepository, _eventRepository, _gameRepository, user, _frameRepository, _shotRepository, _establishmentRepository);
 
                 if (!success)
                     await DisplayAlertAsync("BLE", "Failed to send data", "OK");
