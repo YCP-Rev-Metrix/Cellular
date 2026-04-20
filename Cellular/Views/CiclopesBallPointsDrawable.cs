@@ -10,13 +10,18 @@ public class CiclopesBallPointsDrawable : IDrawable
 
     private readonly float _renderStartY;
     private readonly float _renderLengthY;
-
-    public IReadOnlyList<CiclopesBallPoint> BallPoints { get; set; } = [];
+    private readonly List<(Color Color, IReadOnlyList<CiclopesBallPoint> Points)> _series;
 
     public CiclopesBallPointsDrawable(IReadOnlyList<CiclopesBallPoint> ballPoints)
+        : this([(Colors.Red, ballPoints)])
     {
-        BallPoints = ballPoints;
-        (_renderStartY, _renderLengthY) = ComputeRenderWindow(ballPoints);
+    }
+
+    public CiclopesBallPointsDrawable(IReadOnlyList<(Color Color, IReadOnlyList<CiclopesBallPoint> Points)> series)
+    {
+        _series = [.. series];
+        var allPoints = _series.SelectMany(s => s.Points).ToList();
+        (_renderStartY, _renderLengthY) = ComputeRenderWindow(allPoints);
     }
 
     public void Draw(ICanvas canvas, RectF dirtyRect)
@@ -24,7 +29,6 @@ public class CiclopesBallPointsDrawable : IDrawable
         canvas.SaveState();
         canvas.Antialias = true;
 
-        // Clear background transparent so the modal bg shows through
         canvas.FillColor = Colors.Transparent;
         canvas.FillRectangle(dirtyRect);
 
@@ -50,7 +54,6 @@ public class CiclopesBallPointsDrawable : IDrawable
             laneHeight
         );
 
-        // Gutter — drawn snugly around the lane only
         const float gutterPad = 8f;
         var gutterRect = new RectF(
             laneRect.Left - gutterPad,
@@ -61,42 +64,57 @@ public class CiclopesBallPointsDrawable : IDrawable
         canvas.FillColor = Color.FromArgb("#b0b0b0");
         canvas.FillRectangle(gutterRect);
 
-        // Lane surface — sharp corners
         canvas.FillColor = Color.FromArgb("#c69c6d");
         canvas.FillRectangle(laneRect);
         canvas.StrokeColor = Color.FromArgb("#8B5A2B");
         canvas.StrokeSize = 2f;
         canvas.DrawRectangle(laneRect);
 
-        // Ball path as a smooth line curve
-        if (BallPoints.Count >= 2)
+        // Faint dashed reference lines every 5 feet
+        const float ftToMeters = 0.3048f;
+        const float refIntervalMeters = 5f * ftToMeters;
+        canvas.StrokeColor = Color.FromArgb("#55FFFFFF");
+        canvas.StrokeSize = 1f;
+        canvas.StrokeDashPattern = [3f, 4f];
+        var firstMark = (float)Math.Ceiling(_renderStartY / refIntervalMeters) * refIntervalMeters;
+        for (var y = firstMark; y < _renderStartY + _renderLengthY; y += refIntervalMeters)
         {
-            canvas.StrokeColor = Colors.Red;
-            canvas.StrokeSize = 2.5f;
-            canvas.StrokeLineCap = LineCap.Round;
-            canvas.StrokeLineJoin = LineJoin.Round;
+            var normY = (y - _renderStartY) / _renderLengthY;
+            var screenY = laneRect.Bottom - normY * laneRect.Height;
+            canvas.DrawLine(laneRect.Left, screenY, laneRect.Right, screenY);
+        }
+        canvas.StrokeDashPattern = null;
 
+        // Draw each series
+        canvas.StrokeLineCap = LineCap.Round;
+        canvas.StrokeLineJoin = LineJoin.Round;
+        canvas.StrokeSize = 2.5f;
+
+        foreach (var (color, points) in _series)
+        {
+            if (points.Count < 2) continue;
+
+            canvas.StrokeColor = color;
             var path = new PathF();
 
-            var firstNormX = (float)(BallPoints[0].X / LaneWidthMeters);
-            var firstNormY = (float)((BallPoints[0].Y - _renderStartY) / _renderLengthY);
+            var firstNormX = (float)(points[0].X / LaneWidthMeters);
+            var firstNormY = (float)((points[0].Y - _renderStartY) / _renderLengthY);
             path.MoveTo(
                 laneRect.Left + firstNormX * laneRect.Width,
                 laneRect.Bottom - firstNormY * laneRect.Height);
 
-            for (var i = 1; i < BallPoints.Count; i++)
+            for (var i = 1; i < points.Count; i++)
             {
-                var prevNormX = (float)(BallPoints[i - 1].X / LaneWidthMeters);
-                var prevNormY = (float)((BallPoints[i - 1].Y - _renderStartY) / _renderLengthY);
-                var currNormX = (float)(BallPoints[i].X / LaneWidthMeters);
-                var currNormY = (float)((BallPoints[i].Y - _renderStartY) / _renderLengthY);
+                var prevNormX = (float)(points[i - 1].X / LaneWidthMeters);
+                var prevNormY = (float)((points[i - 1].Y - _renderStartY) / _renderLengthY);
+                var currNormX = (float)(points[i].X / LaneWidthMeters);
+                var currNormY = (float)((points[i].Y - _renderStartY) / _renderLengthY);
 
                 var prevX = laneRect.Left + prevNormX * laneRect.Width;
                 var prevY = laneRect.Bottom - prevNormY * laneRect.Height;
                 var currX = laneRect.Left + currNormX * laneRect.Width;
                 var currY = laneRect.Bottom - currNormY * laneRect.Height;
 
-                // Cubic bezier with control points at midpoints for smooth curve
                 var midY = (prevY + currY) / 2f;
                 path.CurveTo(prevX, midY, currX, midY, currX, currY);
             }
@@ -118,11 +136,9 @@ public class CiclopesBallPointsDrawable : IDrawable
         var maxY = points.Max(p => p.Y);
         var span = maxY - minY;
 
-        // Pad 0.5m on each side, minimum 3m window, no upper cap
         var renderLength = (float)Math.Max(span + 1.0d, 3.0d);
         var start = (float)Math.Max(0d, minY - 0.5d);
 
-        // Ensure window doesn't extend past lane end
         if (start + renderLength > LaneLengthMeters)
         {
             start = Math.Max(0f, LaneLengthMeters - renderLength);

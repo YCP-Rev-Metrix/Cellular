@@ -74,7 +74,7 @@ public class CiclopesLinePlotDrawable : IDrawable
         canvas.FillPath(fillPath);
 
         // Draw the line
-        canvas.StrokeColor = Color.FromArgb("#6b5b95");
+        canvas.StrokeColor = Color.FromArgb("#355070");
         canvas.StrokeSize = 2f;
 
         for (var i = 1; i < _points.Count; i++)
@@ -92,7 +92,7 @@ public class CiclopesLinePlotDrawable : IDrawable
         }
 
         // Draw points
-        canvas.FillColor = Color.FromArgb("#6b5b95");
+        canvas.FillColor = Color.FromArgb("#355070");
         foreach (var pt in _points)
         {
             var normX = (float)((pt.X - minX) / rangeX);

@@ -36,6 +36,8 @@ public class ApiExecutor
             EntityType.CiclopesAggRun => "agg/run",
             EntityType.CiclopesLaneBallsRun => "laneballs/run",
             EntityType.CiclopesFourDBodyRun => "fourdbody/run",
+            EntityType.CiclopesLaneBallsQuery => "laneballs/query",
+            EntityType.CiclopesFourDBodyQuery => "fourdbody/query",
             _ => string.Empty
         };
 

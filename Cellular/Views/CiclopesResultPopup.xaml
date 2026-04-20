@@ -8,7 +8,7 @@
     <Border StrokeShape="RoundRectangle 14"
             Padding="0"
             StrokeThickness="0"
-            BackgroundColor="#f8f7fc">
+            BackgroundColor="{AppThemeBinding Light={StaticResource Surface}, Dark={StaticResource OffBlack}}">
         <Grid x:Name="MainGrid"
               RowDefinitions="*,Auto">
 
@@ -22,254 +22,285 @@
                               Grid.Column="0"
                               Margin="0"/>
 
-                <!-- Right column: cards top half, plots bottom half -->
-                <ScrollView Grid.Column="1" Padding="10,8,10,8">
-                    <VerticalStackLayout Spacing="6">
+                <!-- Right column: hero stats + analysis, fills height -->
+                <Grid Grid.Column="1" Padding="10,8,10,8"
+                      RowDefinitions="Auto,*,10,Auto,*,10,Auto,*">
 
-                        <!-- Section: Position -->
-                        <Label Text="POSITION"
-                               FontSize="10"
-                               FontAttributes="Bold"
-                               TextColor="#512BD4"
-                               CharacterSpacing="1.5"
-                               Margin="2,2,0,0"/>
-                        <Grid ColumnDefinitions="*,*" ColumnSpacing="8"
-                              RowDefinitions="Auto,Auto" RowSpacing="8">
-                            <!-- Entry X -->
-                            <Border Grid.Row="0" Grid.Column="0"
-                                    StrokeShape="RoundRectangle 10" StrokeThickness="0"
-                                    Padding="0" HeightRequest="100">
-                                <Border.Shadow>
-                                    <Shadow Brush="#30000000" Offset="0,2" Radius="6" Opacity="0.3"/>
-                                </Border.Shadow>
-                                <Grid RowDefinitions="Auto,*" BackgroundColor="Transparent">
-                                    <Grid.Background>
-                                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                                            <GradientStop Color="#ddd6f3" Offset="0.0"/>
-                                            <GradientStop Color="#f0ecf9" Offset="0.5"/>
-                                            <GradientStop Color="White" Offset="1.0"/>
-                                        </LinearGradientBrush>
-                                    </Grid.Background>
-                                    <Label Grid.Row="0" Text="Entry X" FontSize="10" FontAttributes="Bold"
-                                           TextColor="#6b5b95" Margin="8,6,8,2"/>
-                                    <BoxView Grid.Row="0" HeightRequest="1" Color="#d8d0eb"
-                                             VerticalOptions="End" Margin="6,0"/>
-                                    <Label x:Name="StatEntryX" Grid.Row="1" Text="--"
-                                           FontSize="18" FontAttributes="Bold"
-                                           TextColor="#1f1f1f" HorizontalTextAlignment="Center"
-                                           VerticalTextAlignment="Center"/>
-                                </Grid>
-                            </Border>
-                            <!-- Exit X -->
-                            <Border Grid.Row="0" Grid.Column="1"
-                                    StrokeShape="RoundRectangle 10" StrokeThickness="0"
-                                    Padding="0" HeightRequest="100">
-                                <Border.Shadow>
-                                    <Shadow Brush="#30000000" Offset="0,2" Radius="6" Opacity="0.3"/>
-                                </Border.Shadow>
-                                <Grid RowDefinitions="Auto,*">
-                                    <Grid.Background>
-                                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                                            <GradientStop Color="#ddd6f3" Offset="0.0"/>
-                                            <GradientStop Color="#f0ecf9" Offset="0.5"/>
-                                            <GradientStop Color="White" Offset="1.0"/>
-                                        </LinearGradientBrush>
-                                    </Grid.Background>
-                                    <Label Grid.Row="0" Text="Exit X" FontSize="10" FontAttributes="Bold"
-                                           TextColor="#6b5b95" Margin="8,6,8,2"/>
-                                    <BoxView Grid.Row="0" HeightRequest="1" Color="#d8d0eb"
-                                             VerticalOptions="End" Margin="6,0"/>
-                                    <Label x:Name="StatExitX" Grid.Row="1" Text="--"
-                                           FontSize="18" FontAttributes="Bold"
-                                           TextColor="#1f1f1f" HorizontalTextAlignment="Center"
-                                           VerticalTextAlignment="Center"/>
-                                </Grid>
-                            </Border>
-                            <!-- Entry Angle -->
-                            <Border Grid.Row="1" Grid.Column="0"
-                                    StrokeShape="RoundRectangle 10" StrokeThickness="0"
-                                    Padding="0" HeightRequest="100">
-                                <Border.Shadow>
-                                    <Shadow Brush="#30000000" Offset="0,2" Radius="6" Opacity="0.3"/>
-                                </Border.Shadow>
-                                <Grid RowDefinitions="Auto,*">
-                                    <Grid.Background>
-                                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                                            <GradientStop Color="#ddd6f3" Offset="0.0"/>
-                                            <GradientStop Color="#f0ecf9" Offset="0.5"/>
-                                            <GradientStop Color="White" Offset="1.0"/>
-                                        </LinearGradientBrush>
-                                    </Grid.Background>
-                                    <Label Grid.Row="0" Text="Entry Angle" FontSize="10" FontAttributes="Bold"
-                                           TextColor="#6b5b95" Margin="8,6,8,2"/>
-                                    <BoxView Grid.Row="0" HeightRequest="1" Color="#d8d0eb"
-                                             VerticalOptions="End" Margin="6,0"/>
-                                    <Label x:Name="StatEntryAngle" Grid.Row="1" Text="--"
-                                           FontSize="18" FontAttributes="Bold"
-                                           TextColor="#1f1f1f" HorizontalTextAlignment="Center"
-                                           VerticalTextAlignment="Center"/>
-                                </Grid>
-                            </Border>
-                            <!-- Breakpoint Dist -->
-                            <Border Grid.Row="1" Grid.Column="1"
-                                    StrokeShape="RoundRectangle 10" StrokeThickness="0"
-                                    Padding="0" HeightRequest="100">
-                                <Border.Shadow>
-                                    <Shadow Brush="#30000000" Offset="0,2" Radius="6" Opacity="0.3"/>
-                                </Border.Shadow>
-                                <Grid RowDefinitions="Auto,*">
-                                    <Grid.Background>
-                                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                                            <GradientStop Color="#ddd6f3" Offset="0.0"/>
-                                            <GradientStop Color="#f0ecf9" Offset="0.5"/>
-                                            <GradientStop Color="White" Offset="1.0"/>
-                                        </LinearGradientBrush>
-                                    </Grid.Background>
-                                    <Label Grid.Row="0" Text="Breakpoint Dist" FontSize="10" FontAttributes="Bold"
-                                           TextColor="#6b5b95" Margin="8,6,8,2"/>
-                                    <BoxView Grid.Row="0" HeightRequest="1" Color="#d8d0eb"
-                                             VerticalOptions="End" Margin="6,0"/>
-                                    <Label x:Name="StatBreakpoint" Grid.Row="1" Text="--"
-                                           FontSize="18" FontAttributes="Bold"
-                                           TextColor="#1f1f1f" HorizontalTextAlignment="Center"
-                                           VerticalTextAlignment="Center"/>
-                                </Grid>
-                            </Border>
-                        </Grid>
-
-                        <!-- Spacer between sections -->
-                        <BoxView HeightRequest="10" Color="Transparent"/>
-
-                        <!-- Section: Kinematics -->
-                        <Label Text="KINEMATICS"
-                               FontSize="10"
-                               FontAttributes="Bold"
-                               TextColor="#512BD4"
-                               CharacterSpacing="1.5"
-                               Margin="2,0,0,0"/>
-                        <Grid ColumnDefinitions="*,*" ColumnSpacing="8"
-                              RowDefinitions="Auto,Auto" RowSpacing="8">
-                            <!-- Avg Speed -->
-                            <Border Grid.Row="0" Grid.Column="0"
-                                    StrokeShape="RoundRectangle 10" StrokeThickness="0"
-                                    Padding="0" HeightRequest="100">
-                                <Border.Shadow>
-                                    <Shadow Brush="#30000000" Offset="0,2" Radius="6" Opacity="0.3"/>
-                                </Border.Shadow>
-                                <Grid RowDefinitions="Auto,*">
-                                    <Grid.Background>
-                                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                                            <GradientStop Color="#d6e0f3" Offset="0.0"/>
-                                            <GradientStop Color="#eceff9" Offset="0.5"/>
-                                            <GradientStop Color="White" Offset="1.0"/>
-                                        </LinearGradientBrush>
-                                    </Grid.Background>
-                                    <Label Grid.Row="0" Text="Avg Speed" FontSize="10" FontAttributes="Bold"
-                                           TextColor="#4a5a8a" Margin="8,6,8,2"/>
-                                    <BoxView Grid.Row="0" HeightRequest="1" Color="#ced4e8"
-                                             VerticalOptions="End" Margin="6,0"/>
-                                    <Label x:Name="StatAvgSpeed" Grid.Row="1" Text="--"
-                                           FontSize="18" FontAttributes="Bold"
-                                           TextColor="#1f1f1f" HorizontalTextAlignment="Center"
-                                           VerticalTextAlignment="Center"/>
-                                </Grid>
-                            </Border>
-                            <!-- Avg Accel -->
-                            <Border Grid.Row="0" Grid.Column="1"
-                                    StrokeShape="RoundRectangle 10" StrokeThickness="0"
-                                    Padding="0" HeightRequest="100">
-                                <Border.Shadow>
-                                    <Shadow Brush="#30000000" Offset="0,2" Radius="6" Opacity="0.3"/>
-                                </Border.Shadow>
-                                <Grid RowDefinitions="Auto,*">
-                                    <Grid.Background>
-                                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                                            <GradientStop Color="#d6e0f3" Offset="0.0"/>
-                                            <GradientStop Color="#eceff9" Offset="0.5"/>
-                                            <GradientStop Color="White" Offset="1.0"/>
-                                        </LinearGradientBrush>
-                                    </Grid.Background>
-                                    <Label Grid.Row="0" Text="Avg Accel" FontSize="10" FontAttributes="Bold"
-                                           TextColor="#4a5a8a" Margin="8,6,8,2"/>
-                                    <BoxView Grid.Row="0" HeightRequest="1" Color="#ced4e8"
-                                             VerticalOptions="End" Margin="6,0"/>
-                                    <Label x:Name="StatAvgAccel" Grid.Row="1" Text="--"
-                                           FontSize="18" FontAttributes="Bold"
-                                           TextColor="#1f1f1f" HorizontalTextAlignment="Center"
-                                           VerticalTextAlignment="Center"/>
-                                </Grid>
-                            </Border>
-                            <!-- Entry Speed -->
-                            <Border Grid.Row="1" Grid.Column="0"
-                                    StrokeShape="RoundRectangle 10" StrokeThickness="0"
-                                    Padding="0" HeightRequest="100">
-                                <Border.Shadow>
-                                    <Shadow Brush="#30000000" Offset="0,2" Radius="6" Opacity="0.3"/>
-                                </Border.Shadow>
-                                <Grid RowDefinitions="Auto,*">
-                                    <Grid.Background>
-                                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                                            <GradientStop Color="#d6e0f3" Offset="0.0"/>
-                                            <GradientStop Color="#eceff9" Offset="0.5"/>
-                                            <GradientStop Color="White" Offset="1.0"/>
-                                        </LinearGradientBrush>
-                                    </Grid.Background>
-                                    <Label Grid.Row="0" Text="Entry Speed" FontSize="10" FontAttributes="Bold"
-                                           TextColor="#4a5a8a" Margin="8,6,8,2"/>
-                                    <BoxView Grid.Row="0" HeightRequest="1" Color="#ced4e8"
-                                             VerticalOptions="End" Margin="6,0"/>
-                                    <Label x:Name="StatEntrySpeed" Grid.Row="1" Text="--"
-                                           FontSize="18" FontAttributes="Bold"
-                                           TextColor="#1f1f1f" HorizontalTextAlignment="Center"
-                                           VerticalTextAlignment="Center"/>
-                                </Grid>
-                            </Border>
-                            <!-- Exit Speed -->
-                            <Border Grid.Row="1" Grid.Column="1"
-                                    StrokeShape="RoundRectangle 10" StrokeThickness="0"
-                                    Padding="0" HeightRequest="100">
-                                <Border.Shadow>
-                                    <Shadow Brush="#30000000" Offset="0,2" Radius="6" Opacity="0.3"/>
-                                </Border.Shadow>
-                                <Grid RowDefinitions="Auto,*">
-                                    <Grid.Background>
-                                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                                            <GradientStop Color="#d6e0f3" Offset="0.0"/>
-                                            <GradientStop Color="#eceff9" Offset="0.5"/>
-                                            <GradientStop Color="White" Offset="1.0"/>
-                                        </LinearGradientBrush>
-                                    </Grid.Background>
-                                    <Label Grid.Row="0" Text="Exit Speed" FontSize="10" FontAttributes="Bold"
-                                           TextColor="#4a5a8a" Margin="8,6,8,2"/>
-                                    <BoxView Grid.Row="0" HeightRequest="1" Color="#ced4e8"
-                                             VerticalOptions="End" Margin="6,0"/>
-                                    <Label x:Name="StatExitSpeed" Grid.Row="1" Text="--"
-                                           FontSize="18" FontAttributes="Bold"
-                                           TextColor="#1f1f1f" HorizontalTextAlignment="Center"
-                                           VerticalTextAlignment="Center"/>
-                                </Grid>
-                            </Border>
-                        </Grid>
-
-                        <!-- Spacer between sections -->
-                        <BoxView HeightRequest="10" Color="Transparent"/>
-
-                        <!-- Section: Analysis (paneled plots) -->
-                        <Label Text="ANALYSIS"
-                               FontSize="10"
-                               FontAttributes="Bold"
-                               TextColor="#512BD4"
-                               CharacterSpacing="1.5"
-                               Margin="2,0,0,0"/>
-
-                        <Border StrokeShape="RoundRectangle 10"
-                                Stroke="#c8c0e0"
-                                StrokeThickness="1.5"
-                                Padding="0" HeightRequest="190">
+                    <!-- Section: Position -->
+                    <Label Grid.Row="0" Text="POSITION"
+                           FontSize="10"
+                           FontAttributes="Bold"
+                           TextColor="{StaticResource Primary}"
+                           CharacterSpacing="1.5"
+                           Margin="2,2,0,4"/>
+                    <Grid Grid.Row="1"
+                          ColumnDefinitions="*,*" ColumnSpacing="8"
+                          RowDefinitions="*,*" RowSpacing="8">
+                        <!-- Entry X -->
+                        <Border Grid.Row="0" Grid.Column="0"
+                                StrokeShape="RoundRectangle 10" StrokeThickness="0"
+                                BackgroundColor="{AppThemeBinding Light={StaticResource CardBackground}, Dark={StaticResource CardBackgroundDark}}"
+                                Padding="0">
                             <Border.Shadow>
-                                <Shadow Brush="#30000000" Offset="0,3" Radius="8" Opacity="0.35"/>
+                                <Shadow Brush="#30000000" Offset="0,2" Radius="6" Opacity="0.3"/>
                             </Border.Shadow>
-                            <Grid RowDefinitions="*,Auto" BackgroundColor="White">
+                            <Grid ColumnDefinitions="4,*">
+                                <BoxView Grid.Column="0" Color="{StaticResource Primary}"/>
+                                <Grid Grid.Column="1" RowDefinitions="*,Auto" Padding="6,6,6,6">
+                                    <HorizontalStackLayout Grid.Row="0" Spacing="2"
+                                                           HorizontalOptions="Center" VerticalOptions="Center">
+                                        <Label x:Name="StatEntryX" Text="--"
+                                               FontSize="26" FontAttributes="Bold"
+                                               TextColor="{AppThemeBinding Light={StaticResource Gray950}, Dark={StaticResource White}}"
+                                               VerticalTextAlignment="Center"/>
+                                        <Label Text="in" FontSize="11" FontAttributes="Bold"
+                                               TextColor="{StaticResource Gray400}"
+                                               VerticalTextAlignment="End" Margin="0,0,0,5"/>
+                                    </HorizontalStackLayout>
+                                    <Label Grid.Row="1" Text="ENTRY X"
+                                           FontSize="9" FontAttributes="Bold"
+                                           CharacterSpacing="1.2"
+                                           TextColor="{AppThemeBinding Light={StaticResource Gray500}, Dark={StaticResource Gray300}}"
+                                           HorizontalTextAlignment="Center"/>
+                                </Grid>
+                            </Grid>
+                        </Border>
+                        <!-- Exit X -->
+                        <Border Grid.Row="0" Grid.Column="1"
+                                StrokeShape="RoundRectangle 10" StrokeThickness="0"
+                                BackgroundColor="{AppThemeBinding Light={StaticResource CardBackground}, Dark={StaticResource CardBackgroundDark}}"
+                                Padding="0">
+                            <Border.Shadow>
+                                <Shadow Brush="#30000000" Offset="0,2" Radius="6" Opacity="0.3"/>
+                            </Border.Shadow>
+                            <Grid ColumnDefinitions="4,*">
+                                <BoxView Grid.Column="0" Color="{StaticResource Primary}"/>
+                                <Grid Grid.Column="1" RowDefinitions="*,Auto" Padding="6,6,6,6">
+                                    <HorizontalStackLayout Grid.Row="0" Spacing="2"
+                                                           HorizontalOptions="Center" VerticalOptions="Center">
+                                        <Label x:Name="StatExitX" Text="--"
+                                               FontSize="26" FontAttributes="Bold"
+                                               TextColor="{AppThemeBinding Light={StaticResource Gray950}, Dark={StaticResource White}}"
+                                               VerticalTextAlignment="Center"/>
+                                        <Label Text="in" FontSize="11" FontAttributes="Bold"
+                                               TextColor="{StaticResource Gray400}"
+                                               VerticalTextAlignment="End" Margin="0,0,0,5"/>
+                                    </HorizontalStackLayout>
+                                    <Label Grid.Row="1" Text="EXIT X"
+                                           FontSize="9" FontAttributes="Bold"
+                                           CharacterSpacing="1.2"
+                                           TextColor="{AppThemeBinding Light={StaticResource Gray500}, Dark={StaticResource Gray300}}"
+                                           HorizontalTextAlignment="Center"/>
+                                </Grid>
+                            </Grid>
+                        </Border>
+                        <!-- Entry Angle -->
+                        <Border Grid.Row="1" Grid.Column="0"
+                                StrokeShape="RoundRectangle 10" StrokeThickness="0"
+                                BackgroundColor="{AppThemeBinding Light={StaticResource CardBackground}, Dark={StaticResource CardBackgroundDark}}"
+                                Padding="0">
+                            <Border.Shadow>
+                                <Shadow Brush="#30000000" Offset="0,2" Radius="6" Opacity="0.3"/>
+                            </Border.Shadow>
+                            <Grid ColumnDefinitions="4,*">
+                                <BoxView Grid.Column="0" Color="{StaticResource Primary}"/>
+                                <Grid Grid.Column="1" RowDefinitions="*,Auto" Padding="6,6,6,6">
+                                    <HorizontalStackLayout Grid.Row="0" Spacing="1"
+                                                           HorizontalOptions="Center" VerticalOptions="Center">
+                                        <Label x:Name="StatEntryAngle" Text="--"
+                                               FontSize="26" FontAttributes="Bold"
+                                               TextColor="{AppThemeBinding Light={StaticResource Gray950}, Dark={StaticResource White}}"
+                                               VerticalTextAlignment="Center"/>
+                                        <Label Text="&#x00B0;" FontSize="18" FontAttributes="Bold"
+                                               TextColor="{StaticResource Gray400}"
+                                               VerticalTextAlignment="Start" Margin="0,4,0,0"/>
+                                    </HorizontalStackLayout>
+                                    <Label Grid.Row="1" Text="ENTRY ANGLE"
+                                           FontSize="9" FontAttributes="Bold"
+                                           CharacterSpacing="1.2"
+                                           TextColor="{AppThemeBinding Light={StaticResource Gray500}, Dark={StaticResource Gray300}}"
+                                           HorizontalTextAlignment="Center"/>
+                                </Grid>
+                            </Grid>
+                        </Border>
+                        <!-- Breakpoint Dist -->
+                        <Border Grid.Row="1" Grid.Column="1"
+                                StrokeShape="RoundRectangle 10" StrokeThickness="0"
+                                BackgroundColor="{AppThemeBinding Light={StaticResource CardBackground}, Dark={StaticResource CardBackgroundDark}}"
+                                Padding="0">
+                            <Border.Shadow>
+                                <Shadow Brush="#30000000" Offset="0,2" Radius="6" Opacity="0.3"/>
+                            </Border.Shadow>
+                            <Grid ColumnDefinitions="4,*">
+                                <BoxView Grid.Column="0" Color="{StaticResource Primary}"/>
+                                <Grid Grid.Column="1" RowDefinitions="*,Auto" Padding="6,6,6,6">
+                                    <HorizontalStackLayout Grid.Row="0" Spacing="2"
+                                                           HorizontalOptions="Center" VerticalOptions="Center">
+                                        <Label x:Name="StatBreakpoint" Text="--"
+                                               FontSize="26" FontAttributes="Bold"
+                                               TextColor="{AppThemeBinding Light={StaticResource Gray950}, Dark={StaticResource White}}"
+                                               VerticalTextAlignment="Center"/>
+                                        <Label Text="ft" FontSize="11" FontAttributes="Bold"
+                                               TextColor="{StaticResource Gray400}"
+                                               VerticalTextAlignment="End" Margin="0,0,0,5"/>
+                                    </HorizontalStackLayout>
+                                    <Label Grid.Row="1" Text="BREAKPOINT"
+                                           FontSize="9" FontAttributes="Bold"
+                                           CharacterSpacing="1.2"
+                                           TextColor="{AppThemeBinding Light={StaticResource Gray500}, Dark={StaticResource Gray300}}"
+                                           HorizontalTextAlignment="Center"/>
+                                </Grid>
+                            </Grid>
+                        </Border>
+                    </Grid>
+
+                    <!-- Section: Kinematics -->
+                    <Label Grid.Row="3" Text="KINEMATICS"
+                           FontSize="10"
+                           FontAttributes="Bold"
+                           TextColor="{StaticResource Secondary}"
+                           CharacterSpacing="1.5"
+                           Margin="2,0,0,4"/>
+                    <Grid Grid.Row="4"
+                          ColumnDefinitions="*,*" ColumnSpacing="8"
+                          RowDefinitions="*,*" RowSpacing="8">
+                        <!-- Avg Speed -->
+                        <Border Grid.Row="0" Grid.Column="0"
+                                StrokeShape="RoundRectangle 10" StrokeThickness="0"
+                                BackgroundColor="{AppThemeBinding Light={StaticResource CardBackground}, Dark={StaticResource CardBackgroundDark}}"
+                                Padding="0">
+                            <Border.Shadow>
+                                <Shadow Brush="#30000000" Offset="0,2" Radius="6" Opacity="0.3"/>
+                            </Border.Shadow>
+                            <Grid ColumnDefinitions="4,*">
+                                <BoxView Grid.Column="0" Color="{StaticResource Secondary}"/>
+                                <Grid Grid.Column="1" RowDefinitions="*,Auto" Padding="6,6,6,6">
+                                    <HorizontalStackLayout Grid.Row="0" Spacing="2"
+                                                           HorizontalOptions="Center" VerticalOptions="Center">
+                                        <Label x:Name="StatAvgSpeed" Text="--"
+                                               FontSize="26" FontAttributes="Bold"
+                                               TextColor="{AppThemeBinding Light={StaticResource Gray950}, Dark={StaticResource White}}"
+                                               VerticalTextAlignment="Center"/>
+                                        <Label Text="mph" FontSize="11" FontAttributes="Bold"
+                                               TextColor="{StaticResource Gray400}"
+                                               VerticalTextAlignment="End" Margin="0,0,0,5"/>
+                                    </HorizontalStackLayout>
+                                    <Label Grid.Row="1" Text="AVG SPEED"
+                                           FontSize="9" FontAttributes="Bold"
+                                           CharacterSpacing="1.2"
+                                           TextColor="{AppThemeBinding Light={StaticResource Gray500}, Dark={StaticResource Gray300}}"
+                                           HorizontalTextAlignment="Center"/>
+                                </Grid>
+                            </Grid>
+                        </Border>
+                        <!-- Avg Accel -->
+                        <Border Grid.Row="0" Grid.Column="1"
+                                StrokeShape="RoundRectangle 10" StrokeThickness="0"
+                                BackgroundColor="{AppThemeBinding Light={StaticResource CardBackground}, Dark={StaticResource CardBackgroundDark}}"
+                                Padding="0">
+                            <Border.Shadow>
+                                <Shadow Brush="#30000000" Offset="0,2" Radius="6" Opacity="0.3"/>
+                            </Border.Shadow>
+                            <Grid ColumnDefinitions="4,*">
+                                <BoxView Grid.Column="0" Color="{StaticResource Secondary}"/>
+                                <Grid Grid.Column="1" RowDefinitions="*,Auto" Padding="6,6,6,6">
+                                    <HorizontalStackLayout Grid.Row="0" Spacing="2"
+                                                           HorizontalOptions="Center" VerticalOptions="Center">
+                                        <Label x:Name="StatAvgAccel" Text="--"
+                                               FontSize="26" FontAttributes="Bold"
+                                               TextColor="{AppThemeBinding Light={StaticResource Gray950}, Dark={StaticResource White}}"
+                                               VerticalTextAlignment="Center"/>
+                                        <Label Text="ft/s&#x00B2;" FontSize="11" FontAttributes="Bold"
+                                               TextColor="{StaticResource Gray400}"
+                                               VerticalTextAlignment="End" Margin="0,0,0,5"/>
+                                    </HorizontalStackLayout>
+                                    <Label Grid.Row="1" Text="AVG ACCEL"
+                                           FontSize="9" FontAttributes="Bold"
+                                           CharacterSpacing="1.2"
+                                           TextColor="{AppThemeBinding Light={StaticResource Gray500}, Dark={StaticResource Gray300}}"
+                                           HorizontalTextAlignment="Center"/>
+                                </Grid>
+                            </Grid>
+                        </Border>
+                        <!-- Entry Speed -->
+                        <Border Grid.Row="1" Grid.Column="0"
+                                StrokeShape="RoundRectangle 10" StrokeThickness="0"
+                                BackgroundColor="{AppThemeBinding Light={StaticResource CardBackground}, Dark={StaticResource CardBackgroundDark}}"
+                                Padding="0">
+                            <Border.Shadow>
+                                <Shadow Brush="#30000000" Offset="0,2" Radius="6" Opacity="0.3"/>
+                            </Border.Shadow>
+                            <Grid ColumnDefinitions="4,*">
+                                <BoxView Grid.Column="0" Color="{StaticResource Secondary}"/>
+                                <Grid Grid.Column="1" RowDefinitions="*,Auto" Padding="6,6,6,6">
+                                    <HorizontalStackLayout Grid.Row="0" Spacing="2"
+                                                           HorizontalOptions="Center" VerticalOptions="Center">
+                                        <Label x:Name="StatEntrySpeed" Text="--"
+                                               FontSize="26" FontAttributes="Bold"
+                                               TextColor="{AppThemeBinding Light={StaticResource Gray950}, Dark={StaticResource White}}"
+                                               VerticalTextAlignment="Center"/>
+                                        <Label Text="mph" FontSize="11" FontAttributes="Bold"
+                                               TextColor="{StaticResource Gray400}"
+                                               VerticalTextAlignment="End" Margin="0,0,0,5"/>
+                                    </HorizontalStackLayout>
+                                    <Label Grid.Row="1" Text="ENTRY SPEED"
+                                           FontSize="9" FontAttributes="Bold"
+                                           CharacterSpacing="1.2"
+                                           TextColor="{AppThemeBinding Light={StaticResource Gray500}, Dark={StaticResource Gray300}}"
+                                           HorizontalTextAlignment="Center"/>
+                                </Grid>
+                            </Grid>
+                        </Border>
+                        <!-- Exit Speed -->
+                        <Border Grid.Row="1" Grid.Column="1"
+                                StrokeShape="RoundRectangle 10" StrokeThickness="0"
+                                BackgroundColor="{AppThemeBinding Light={StaticResource CardBackground}, Dark={StaticResource CardBackgroundDark}}"
+                                Padding="0">
+                            <Border.Shadow>
+                                <Shadow Brush="#30000000" Offset="0,2" Radius="6" Opacity="0.3"/>
+                            </Border.Shadow>
+                            <Grid ColumnDefinitions="4,*">
+                                <BoxView Grid.Column="0" Color="{StaticResource Secondary}"/>
+                                <Grid Grid.Column="1" RowDefinitions="*,Auto" Padding="6,6,6,6">
+                                    <HorizontalStackLayout Grid.Row="0" Spacing="2"
+                                                           HorizontalOptions="Center" VerticalOptions="Center">
+                                        <Label x:Name="StatExitSpeed" Text="--"
+                                               FontSize="26" FontAttributes="Bold"
+                                               TextColor="{AppThemeBinding Light={StaticResource Gray950}, Dark={StaticResource White}}"
+                                               VerticalTextAlignment="Center"/>
+                                        <Label Text="mph" FontSize="11" FontAttributes="Bold"
+                                               TextColor="{StaticResource Gray400}"
+                                               VerticalTextAlignment="End" Margin="0,0,0,5"/>
+                                    </HorizontalStackLayout>
+                                    <Label Grid.Row="1" Text="EXIT SPEED"
+                                           FontSize="9" FontAttributes="Bold"
+                                           CharacterSpacing="1.2"
+                                           TextColor="{AppThemeBinding Light={StaticResource Gray500}, Dark={StaticResource Gray300}}"
+                                           HorizontalTextAlignment="Center"/>
+                                </Grid>
+                            </Grid>
+                        </Border>
+                    </Grid>
+
+                    <!-- Section: Analysis -->
+                    <Label Grid.Row="6" Text="ANALYSIS"
+                           FontSize="10"
+                           FontAttributes="Bold"
+                           TextColor="{StaticResource Tertiary}"
+                           CharacterSpacing="1.5"
+                           Margin="2,0,0,4"/>
+
+                    <Border Grid.Row="7"
+                            StrokeShape="RoundRectangle 10"
+                            StrokeThickness="0"
+                            BackgroundColor="{AppThemeBinding Light={StaticResource CardBackground}, Dark={StaticResource CardBackgroundDark}}"
+                            Padding="0">
+                        <Border.Shadow>
+                            <Shadow Brush="#30000000" Offset="0,3" Radius="8" Opacity="0.35"/>
+                        </Border.Shadow>
+                        <Grid ColumnDefinitions="4,*">
+                            <BoxView Grid.Column="0" Color="{StaticResource Tertiary}"/>
+                            <Grid Grid.Column="1" RowDefinitions="*,Auto">
                                 <Grid.GestureRecognizers>
                                     <SwipeGestureRecognizer Direction="Left" Swiped="OnPlotSwipedLeft"/>
                                     <SwipeGestureRecognizer Direction="Right" Swiped="OnPlotSwipedRight"/>
@@ -278,19 +309,22 @@
                                 <!-- Plot panels stacked, toggled via IsVisible -->
                                 <Grid x:Name="PlotSpeedPanel" Grid.Row="0" IsVisible="True">
                                     <Label Text="Speed by Quarter (mph)" FontSize="9" FontAttributes="Bold"
-                                           TextColor="#7a7a9a" Margin="8,4,0,0"
+                                           TextColor="{AppThemeBinding Light={StaticResource Gray500}, Dark={StaticResource Gray300}}"
+                                           Margin="8,4,0,0"
                                            VerticalOptions="Start"/>
                                     <GraphicsView x:Name="SpeedPlotView" Margin="0,18,0,0"/>
                                 </Grid>
                                 <Grid x:Name="PlotAccelPanel" Grid.Row="0" IsVisible="False">
                                     <Label Text="Accel by Quarter (ft/s&#x00B2;)" FontSize="9" FontAttributes="Bold"
-                                           TextColor="#7a7a9a" Margin="8,4,0,0"
+                                           TextColor="{AppThemeBinding Light={StaticResource Gray500}, Dark={StaticResource Gray300}}"
+                                           Margin="8,4,0,0"
                                            VerticalOptions="Start"/>
                                     <GraphicsView x:Name="AccelPlotView" Margin="0,18,0,0"/>
                                 </Grid>
                                 <Grid x:Name="PlotLateralPanel" Grid.Row="0" IsVisible="False">
                                     <Label Text="Lateral Position (in)" FontSize="9" FontAttributes="Bold"
-                                           TextColor="#7a7a9a" Margin="8,4,0,0"
+                                           TextColor="{AppThemeBinding Light={StaticResource Gray500}, Dark={StaticResource Gray300}}"
+                                           Margin="8,4,0,0"
                                            VerticalOptions="Start"/>
                                     <GraphicsView x:Name="LateralPlotView" Margin="0,18,0,0"/>
                                 </Grid>
@@ -302,7 +336,7 @@
                                                        Padding="0,4,0,8">
                                     <Border x:Name="PlotDot0"
                                             WidthRequest="8" HeightRequest="8"
-                                            BackgroundColor="#512BD4"
+                                            BackgroundColor="{StaticResource Secondary}"
                                             StrokeShape="RoundRectangle 4"
                                             StrokeThickness="0">
                                         <Border.GestureRecognizers>
@@ -311,7 +345,7 @@
                                     </Border>
                                     <Border x:Name="PlotDot1"
                                             WidthRequest="8" HeightRequest="8"
-                                            BackgroundColor="#512BD4"
+                                            BackgroundColor="{StaticResource Secondary}"
                                             StrokeShape="RoundRectangle 4"
                                             StrokeThickness="0">
                                         <Border.GestureRecognizers>
@@ -320,7 +354,7 @@
                                     </Border>
                                     <Border x:Name="PlotDot2"
                                             WidthRequest="8" HeightRequest="8"
-                                            BackgroundColor="#512BD4"
+                                            BackgroundColor="{StaticResource Secondary}"
                                             StrokeShape="RoundRectangle 4"
                                             StrokeThickness="0">
                                         <Border.GestureRecognizers>
@@ -329,10 +363,10 @@
                                     </Border>
                                 </HorizontalStackLayout>
                             </Grid>
-                        </Border>
+                        </Grid>
+                    </Border>
 
-                    </VerticalStackLayout>
-                </ScrollView>
+                </Grid>
             </Grid>
 
             <!-- ===== POSE PANE ===== -->
@@ -346,27 +380,26 @@
                 <Border Grid.Row="0"
                         StrokeShape="RoundRectangle 12"
                         StrokeThickness="0"
-                        Margin="0,40,0,0"
-                        >
+                        Margin="0,40,0,0">
                     <views:CiclopesPoseView x:Name="PoseView"/>
                 </Border>
 
                 <!-- Loading overlay for pose data -->
                 <Grid x:Name="PoseLoadingOverlay" Grid.Row="0"
-                      BackgroundColor="#E0f8f7fc"
+                      BackgroundColor="{AppThemeBinding Light=#E0F4F7FA, Dark=#E0121A24}"
                       Margin="0,40,0,0"
                       IsVisible="True">
                     <VerticalStackLayout VerticalOptions="Center"
                                          HorizontalOptions="Center"
                                          Spacing="12">
                         <ActivityIndicator IsRunning="True"
-                                           Color="#512BD4"
+                                           Color="{StaticResource Secondary}"
                                            WidthRequest="48"
                                            HeightRequest="48"/>
                         <Label x:Name="PoseLoadingLabel"
                                Text="Loading pose estimation..."
                                FontSize="14"
-                               TextColor="#6b5b95"
+                               TextColor="{AppThemeBinding Light={StaticResource Gray500}, Dark={StaticResource Gray300}}"
                                HorizontalTextAlignment="Center"/>
                     </VerticalStackLayout>
                 </Grid>
@@ -377,16 +410,15 @@
                       ColumnSpacing="6">
                     <Border Grid.Column="0"
                             StrokeShape="RoundRectangle 8"
-                            StrokeThickness="1"
-                            Stroke="#40ffffff"
-                            BackgroundColor="#30ffffff"
+                            StrokeThickness="0"
+                            BackgroundColor="{AppThemeBinding Light={StaticResource Gray100}, Dark={StaticResource Gray600}}"
                             Padding="2,0"
                             VerticalOptions="Center">
                         <Picker x:Name="SpeedPicker"
                                 WidthRequest="68"
                                 HeightRequest="36"
                                 FontSize="12"
-                                TextColor="#c0c0e0"
+                                TextColor="{AppThemeBinding Light={StaticResource Gray950}, Dark={StaticResource White}}"
                                 SelectedIndexChanged="OnSpeedPickerChanged"
                                 VerticalOptions="Center"/>
                     </Border>
@@ -403,9 +435,19 @@
                             FontSize="20"
                             Clicked="OnPlayStopClicked"
                             WidthRequest="44"
-                            HeightRequest="44"/>
+                            HeightRequest="44"
+                            Style="{StaticResource AccentButton}"/>
                 </Grid>
             </Grid>
+
+            <!-- Shot chip bar (multi-mode only) -->
+            <HorizontalStackLayout x:Name="ShotChipBar"
+                                   Grid.Row="0"
+                                   IsVisible="False"
+                                   HorizontalOptions="Center"
+                                   VerticalOptions="Start"
+                                   Spacing="6"
+                                   Margin="54,14,54,0"/>
 
             <!-- Close button (top-left, overlaid) -->
             <Border x:Name="CloseButton"
@@ -413,25 +455,17 @@
                     WidthRequest="36" HeightRequest="36"
                     StrokeShape="RoundRectangle 18"
                     StrokeThickness="0"
+                    BackgroundColor="{StaticResource Primary}"
                     HorizontalOptions="Start"
                     VerticalOptions="Start"
                     Margin="10,10,0,0">
                 <Border.Shadow>
                     <Shadow Brush="#40000000" Offset="0,2" Radius="6" Opacity="0.4"/>
                 </Border.Shadow>
-                <Grid>
-                    <Grid.Background>
-                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                            <GradientStop Color="#e8e0f4" Offset="0.0"/>
-                            <GradientStop Color="#d0c4e8" Offset="0.5"/>
-                            <GradientStop Color="#b8a8d8" Offset="1.0"/>
-                        </LinearGradientBrush>
-                    </Grid.Background>
-                    <Label Text="&#x2715;" FontSize="16" FontAttributes="Bold"
-                           TextColor="#3a2d5c"
-                           HorizontalTextAlignment="Center"
-                           VerticalTextAlignment="Center"/>
-                </Grid>
+                <Label Text="&#x2715;" FontSize="16" FontAttributes="Bold"
+                       TextColor="{StaticResource White}"
+                       HorizontalTextAlignment="Center"
+                       VerticalTextAlignment="Center"/>
                 <Border.GestureRecognizers>
                     <TapGestureRecognizer Tapped="OnCloseClicked"/>
                 </Border.GestureRecognizers>
@@ -446,7 +480,7 @@
                 <Border x:Name="BallDot"
                         WidthRequest="12"
                         HeightRequest="12"
-                        BackgroundColor="#1f2937"
+                        BackgroundColor="{AppThemeBinding Light={StaticResource Primary}, Dark={StaticResource Secondary}}"
                         StrokeShape="RoundRectangle 6"
                         StrokeThickness="0">
                     <Border.GestureRecognizers>
@@ -456,7 +490,7 @@
                 <Border x:Name="PoseDot"
                         WidthRequest="12"
                         HeightRequest="12"
-                        BackgroundColor="#1f2937"
+                        BackgroundColor="{AppThemeBinding Light={StaticResource Primary}, Dark={StaticResource Secondary}}"
                         StrokeShape="RoundRectangle 6"
                         StrokeThickness="0">
                     <Border.GestureRecognizers>
