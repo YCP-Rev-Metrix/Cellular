@@ -1156,6 +1156,11 @@ namespace Cellular
             {
                 var frame = i < frameIds.Count ? await frameRepository.GetFrameById(frameIds[i]) : null;
                 var existingFrame = viewModel.Frames[i];
+                ShotPageFrame? lastFrameReload = null;
+                if(viewModel.CurrentShot == 11)
+                {
+                    lastFrameReload = viewModel.Frames[i - 1];
+                }
 
                 if (frame != null)
                 {
@@ -1192,7 +1197,7 @@ namespace Cellular
                         // Process shot 1 and shot 2 using helpers to avoid duplication
                         if (shot1 != null)
                         {
-                            ProcessLoadedShotOne(existingFrame, shot1);
+                            ProcessLoadedShotOne(lastFrameReload, existingFrame, shot1);
                         }
 
                         if (shot2 != null)
@@ -1341,7 +1346,7 @@ namespace Cellular
         }
 
         // Helper used when reloading a saved game: process the first shot UI/state update
-        private void ProcessLoadedShotOne(ShotPageFrame existingFrame, ViewModel.Shot shot1)
+        private void ProcessLoadedShotOne(ShotPageFrame lastFrameReload, ShotPageFrame existingFrame, ViewModel.Shot shot1)
         {
             if (shot1 == null) return;
 
@@ -1365,7 +1370,7 @@ namespace Cellular
                 if (viewModel.CurrentFrame == 11)
                 {
                     // Only add frame 12 if one doesn't already exist
-                    if (!viewModel.Frames.Any(f => f.FrameNumber == 12))
+                    if (!viewModel.Frames.Any(f => f.FrameNumber == 12) && lastFrameReload != null && lastFrameReload.ShotOneBox.Equals("X"))
                     {
                         ShotPageFrame newFrame = new ShotPageFrame(12);
                         viewModel.Frames.Add(newFrame);
