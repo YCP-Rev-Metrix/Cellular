@@ -44,7 +44,7 @@ namespace Cellular
             int userId = Preferences.Get("UserId", -1);
             if (userId < 0)
             {
-                await DisplayAlert("Sync", "Please sign in to sync.", "OK");
+                await DisplayAlertAsync("Sync", "Please sign in to sync.", "OK");
                 return;
             }
 
@@ -60,7 +60,7 @@ namespace Cellular
                 if (result.Result == SyncCheckResult.Error)
                 {
                     _viewModel.SyncError = result.ErrorMessage ?? "Sync failed.";
-                    await DisplayAlert("Sync Error", _viewModel.SyncError, "OK");
+                    await DisplayAlertAsync("Sync Error", _viewModel.SyncError, "OK");
                     RefreshSyncUi();
                     return;
                 }
@@ -72,7 +72,7 @@ namespace Cellular
                     const string overwriteLocalWithCloud = "Overwrite Local with Cloud Data";
                     const string overwriteCloudWithLocal = "Overwrite Cloud with Local Data";
 
-                    string action = await DisplayActionSheet(
+                    string action = await DisplayActionSheetAsync(
                         "The Cloud User and the Local User Differ",
                         "Cancel",
                         null,
@@ -93,7 +93,7 @@ namespace Cellular
                         if (cloud.Error != null)
                         {
                             _viewModel.SyncError = cloud.Error;
-                            await DisplayAlert("Sync Error", cloud.Error, "OK");
+                            await DisplayAlertAsync("Sync Error", cloud.Error, "OK");
                             RefreshSyncUi();
                             return;
                         }
@@ -104,7 +104,7 @@ namespace Cellular
                         if (overwriteErr != null)
                         {
                             _viewModel.SyncError = overwriteErr;
-                            await DisplayAlert("Sync Error", overwriteErr, "OK");
+                            await DisplayAlertAsync("Sync Error", overwriteErr, "OK");
                             RefreshSyncUi();
                             return;
                         }
@@ -112,7 +112,7 @@ namespace Cellular
                         if (addErr != null)
                         {
                             _viewModel.SyncError = addErr;
-                            await DisplayAlert("Sync Error", addErr, "OK");
+                            await DisplayAlertAsync("Sync Error", addErr, "OK");
                             RefreshSyncUi();
                             return;
                         }
@@ -124,14 +124,14 @@ namespace Cellular
                         if (replaceErr != null)
                         {
                             _viewModel.SyncError = replaceErr;
-                            await DisplayAlert("Sync Error", replaceErr, "OK");
+                            await DisplayAlertAsync("Sync Error", replaceErr, "OK");
                             RefreshSyncUi();
                             return;
                         }
                     }
 
                     if (action != "Cancel")
-                        await DisplayAlert("Sync", "Sync completed successfully.", "OK");
+                        await DisplayAlertAsync("Sync", "Sync completed successfully.", "OK");
                 }
                 else
                 {
@@ -139,11 +139,11 @@ namespace Cellular
                     if (addErr != null)
                     {
                         _viewModel.SyncError = addErr;
-                        await DisplayAlert("Sync Error", addErr, "OK");
+                        await DisplayAlertAsync("Sync Error", addErr, "OK");
                         RefreshSyncUi();
                         return;
                     }
-                    await DisplayAlert("Sync", "Sync completed successfully.", "OK");
+                    await DisplayAlertAsync("Sync", "Sync completed successfully.", "OK");
                 }
 
                 _viewModel.SyncError = null;

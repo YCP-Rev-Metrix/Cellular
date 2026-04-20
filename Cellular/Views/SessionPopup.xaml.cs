@@ -20,7 +20,7 @@ public partial class SessionPopup : Popup, INotifyPropertyChanged
         try
         {
             // Ensure Close runs on the UI thread
-            Application.Current?.MainPage?.Dispatcher.Dispatch(() => CloseAsync());
+            Application.Current?.Windows[0]?.Page?.Dispatcher.Dispatch(() => CloseAsync());
         }
         catch (Exception ex)
         {

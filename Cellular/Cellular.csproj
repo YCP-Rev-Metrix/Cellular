@@ -123,8 +123,8 @@
 		<Compile Update="SessionList.xaml.cs">
 			<DependentUpon>SessionList.xaml</DependentUpon>
 		</Compile>
-		<Compile Update="Bluetooth.xaml.cs">
-			<DependentUpon>Bluetooth.xaml</DependentUpon>
+		<Compile Update="SmartDot.xaml.cs">
+			<DependentUpon>SmartDot.xaml</DependentUpon>
 		</Compile>
 		<Compile Update="SensorGraphPage.xaml.cs">
 			<DependentUpon>SensorGraphPage.xaml</DependentUpon>
@@ -227,7 +227,7 @@
 		<MauiXaml Update="Account.xaml">
 			<Generator>MSBuild:Compile</Generator>
 		</MauiXaml>
-		<MauiXaml Update="Bluetooth.xaml">
+		<MauiXaml Update="SmartDot.xaml">
 			<Generator>MSBuild:Compile</Generator>
 		</MauiXaml>
 		<MauiXaml Update="SensorGraphPage.xaml">

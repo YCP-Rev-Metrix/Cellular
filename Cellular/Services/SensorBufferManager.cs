@@ -53,7 +53,6 @@ namespace Cellular.Services
         private DateTime? _prevAccelTimestamp;
         private readonly List<DateTime> _accelerometerJumpTimestamps = new List<DateTime>();
         private bool _hasPrintedFirstJump = false;
-        private readonly List<float> _recentDerivativeMagnitudes = new List<float>(); // Rolling window for averaging
         
         /// <summary>
         /// Structure to store accelerometer derivative information
@@ -78,11 +77,36 @@ namespace Cellular.Services
             get => Microsoft.Maui.Storage.Preferences.Get(LightThresholdPreferenceKey, DefaultLightSensorHighThreshold);
             set => Microsoft.Maui.Storage.Preferences.Set(LightThresholdPreferenceKey, value);
         }
-        private const double ContinuousSaveDurationSeconds = 4.0; // Save for 4 seconds
-        private const float AccelerometerDerivativeJumpThreshold = 5.0f; // G/s threshold for detecting jumps (fallback when not enough data)
-        private const int DerivativeAveragingWindowSize = 10; // Number of previous derivatives to average
-        private const float DerivativeSpikeMultiplier = 1.8f; // Multiplier above average to consider a spike (lower = more sensitive for bowling release)
-        private const float MinimumSpikeThreshold = 8.0f; // Minimum absolute threshold (G/s) to avoid false positives from small motions
+        private const string RecordDurationPreferenceKey = "RecordDurationSeconds";
+        private const double DefaultContinuousSaveDurationSeconds = 4.0;
+
+        public static double ContinuousSaveDurationSeconds
+        {
+            get => Microsoft.Maui.Storage.Preferences.Get(RecordDurationPreferenceKey, DefaultContinuousSaveDurationSeconds);
+            set => Microsoft.Maui.Storage.Preferences.Set(RecordDurationPreferenceKey, value);
+        }
+        // ── Sensor configuration (persisted via Preferences) ──────────────────────
+        public static float AccelSampleRate      { get => Pref(50f,   "AccelSampleRate");    set => Microsoft.Maui.Storage.Preferences.Set("AccelSampleRate",    value); }
+        public static float AccelRange           { get => Pref(16f,   "AccelRange");         set => Microsoft.Maui.Storage.Preferences.Set("AccelRange",         value); }
+        public static float GyroSampleRate       { get => Pref(100f,  "GyroSampleRate");     set => Microsoft.Maui.Storage.Preferences.Set("GyroSampleRate",     value); }
+        public static float GyroRange            { get => Pref(2000f, "GyroRange");          set => Microsoft.Maui.Storage.Preferences.Set("GyroRange",          value); }
+        public static float MagSampleRate        { get => Pref(25f,   "MagSampleRate");      set => Microsoft.Maui.Storage.Preferences.Set("MagSampleRate",      value); }
+        public static float LightSampleRate      { get => Pref(10f,   "LightSampleRate");    set => Microsoft.Maui.Storage.Preferences.Set("LightSampleRate",    value); }
+        public static int   LightGain            { get => Microsoft.Maui.Storage.Preferences.Get("LightGain",            0); set => Microsoft.Maui.Storage.Preferences.Set("LightGain",            value); }
+        public static int   LightIntegrationTime { get => Microsoft.Maui.Storage.Preferences.Get("LightIntegrationTime", 0); set => Microsoft.Maui.Storage.Preferences.Set("LightIntegrationTime", value); }
+        public static int   LightMeasurementRate { get => Microsoft.Maui.Storage.Preferences.Get("LightMeasurementRate", 1); set => Microsoft.Maui.Storage.Preferences.Set("LightMeasurementRate", value); }
+        public static int   BaroOversampling     { get => Microsoft.Maui.Storage.Preferences.Get("BaroOversampling",     3); set => Microsoft.Maui.Storage.Preferences.Set("BaroOversampling",     value); }
+        public static int   BaroIirFilter        { get => Microsoft.Maui.Storage.Preferences.Get("BaroIirFilter",        0); set => Microsoft.Maui.Storage.Preferences.Set("BaroIirFilter",        value); }
+        public static int   BaroStandbyTime      { get => Microsoft.Maui.Storage.Preferences.Get("BaroStandbyTime",      0); set => Microsoft.Maui.Storage.Preferences.Set("BaroStandbyTime",      value); }
+        private static float Pref(float def, string key) => Microsoft.Maui.Storage.Preferences.Get(key, def);
+        // ──────────────────────────────────────────────────────────────────────────
+
+        // Ball hitting the lane floor peaks ~16 G (per Prof Hake thesis). Max swing ~2 G.
+        // 6 G comfortably separates the two with plenty of headroom.
+        private const float FloorImpactThresholdG = 6.0f;
+        // 200 ms cooldown so one physical impact doesn't produce repeated entries at 50 Hz.
+        private const double FloorImpactCooldownSeconds = 0.2;
+        private DateTime? _lastFloorImpactTime = null;
         private const double MinDeltaTimeSeconds = 0.018; // Minimum delta time (18ms) to clamp derivatives - accelerometer runs at 50Hz (~20ms)
 
         /// <summary>
@@ -153,12 +177,13 @@ namespace Cellular.Services
                 _prevAccelTimestamp = null;
                 _accelerometerJumpTimestamps.Clear();
                 _accelerometerDerivatives.Clear();
-                _recentDerivativeMagnitudes.Clear();
                 _hasPrintedFirstJump = false;
+                _lastFloorImpactTime = null;
             }
 
             try
             {
+                
                 // Always stop all sensors first to ensure a clean state between recordings
                 await _metaWearService.StopAccelerometerAsync();
                 await _metaWearService.StopGyroscopeAsync();
@@ -166,11 +191,11 @@ namespace Cellular.Services
                 await _metaWearService.StopLightSensorAsync();
                 await Task.Delay(150); // Brief settle time for BLE stack
 
-                // Start all sensors fresh
-                await _metaWearService.StartAccelerometerAsync(50f, 16f);
-                await _metaWearService.StartGyroscopeAsync(100f, 2000f);
-                await _metaWearService.StartMagnetometerAsync(25f);
-                await _metaWearService.StartLightSensorAsync(10f);
+                // Start all sensors needed for buffering, using saved configuration
+                await _metaWearService.StartAccelerometerAsync(AccelSampleRate, AccelRange);
+                await _metaWearService.StartGyroscopeAsync(GyroSampleRate, GyroRange);
+                await _metaWearService.StartMagnetometerAsync(MagSampleRate);
+                await _metaWearService.StartLightSensorAsync(LightSampleRate, (byte)LightGain, (byte)LightIntegrationTime, (byte)LightMeasurementRate);
 
                 lock (_bufferLock)
                 {
@@ -418,6 +443,9 @@ namespace Cellular.Services
                 // JumpCount -- how many jumps were detected
                 // TotalDerivativeCalculations -- how many derivative calculations were performed
                 // Create a wrapper object that includes sensor data split by section, derivatives, and jump timestamps
+                // AccelerometerJumpTimestamps = timestamps where raw acceleration magnitude
+                // exceeded FloorImpactThresholdG (6 G), indicating ball hitting the lane floor.
+                // Ball hitting floor peaks ~16 G (Prof Hake thesis). Swing max ~2 G.
                 var saveData = new
                 {
                     BufferData = bufferData,
@@ -456,9 +484,9 @@ namespace Cellular.Services
 
                 System.Diagnostics.Debug.WriteLine($"[SensorBuffer] Saved {data.Count} points to temp file: {tempFilePath}");
                 System.Diagnostics.Debug.WriteLine($"[SensorBuffer] Time range: {firstTimestamp:HH:mm:ss.fff} to {lastTimestamp:HH:mm:ss.fff} (duration: {duration:F2}s)");
+                System.Diagnostics.Debug.WriteLine($"[SensorBuffer] Floor impact spikes (≥{FloorImpactThresholdG} G): {jumpTimestamps.Count} detected");
                 System.Diagnostics.Debug.WriteLine($"[SensorBuffer] Accelerometer derivatives: {derivatives.Count} calculations");
-                System.Diagnostics.Debug.WriteLine($"[SensorBuffer] Accelerometer jump timestamps: {jumpTimestamps.Count} jumps detected");
-                
+
                 // Print derivative values asynchronously to avoid blocking (limit to first 50 for performance)
                 _ = Task.Run(() =>
                 {
@@ -469,7 +497,7 @@ namespace Cellular.Services
                         var deriv = derivatives[i];
                         System.Diagnostics.Debug.WriteLine($"[SensorBuffer] Derivative #{i + 1} at {deriv.Timestamp:HH:mm:ss.fff}: " +
                             $"dX={deriv.DerivativeX:F3} G/s, dY={deriv.DerivativeY:F3} G/s, dZ={deriv.DerivativeZ:F3} G/s, " +
-                            $"Magnitude={deriv.Magnitude:F3} G/s {(deriv.Magnitude >= AccelerometerDerivativeJumpThreshold ? "[JUMP!]" : "")}");
+                            $"Magnitude={deriv.Magnitude:F3} G/s");
                     }
                     if (derivatives.Count > 50)
                     {
@@ -614,108 +642,57 @@ namespace Cellular.Services
                 point.AccelY = data.Y;
                 point.AccelZ = data.Z;
 
-                // Calculate derivative and detect jumps
+                // Calculate derivative for each axis (G/s) — still recorded for analysis
                 if (_prevAccelX.HasValue && _prevAccelY.HasValue && _prevAccelZ.HasValue && _prevAccelTimestamp.HasValue)
                 {
-                    // Calculate time difference in seconds
                     double deltaTime = (data.Timestamp - _prevAccelTimestamp.Value).TotalSeconds;
-                    
-                    if (deltaTime > 0) // Avoid division by zero
+                    if (deltaTime > 0)
                     {
-                        // Clamp delta time to minimum expected interval (50Hz = 20ms)
-                        // This prevents inflated derivatives when BLE batching delivers timestamps closer together
                         double clampedDeltaTime = Math.Max(deltaTime, MinDeltaTimeSeconds);
-
-                        // Calculate derivative (rate of change) for each axis (G/s)
                         float derivativeX = (data.X - _prevAccelX.Value) / (float)clampedDeltaTime;
                         float derivativeY = (data.Y - _prevAccelY.Value) / (float)clampedDeltaTime;
                         float derivativeZ = (data.Z - _prevAccelZ.Value) / (float)clampedDeltaTime;
-
-                        // Calculate magnitude of derivative vector
                         float derivativeMagnitude = (float)Math.Sqrt(
-                            derivativeX * derivativeX + 
-                            derivativeY * derivativeY + 
+                            derivativeX * derivativeX +
+                            derivativeY * derivativeY +
                             derivativeZ * derivativeZ);
 
-                        // Calculate average of previous derivatives (before adding current)
-                        float averageDerivativeMagnitude = 0f;
-                        bool hasEnoughData = _recentDerivativeMagnitudes.Count >= DerivativeAveragingWindowSize;
-                        
-                        if (hasEnoughData)
-                        {
-                            // Calculate average of previous values only
-                            averageDerivativeMagnitude = _recentDerivativeMagnitudes.Average();
-                        }
-
-                        // Add current to rolling window for future averaging
-                        _recentDerivativeMagnitudes.Add(derivativeMagnitude);
-                        
-                        // Keep only the most recent values in the window
-                        if (_recentDerivativeMagnitudes.Count > DerivativeAveragingWindowSize)
-                        {
-                            _recentDerivativeMagnitudes.RemoveAt(0);
-                        }
-
-                        // Store derivative information (including average)
-                        var derivative = new AccelerometerDerivative
+                        _accelerometerDerivatives.Add(new AccelerometerDerivative
                         {
                             Timestamp = data.Timestamp,
                             DerivativeX = derivativeX,
                             DerivativeY = derivativeY,
                             DerivativeZ = derivativeZ,
                             Magnitude = derivativeMagnitude
-                        };
-                        _accelerometerDerivatives.Add(derivative);
+                        });
+                    }
+                }
 
-                        // Check if derivative spikes above the average (only if we have enough data points)
-                        bool isSpike = false;
-                        if (hasEnoughData)
+                // Spike detection: raw acceleration magnitude ≥ 6 G signals the ball hitting the lane.
+                // Ball hitting floor peaks ~16 G (Prof Hake thesis). Max swing ~2 G.
+                // 200 ms cooldown prevents one physical impact registering multiple times at 50 Hz.
+                float rawMagnitude = (float)Math.Sqrt(data.X * data.X + data.Y * data.Y + data.Z * data.Z);
+                if (rawMagnitude >= FloorImpactThresholdG)
+                {
+                    bool cooldownPassed = !_lastFloorImpactTime.HasValue ||
+                        (data.Timestamp - _lastFloorImpactTime.Value).TotalSeconds >= FloorImpactCooldownSeconds;
+
+                    if (cooldownPassed)
+                    {
+                        _lastFloorImpactTime = data.Timestamp;
+                        _accelerometerJumpTimestamps.Add(data.Timestamp);
+
+                        if (!_hasPrintedFirstJump)
                         {
-                            // A spike is when current magnitude is significantly above the average of previous values
-                            // For bowling release detection, we use a lower multiplier (1.8x) for better sensitivity
-                            float spikeThreshold = Math.Max(
-                                averageDerivativeMagnitude * DerivativeSpikeMultiplier,
-                                MinimumSpikeThreshold); // Ensure minimum threshold to avoid false positives
-                            isSpike = derivativeMagnitude >= spikeThreshold;
-                            
-                            if (isSpike)
-                            {
-                                // Save the timestamp when spike is detected
-                                _accelerometerJumpTimestamps.Add(data.Timestamp);
-                                
-                                // Only print the first time a spike is detected
-                                if (!_hasPrintedFirstJump)
-                                {
-                                    _hasPrintedFirstJump = true;
-                                    System.Diagnostics.Debug.WriteLine($"[SensorBuffer] FIRST accelerometer derivative spike detected! " +
-                                        $"Magnitude: {derivativeMagnitude:F2} G/s (avg: {averageDerivativeMagnitude:F2} G/s, threshold: {spikeThreshold:F2} G/s) " +
-                                        $"at {data.Timestamp:HH:mm:ss.fff} " +
-                                        $"(dX: {derivativeX:F2}, dY: {derivativeY:F2}, dZ: {derivativeZ:F2} G/s)");
-                                }
-                                else
-                                {
-                                    System.Diagnostics.Debug.WriteLine($"[SensorBuffer] Derivative spike detected: " +
-                                        $"Magnitude: {derivativeMagnitude:F2} G/s (avg: {averageDerivativeMagnitude:F2} G/s) " +
-                                        $"at {data.Timestamp:HH:mm:ss.fff}");
-                                }
-                            }
+                            _hasPrintedFirstJump = true;
+                            System.Diagnostics.Debug.WriteLine(
+                                $"[SensorBuffer] FIRST floor impact spike at {data.Timestamp:HH:mm:ss.fff} — " +
+                                $"{rawMagnitude:F2} G (X={data.X:F2} Y={data.Y:F2} Z={data.Z:F2})");
                         }
                         else
                         {
-                            // Not enough data points yet, use original threshold method as fallback
-                            if (derivativeMagnitude >= AccelerometerDerivativeJumpThreshold)
-                            {
-                                isSpike = true;
-                                _accelerometerJumpTimestamps.Add(data.Timestamp);
-                                
-                                if (!_hasPrintedFirstJump)
-                                {
-                                    _hasPrintedFirstJump = true;
-                                    System.Diagnostics.Debug.WriteLine($"[SensorBuffer] FIRST accelerometer derivative jump detected (insufficient data for averaging)! " +
-                                        $"Magnitude: {derivativeMagnitude:F2} G/s at {data.Timestamp:HH:mm:ss.fff} " +
-                                        $"(dX: {derivativeX:F2}, dY: {derivativeY:F2}, dZ: {derivativeZ:F2} G/s)");
-                                }
-                            }
+                            System.Diagnostics.Debug.WriteLine(
+                                $"[SensorBuffer] Floor impact spike at {data.Timestamp:HH:mm:ss.fff} — {rawMagnitude:F2} G");
                         }
                     }
                 }

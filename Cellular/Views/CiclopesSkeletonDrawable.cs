@@ -22,8 +22,10 @@ public class CiclopesSkeletonRenderer
     private static readonly SKPaint BonePaint = new() { StrokeWidth = 2.5f, Style = SKPaintStyle.Stroke, IsAntialias = true, StrokeCap = SKStrokeCap.Round };
     private static readonly SKPaint JointPaint = new() { Style = SKPaintStyle.Fill, IsAntialias = true };
     private static readonly SKPaint GlowPaint = new() { Style = SKPaintStyle.Fill, IsAntialias = true };
-    private static readonly SKPaint TextPaint = new() { Color = SKColors.White, TextSize = 7, IsAntialias = true };
-    private static readonly SKPaint NoDataPaint = new() { Color = SKColors.Gray, TextSize = 13, IsAntialias = true, TextAlign = SKTextAlign.Center };
+    private static readonly SKPaint TextPaint = new() { Color = SKColors.White, IsAntialias = true };
+    private static readonly SKFont TextFont = new() { Size = 7 };
+    private static readonly SKPaint NoDataPaint = new() { Color = SKColors.Gray, IsAntialias = true };
+    private static readonly SKFont NoDataFont = new() { Size = 13 };
 
     // Color cache to avoid repeated parsing
     private static readonly Dictionary<string, SKColor> ColorCache = new();
@@ -49,7 +51,7 @@ public class CiclopesSkeletonRenderer
 
         if (Joints.Count == 0)
         {
-            canvas.DrawText("No skeleton data", width / 2f, height / 2f, NoDataPaint);
+            canvas.DrawText("No skeleton data", width / 2f, height / 2f, SKTextAlign.Center, NoDataFont, NoDataPaint);
             return;
         }
 
@@ -136,7 +138,7 @@ public class CiclopesSkeletonRenderer
 
             if (ShowJointLabels)
             {
-                canvas.DrawText(jointId.ToString(), sx + radius + 2, sy + 3, TextPaint);
+                canvas.DrawText(jointId.ToString(), sx + radius + 2, sy + 3, TextFont, TextPaint);
             }
         }
     }

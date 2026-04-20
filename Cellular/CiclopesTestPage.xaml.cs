@@ -31,7 +31,7 @@ public partial class CiclopesTestPage : ContentPage
 
             if (laneBallsResponse is null)
             {
-                await DisplayAlert("Ciclopes", "No lane/balls data returned.", "OK");
+                await DisplayAlertAsync("Ciclopes", "No lane/balls data returned.", "OK");
                 return;
             }
 
@@ -40,7 +40,7 @@ public partial class CiclopesTestPage : ContentPage
         }
         catch (Exception ex)
         {
-            await DisplayAlert("Ciclopes Request Failed", $"{ex.GetType().Name}: {ex.Message}\n\n{ex.StackTrace}", "OK");
+            await DisplayAlertAsync("Ciclopes Request Failed", $"{ex.GetType().Name}: {ex.Message}\n\n{ex.StackTrace}", "OK");
         }
         finally
         {
@@ -82,7 +82,7 @@ public partial class CiclopesTestPage : ContentPage
 
             if (laneResponse is null || laneResponse.Shots.Count == 0)
             {
-                await DisplayAlert("Ciclopes", "No shots returned.", "OK");
+                await DisplayAlertAsync("Ciclopes", "No shots returned.", "OK");
                 return;
             }
 
@@ -91,7 +91,7 @@ public partial class CiclopesTestPage : ContentPage
         }
         catch (Exception ex)
         {
-            await DisplayAlert("Query Failed", $"{ex.GetType().Name}: {ex.Message}\n\n{ex.StackTrace}", "OK");
+            await DisplayAlertAsync("Query Failed", $"{ex.GetType().Name}: {ex.Message}\n\n{ex.StackTrace}", "OK");
         }
         finally
         {

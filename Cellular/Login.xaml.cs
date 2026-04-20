@@ -24,7 +24,7 @@ namespace Cellular
 
             if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(password))
             {
-                await DisplayAlert("Login Failed", "Please enter a username and password.", "OK");
+                await DisplayAlertAsync("Login Failed", "Please enter a username and password.", "OK");
                 return;
             }
 

@@ -34,6 +34,7 @@ namespace Cellular.Services
         private SessionRepository? _syncSessionRepo;
         private BallRepository? _syncBallRepo;
         private EventRepository? _syncEventRepo;
+        private EstablishmentRepository? _syncEstablishmentRepo;
         private User? _syncUser;
         private int _syncUserId;
 
@@ -73,7 +74,7 @@ namespace Cellular.Services
         /// </summary>
         public void SetRepositories(GameRepository gameRepo, FrameRepository frameRepo, ShotRepository shotRepo, 
             SessionRepository? sessionRepo = null, BallRepository? ballRepo = null, EventRepository? eventRepo = null,
-            User? user = null, int userId = 0)
+            User? user = null, int userId = 0, EstablishmentRepository? establishmentRepo = null)
         {
             _gameRepo = gameRepo;
             _frameRepo = frameRepo;
@@ -83,12 +84,14 @@ namespace Cellular.Services
             _syncSessionRepo = sessionRepo;
             _syncBallRepo = ballRepo;
             _syncEventRepo = eventRepo;
+            _syncEstablishmentRepo = establishmentRepo;
             _syncUser = user;
             _syncUserId = userId;
 
             Debug.WriteLine("WatchBleService: Repositories initialized for shot processing and sync commands");
             Debug.WriteLine($"SetRepositories: _syncUser is {(user == null ? "NULL" : $"VALID (UserName={user.UserName}, Hand={user.Hand})")}");
             Debug.WriteLine($"SetRepositories: _syncUserId = {userId}");
+            Debug.WriteLine($"SetRepositories: _syncEstablishmentRepo is {(establishmentRepo == null ? "NULL" : "VALID")}");
         }
 
         /// <summary>
@@ -500,6 +503,10 @@ namespace Cellular.Services
                     }
                 }
 
+                // Map impact value to position string
+                string? positionString = MapImpactToPosition((int)impact);
+                Debug.WriteLine($"SaveShotToDatabase: Mapped impact {impact} to position '{positionString}'");
+
                 var shot = new Shot
                 {
                     ShotNumber = shotNumber,
@@ -507,8 +514,10 @@ namespace Cellular.Services
                     LeaveType = (short)(pinsStanding | (foul << 10)),
                     Stance = (int)stance,
                     Speed = ballSpeedMph.ToString("F1"),
+                    Position = positionString,
                     Frame = frame.FrameId,
-                    // Position, Side, Comment left as null (can be added later if needed)
+                    Side = null,
+                    Comment = null,
                     Count = pinsDown
                 };
 
@@ -662,7 +671,7 @@ namespace Cellular.Services
                     Debug.WriteLine("HandleNextSessionCommand: No more incomplete sessions available");
                     // Send packet indicating all sessions are complete (empty/minimal packet)
                     await SendJsonToWatch(_syncUserId, _syncSessionRepo, _syncBallRepo, _syncEventRepo,
-                        _gameRepo, _syncUser, _frameRepo, _shotRepo, 0);
+                        _gameRepo, _syncUser, _frameRepo, _shotRepo, _syncEstablishmentRepo, 0);
                     return;
                 }
 
@@ -670,7 +679,7 @@ namespace Cellular.Services
 
                 // Send user data packet with the new session
                 await SendJsonToWatch(_syncUserId, _syncSessionRepo, _syncBallRepo, _syncEventRepo,
-                    _gameRepo, _syncUser, _frameRepo, _shotRepo, nextSessionId);
+                    _gameRepo, _syncUser, _frameRepo, _shotRepo, _syncEstablishmentRepo, nextSessionId);
             }
             catch (Exception ex)
             {
@@ -685,23 +694,69 @@ namespace Cellular.Services
                 if (_syncSessionRepo == null || _gameRepo == null || _frameRepo == null)
                     return null;
 
-                // Get all sessions for the user, ordered by SessionId
+                // Get all sessions for the user
                 var allSessions = await _syncSessionRepo.GetSessionsByUserIdAsync(_syncUserId);
-                var sessionsAfterCurrent = allSessions.Where(s => s.SessionId > currentSessionId).OrderBy(s => s.SessionId).ToList();
 
-                // Check each session to see if it's incomplete
-                foreach (var session in sessionsAfterCurrent)
+                // Find incomplete sessions and pick the one closest to now
+                // When there's a tie in distance, prefer future dates over past dates
+                Session? closestSession = null;
+                TimeSpan? closestTimeSpan = null;
+                bool closestIsFuture = false;
+
+                foreach (var session in allSessions)
                 {
+                    // Skip the current/completed session
+                    if (session.SessionId == currentSessionId)
+                        continue;
+
                     if (await IsSessionCompleteAsync(session.SessionId))
                         continue; // This session is complete, skip it
 
-                    // Found an incomplete session
-                    Debug.WriteLine($"GetNextIncompleteSessionAsync: Found incomplete session {session.SessionId}");
-                    return session.SessionId;
+                    // Calculate time difference from now
+                    if (session.DateTime.HasValue)
+                    {
+                        TimeSpan timeDiff = DateTime.Now - session.DateTime.Value;
+                        bool isFuture = timeDiff < TimeSpan.Zero; // DateTime is after now
+                        TimeSpan absDiff = timeDiff.Duration(); // Absolute time difference
+
+                        if (closestTimeSpan == null)
+                        {
+                            // First session found
+                            closestSession = session;
+                            closestTimeSpan = absDiff;
+                            closestIsFuture = isFuture;
+                        }
+                        else if (absDiff < closestTimeSpan)
+                        {
+                            // This session is closer in time
+                            closestSession = session;
+                            closestTimeSpan = absDiff;
+                            closestIsFuture = isFuture;
+                        }
+                        else if (absDiff == closestTimeSpan && isFuture && !closestIsFuture)
+                        {
+                            // Same time distance, but this one is in the future and current one is in the past
+                            // Prefer the future date
+                            closestSession = session;
+                            closestIsFuture = isFuture;
+                        }
+                    }
+                    else if (closestSession == null)
+                    {
+                        // No DateTime? Use as fallback only if we haven't found anything better
+                        closestSession = session;
+                    }
                 }
 
-                Debug.WriteLine($"GetNextIncompleteSessionAsync: No incomplete sessions found after {currentSessionId}");
-                return null; // No incomplete sessions found
+                if (closestSession != null)
+                {
+                    string futureIndicator = closestIsFuture ? "(future)" : "(past)";
+                    Debug.WriteLine($"GetNextIncompleteSessionAsync: Found closest incomplete session {closestSession.SessionId} (time diff: {closestTimeSpan} {futureIndicator})");
+                    return closestSession.SessionId;
+                }
+
+                Debug.WriteLine($"GetNextIncompleteSessionAsync: No incomplete sessions found");
+                return null;
             }
             catch (Exception ex)
             {
@@ -946,7 +1001,7 @@ namespace Cellular.Services
 
                 // Resend the user data packet with current state
                 await SendJsonToWatch(_syncUserId, _syncSessionRepo, _syncBallRepo, _syncEventRepo, 
-                    _gameRepo, _syncUser, _frameRepo, _shotRepo);
+                    _gameRepo, _syncUser, _frameRepo, _shotRepo, _syncEstablishmentRepo);
             }
             catch (Exception ex)
             {
@@ -1006,7 +1061,7 @@ namespace Cellular.Services
             }
         }
 
-        private async Task<byte[]> BuildUserDataPacket(int userId, SessionRepository? sessionRepo, BallRepository? ballRepo, EventRepository? eventRepo, GameRepository? gameRepo, User? user, FrameRepository? frameRepo, ShotRepository? shotRepo, int? specificSessionId = null)
+        private async Task<byte[]> BuildUserDataPacket(int userId, SessionRepository? sessionRepo, BallRepository? ballRepo, EventRepository? eventRepo, GameRepository? gameRepo, User? user, FrameRepository? frameRepo, ShotRepository? shotRepo, EstablishmentRepository? establishmentRepo = null, int? specificSessionId = null)
         {
             using var ms = new System.IO.MemoryStream();
             using var writer = new System.IO.BinaryWriter(ms);
@@ -1026,6 +1081,7 @@ namespace Cellular.Services
             string eventName = "";
             bool sessionActive = false;
             ushort gameCount = 0; // Number of games in the session
+            int laneCount = 0; // Number of lanes in the establishment
             List<(ushort gameNumber, uint frameNumber, ushort shotNumber, ushort previousShotPins)> gameDataList = new();
 
             if (sessionRepo != null)
@@ -1045,15 +1101,64 @@ namespace Cellular.Services
                         }
                         else
                         {
-                            // Find the oldest incomplete session
-                            var sortedSessions = sessions.OrderBy(s => s.SessionId).ToList();
-                            foreach (var session in sortedSessions)
+                            // Find the incomplete session closest to current date/time
+                            // When there's a tie in distance, prefer future dates over past dates
+                            Session? closestSession = null;
+                            TimeSpan? closestTimeSpan = null;
+                            bool closestIsFuture = false;
+
+                            foreach (var session in sessions)
                             {
-                                if (!await IsSessionCompleteAsync(session.SessionId))
+                                if (await IsSessionCompleteAsync(session.SessionId))
+                                    continue; // Skip complete sessions
+
+                                // Calculate time difference from now
+                                if (session.DateTime.HasValue)
                                 {
-                                    sessionToUse = session;
-                                    Debug.WriteLine($"BuildUserDataPacket: Using oldest incomplete session {session.SessionId}");
-                                    break;
+                                    TimeSpan timeDiff = DateTime.Now - session.DateTime.Value;
+                                    bool isFuture = timeDiff < TimeSpan.Zero; // DateTime is after now
+                                    TimeSpan absDiff = timeDiff.Duration(); // Absolute time difference
+
+                                    if (closestTimeSpan == null)
+                                    {
+                                        // First session found
+                                        closestSession = session;
+                                        closestTimeSpan = absDiff;
+                                        closestIsFuture = isFuture;
+                                    }
+                                    else if (absDiff < closestTimeSpan)
+                                    {
+                                        // This session is closer in time
+                                        closestSession = session;
+                                        closestTimeSpan = absDiff;
+                                        closestIsFuture = isFuture;
+                                    }
+                                    else if (absDiff == closestTimeSpan && isFuture && !closestIsFuture)
+                                    {
+                                        // Same time distance, but this one is in the future and current one is in the past
+                                        // Prefer the future date
+                                        closestSession = session;
+                                        closestIsFuture = isFuture;
+                                    }
+                                }
+                                else if (closestSession == null)
+                                {
+                                    // No DateTime? Use as fallback only if we haven't found anything better
+                                    closestSession = session;
+                                }
+                            }
+
+                            if (closestSession != null)
+                            {
+                                sessionToUse = closestSession;
+                                if (closestSession.DateTime.HasValue)
+                                {
+                                    string futureIndicator = closestIsFuture ? "(future)" : "(past)";
+                                    Debug.WriteLine($"BuildUserDataPacket: Using session {closestSession.SessionId} closest to now (DateTime: {closestSession.DateTime:g}, time diff: {closestTimeSpan} {futureIndicator})");
+                                }
+                                else
+                                {
+                                    Debug.WriteLine($"BuildUserDataPacket: Using session {closestSession.SessionId} (no DateTime available, fallback)");
                                 }
                             }
                         }
@@ -1067,6 +1172,63 @@ namespace Cellular.Services
                             {
                                 var eventData = await eventRepo.GetEventByIdAsync(sessionToUse.EventId);
                                 eventName = eventData?.NickName ?? "";
+                            }
+
+                            // Get lane count from establishment through session relationship
+                            // Session.Establishment is the foreign key to Establishment
+                            if (establishmentRepo != null && sessionToUse.Establishment.HasValue && sessionToUse.Establishment.Value > 0)
+                            {
+                                LogDebug($"BuildUserDataPacket: establishmentRepo is available, sessionToUse.Establishment = {sessionToUse.Establishment.Value}");
+                                try
+                                {
+                                    var establishment = await establishmentRepo.GetEstablishmentByIdAsync(sessionToUse.Establishment.Value);
+                                    LogDebug($"BuildUserDataPacket: Got establishment object: {(establishment == null ? "NULL" : "NOT NULL")}");
+
+                                    if (establishment != null)
+                                    {
+                                        LogDebug($"BuildUserDataPacket: establishment.Lanes = '{establishment.Lanes}'");
+                                        if (!string.IsNullOrEmpty(establishment.Lanes))
+                                        {
+                                            string lanesStr = establishment.Lanes.Trim();
+                                            LogDebug($"BuildUserDataPacket: lanes string after trim = '{lanesStr}'");
+
+                                            if (int.TryParse(lanesStr, out int lanes))
+                                            {
+                                                LogDebug($"BuildUserDataPacket: int.TryParse succeeded, lanes = {lanes}");
+                                                if (lanes > 0)
+                                                {
+                                                    laneCount = lanes;
+                                                    LogDebug($"BuildUserDataPacket: Found {laneCount} lanes in establishment");
+                                                }
+                                                else
+                                                {
+                                                    LogDebug($"BuildUserDataPacket: lanes value is not > 0: {lanes}");
+                                                }
+                                            }
+                                            else
+                                            {
+                                                LogDebug($"BuildUserDataPacket: int.TryParse FAILED for '{lanesStr}'");
+                                            }
+                                        }
+                                        else
+                                        {
+                                            LogDebug($"BuildUserDataPacket: establishment.Lanes is null or empty");
+                                        }
+                                    }
+                                    else
+                                    {
+                                        LogDebug($"BuildUserDataPacket: GetEstablishmentByIdAsync returned NULL");
+                                    }
+                                }
+                                catch (Exception ex)
+                                {
+                                    LogDebug($"BuildUserDataPacket: Error querying establishment lanes: {ex.Message}");
+                                    LogDebug($"BuildUserDataPacket: Stack trace: {ex.StackTrace}");
+                                }
+                            }
+                            else
+                            {
+                                LogDebug($"BuildUserDataPacket: establishmentRepo is {(establishmentRepo == null ? "NULL" : "VALID")}, sessionToUse.Establishment is {(sessionToUse.Establishment.HasValue ? sessionToUse.Establishment.Value.ToString() : "NULL")}");
                             }
 
                             // Check if session has games (active session)
@@ -1235,6 +1397,10 @@ namespace Cellular.Services
 
             writer.Write((uint)userId);
 
+            // Lane count from the establishment
+            writer.Write((byte)laneCount);
+            Debug.WriteLine($"BuildUserDataPacket: Wrote {laneCount} lanes to packet");
+
             // Calculate and write packet length (excluding the header itself)
             long endPosition = ms.Position;
             byte packetLength = (byte)(endPosition - 3); // Length excludes header bytes
@@ -1249,7 +1415,7 @@ namespace Cellular.Services
             return packet;
         }
 
-        public async Task<bool> SendJsonToWatch(int userId, SessionRepository? sessionRepo, BallRepository? ballRepo, EventRepository? eventRepo, GameRepository? gameRepo, User? user, FrameRepository? frameRepo, ShotRepository? shotRepo, int? specificSessionId = null)
+        public async Task<bool> SendJsonToWatch(int userId, SessionRepository? sessionRepo, BallRepository? ballRepo, EventRepository? eventRepo, GameRepository? gameRepo, User? user, FrameRepository? frameRepo, ShotRepository? shotRepo, EstablishmentRepository? establishmentRepo = null, int? specificSessionId = null)
         {
             if (!IsConnected || _commandChar == null)
             {
@@ -1257,7 +1423,7 @@ namespace Cellular.Services
                 return false;
             }
 
-            byte[] bytes = await BuildUserDataPacket(userId, sessionRepo, ballRepo, eventRepo, gameRepo, user, frameRepo, shotRepo, specificSessionId);
+            byte[] bytes = await BuildUserDataPacket(userId, sessionRepo, ballRepo, eventRepo, gameRepo, user, frameRepo, shotRepo, establishmentRepo, specificSessionId);
 
             Debug.WriteLine($"SendJsonToWatch: Payload size = {bytes.Length} bytes");
 
@@ -1310,6 +1476,27 @@ namespace Cellular.Services
                 Debug.WriteLine($"Failed to request larger MTU: {ex.Message}");
                 // Not critical - will continue with default 20-byte MTU
             }
+        }
+
+        /// <summary>
+        /// Maps the integer impact value from the watch to a readable position string.
+        /// </summary>
+        private string? MapImpactToPosition(int impactValue)
+        {
+            return impactValue switch
+            {
+                0 => "gutter",
+                11 => "right",
+                13 => "light",
+                16 => "light pocket",
+                17 => "pocket",
+                18 => "high pocket",
+                20 => "nose",
+                21 => "high",
+                23 => "brooklyn",
+                27 => "left",
+                _ => null  // Unknown position
+            };
         }
     }
 }

@@ -84,11 +84,11 @@ public partial class DatabaseVisualizerPage : ContentPage
         int userId = Preferences.Get("UserId", -1);
         if (userId < 0)
         {
-            await DisplayAlert("Delete Local Data", "No signed-in user found.", "OK");
+            await DisplayAlertAsync("Delete Local Data", "No signed-in user found.", "OK");
             return;
         }
 
-        bool ok = await DisplayAlert(
+        bool ok = await DisplayAlertAsync(
             "Delete Local Data",
             "This will delete ALL LOCAL bowling data for this user (Ball/Event/Establishment/Session/Game/Frame/Shot) and keep Users. Continue?",
             "Delete",
@@ -106,20 +106,20 @@ public partial class DatabaseVisualizerPage : ContentPage
             var localErr = await syncService.ClearLocalDataAsync(userId);
             if (localErr != null)
             {
-                await DisplayAlert("Local Delete Error", localErr, "OK");
+                await DisplayAlertAsync("Local Delete Error", localErr, "OK");
                 return;
             }
 
             // Bust cache and refresh current view.
             _cloudCache = null;
             _cloudCacheLoadedAtUtc = DateTime.MinValue;
-            await DisplayAlert("Done", "Local data deleted (users kept).", "OK");
+            await DisplayAlertAsync("Done", "Local data deleted (users kept).", "OK");
             if (TablePicker.SelectedIndex >= 0)
                 LoadTableData(TablePicker.SelectedIndex);
         }
         catch (Exception ex)
         {
-            await DisplayAlert("Error", ex.Message, "OK");
+            await DisplayAlertAsync("Error", ex.Message, "OK");
         }
         finally
         {
@@ -133,11 +133,11 @@ public partial class DatabaseVisualizerPage : ContentPage
         int userId = Preferences.Get("UserId", -1);
         if (userId < 0)
         {
-            await DisplayAlert("Delete Cloud Data", "No signed-in user found.", "OK");
+            await DisplayAlertAsync("Delete Cloud Data", "No signed-in user found.", "OK");
             return;
         }
 
-        bool ok = await DisplayAlert(
+        bool ok = await DisplayAlertAsync(
             "Delete Cloud Data",
             "This will delete ALL CLOUD bowling data for this user (Ball/Event/Establishment/Session/Game/Frame/Shot) and keep Users. Continue?",
             "Delete",
@@ -154,7 +154,7 @@ public partial class DatabaseVisualizerPage : ContentPage
             var cloudErr = await syncService.ClearCloudDataAsync(userId);
             if (cloudErr != null)
             {
-                await DisplayAlert("Cloud Delete Error", cloudErr, "OK");
+                await DisplayAlertAsync("Cloud Delete Error", cloudErr, "OK");
                 return;
             }
 
@@ -166,13 +166,13 @@ public partial class DatabaseVisualizerPage : ContentPage
             var doneMsg = orphanErr == null
                 ? "Cloud data deleted (users kept). Orphan cleanup completed."
                 : $"Cloud data deleted (users kept). Orphan cleanup failed: {orphanErr}";
-            await DisplayAlert("Done", doneMsg, "OK");
+            await DisplayAlertAsync("Done", doneMsg, "OK");
             if (TablePicker.SelectedIndex >= 0)
                 LoadTableData(TablePicker.SelectedIndex);
         }
         catch (Exception ex)
         {
-            await DisplayAlert("Error", ex.Message, "OK");
+            await DisplayAlertAsync("Error", ex.Message, "OK");
         }
         finally
         {
@@ -384,7 +384,7 @@ public partial class DatabaseVisualizerPage : ContentPage
             };
             deleteBtn.Clicked += async (_, _) =>
             {
-                bool ok = await DisplayAlert("Delete row", $"Remove this {tableName} row from local database?", "Delete", "Cancel");
+                bool ok = await DisplayAlertAsync("Delete row", $"Remove this {tableName} row from local database?", "Delete", "Cancel");
                 if (!ok) return;
                 try
                 {
@@ -394,7 +394,7 @@ public partial class DatabaseVisualizerPage : ContentPage
                 }
                 catch (Exception ex)
                 {
-                    await DisplayAlert("Error", ex.Message, "OK");
+                    await DisplayAlertAsync("Error", ex.Message, "OK");
                 }
             };
             headerRow.Children.Add(deleteBtn);

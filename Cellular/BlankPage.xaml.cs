@@ -42,6 +42,7 @@ namespace Cellular
         private readonly GameRepository _gameRepository;
         private readonly FrameRepository _frameRepository;
         private readonly ShotRepository _shotRepository;
+        private readonly EstablishmentRepository _establishmentRepository;
 
         private ObservableCollection<BluetoothDeviceWatch> _devices;
         private BluetoothDeviceWatch? _selectedDevice;
@@ -112,6 +113,7 @@ namespace Cellular
             _gameRepository = new GameRepository(dbConnection);
             _frameRepository = new FrameRepository(dbConnection);
             _shotRepository = new ShotRepository(dbConnection);
+            _establishmentRepository = new EstablishmentRepository(dbConnection);
 
             // Get userId for sync context initialization
             int userId = Preferences.Get("UserId", -1);
@@ -119,7 +121,7 @@ namespace Cellular
             // Initialize the watch BLE service with repositories for shot packet handling and sync context
             // User will be fetched on-demand when needed for sending data to watch
             _watchBleService.SetRepositories(_gameRepository, _frameRepository, _shotRepository,
-                _sessionRepository, _ballRepository, _eventRepository, null, userId);
+                _sessionRepository, _ballRepository, _eventRepository, null, userId, _establishmentRepository);
 
             Devices = BlankPageStore.SavedDevices ?? new ObservableCollection<BluetoothDeviceWatch>();
             _selectedDevice = BlankPageStore.SavedSelected;
@@ -389,7 +391,7 @@ namespace Cellular
                     StatusLabel.Text = $"Connected to {SelectedDevice.Name}";
 
                     // Ask if user wants this as default watch
-                    bool makeDefault = await DisplayAlert("Default Watch", 
+                    bool makeDefault = await DisplayAlertAsync("Default Watch", 
                         $"Make {SelectedDevice.Name} your default watch?", 
                         "Yes", "No");
 
@@ -431,7 +433,7 @@ namespace Cellular
 
                 System.Diagnostics.Debug.WriteLine($"PHONE BLE SEND → Sending binary packet for user {user.UserName}");
 
-                bool success = await _watchBleService.SendJsonToWatch(userId, _sessionRepository, _ballRepository, _eventRepository, _gameRepository, user, _frameRepository, _shotRepository);
+                bool success = await _watchBleService.SendJsonToWatch(userId, _sessionRepository, _ballRepository, _eventRepository, _gameRepository, user, _frameRepository, _shotRepository, _establishmentRepository);
 
                 if (success)
                 {
@@ -445,7 +447,7 @@ namespace Cellular
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"PHONE BLE SEND → Error: {ex.Message}");
-                await DisplayAlert("Data Send Error", ex.Message, "OK");
+                await DisplayAlertAsync("Data Send Error", ex.Message, "OK");
             }
         }
 
@@ -484,7 +486,7 @@ namespace Cellular
                 }
 
                 var user = await _userRepository.GetUserByIdAsync(userId);
-                bool success = await _watchBleService.SendJsonToWatch(userId, _sessionRepository, _ballRepository, _eventRepository, _gameRepository, user, _frameRepository, _shotRepository);
+                bool success = await _watchBleService.SendJsonToWatch(userId, _sessionRepository, _ballRepository, _eventRepository, _gameRepository, user, _frameRepository, _shotRepository, _establishmentRepository);
 
                 if (!success)
                     await DisplayAlertAsync("BLE", "Failed to send data", "OK");
@@ -524,12 +526,12 @@ namespace Cellular
                         DefaultWatchButton.Text = $"Connect to {watchName}";
                     });
 
-                    await DisplayAlert("Default Watch", $"{watchName} is now your default watch!", "OK");
+                    await DisplayAlertAsync("Default Watch", $"{watchName} is now your default watch!", "OK");
                 }
             }
             catch (Exception ex)
             {
-                await DisplayAlert("Error", $"Failed to set default watch: {ex.Message}", "OK");
+                await DisplayAlertAsync("Error", $"Failed to set default watch: {ex.Message}", "OK");
             }
         }
 
@@ -537,7 +539,7 @@ namespace Cellular
         {
             if (string.IsNullOrEmpty(_defaultWatchMac))
             {
-                await DisplayAlert("Error", "No default watch set", "OK");
+                await DisplayAlertAsync("Error", "No default watch set", "OK");
                 return;
             }
 
@@ -596,13 +598,13 @@ namespace Cellular
                     else
                     {
                         StatusLabel.Text = "Connection failed";
-                        await DisplayAlert("Error", "Failed to connect to default watch", "OK");
+                        await DisplayAlertAsync("Error", "Failed to connect to default watch", "OK");
                     }
                 }
                 else
                 {
                     StatusLabel.Text = "Default watch not found";
-                    await DisplayAlert("Error", $"Could not find {_defaultWatchName}. Make sure it's powered on and nearby.", "OK");
+                    await DisplayAlertAsync("Error", $"Could not find {_defaultWatchName}. Make sure it's powered on and nearby.", "OK");
                 }
 
                 DefaultWatchButton.IsEnabled = true;
@@ -610,14 +612,14 @@ namespace Cellular
             catch (Exception ex)
             {
                 StatusLabel.Text = "Connection error";
-                await DisplayAlert("Error", ex.Message, "OK");
+                await DisplayAlertAsync("Error", ex.Message, "OK");
                 DefaultWatchButton.IsEnabled = true;
             }
         }
 
         private async void OnChangeDefaultWatchClicked(object sender, EventArgs e)
         {
-            bool confirm = await DisplayAlert("Remove Default Watch", 
+            bool confirm = await DisplayAlertAsync("Remove Default Watch", 
                 "Remove as default watch?", 
                 "Yes", "No");
 
@@ -635,7 +637,7 @@ namespace Cellular
 
                 DefaultWatchStack.IsVisible = false;
 
-                await DisplayAlert("Success", "Default watch removed", "OK");
+                await DisplayAlertAsync("Success", "Default watch removed", "OK");
             }
         }
     }
