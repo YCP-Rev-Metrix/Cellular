@@ -82,7 +82,7 @@ public partial class CiclopesPoseView : ContentView
                 _lastPanX = e.TotalX;
                 _lastPanY = e.TotalY;
 
-                _camera.Rotate((float)deltaX, (float)deltaY);
+                _camera.Rotate((float)deltaX, (float)deltaY, sensitivity: 0.015f);
                 SkeletonView.InvalidateSurface();
 
                 var azDeg = _camera.Azimuth * 180f / MathF.PI;

@@ -4,7 +4,9 @@
                xmlns:toolkit="clr-namespace:CommunityToolkit.Maui.Views;assembly=CommunityToolkit.Maui"
                xmlns:views="clr-namespace:Cellular.Views"
                x:Class="Cellular.Views.CiclopesResultPopup"
-               CanBeDismissedByTappingOutsideOfPopup="True">
+               CanBeDismissedByTappingOutsideOfPopup="True"
+               Color="Transparent"
+               BackgroundColor="Transparent">
     <Border StrokeShape="RoundRectangle 14"
             Padding="0"
             StrokeThickness="0"
@@ -17,10 +19,14 @@
                   Grid.Row="0"
                   ColumnDefinitions="160,*"
                   ColumnSpacing="0">
-                <!-- Lane column -->
-                <GraphicsView x:Name="BallPlotView"
-                              Grid.Column="0"
-                              Margin="0"/>
+                <!-- Lane column (also acts as swipe target to switch to Pose pane) -->
+                <Grid Grid.Column="0" BackgroundColor="Transparent">
+                    <Grid.GestureRecognizers>
+                        <SwipeGestureRecognizer Direction="Left" Swiped="OnMainSwipedLeft"/>
+                        <SwipeGestureRecognizer Direction="Right" Swiped="OnMainSwipedRight"/>
+                    </Grid.GestureRecognizers>
+                    <GraphicsView x:Name="BallPlotView" Margin="0"/>
+                </Grid>
 
                 <!-- Right column: hero stats + analysis, fills height -->
                 <Grid Grid.Column="1" Padding="10,8,10,8"
@@ -35,7 +41,7 @@
                            Margin="2,2,0,4"/>
                     <Grid Grid.Row="1"
                           ColumnDefinitions="*,*" ColumnSpacing="8"
-                          RowDefinitions="*,*" RowSpacing="8">
+                          RowDefinitions="*,*,*" RowSpacing="8">
                         <!-- Entry X -->
                         <Border Grid.Row="0" Grid.Column="0"
                                 StrokeShape="RoundRectangle 10" StrokeThickness="0"
@@ -46,17 +52,25 @@
                             </Border.Shadow>
                             <Grid ColumnDefinitions="4,*">
                                 <BoxView Grid.Column="0" Color="{StaticResource Primary}"/>
-                                <Grid Grid.Column="1" RowDefinitions="*,Auto" Padding="6,6,6,6">
-                                    <HorizontalStackLayout Grid.Row="0" Spacing="2"
-                                                           HorizontalOptions="Center" VerticalOptions="Center">
+                                <Grid Grid.Column="1" RowDefinitions="*,Auto" Padding="4,4,4,4">
+                                    <Grid Grid.Row="0" ColumnDefinitions="*,Auto" ColumnSpacing="3"
+                                          HorizontalOptions="Fill" VerticalOptions="Fill" Padding="2,0"
+                                          SizeChanged="OnStatBoxSizeChanged">
                                         <Label x:Name="StatEntryX" Text="--"
-                                               FontSize="26" FontAttributes="Bold"
+                                               Grid.Column="0"
+                                               FontSize="18" FontAttributes="Bold"
+                                               FontAutoScalingEnabled="False"
+                                               LineBreakMode="WordWrap"
+                                               MaxLines="2"
                                                TextColor="{AppThemeBinding Light={StaticResource Gray950}, Dark={StaticResource White}}"
+                                               HorizontalOptions="Fill"
+                                               HorizontalTextAlignment="End"
                                                VerticalTextAlignment="Center"/>
-                                        <Label Text="in" FontSize="11" FontAttributes="Bold"
+                                        <Label Grid.Column="1" Text="in" FontSize="10" FontAttributes="Bold"
+                                               FontAutoScalingEnabled="False"
                                                TextColor="{StaticResource Gray400}"
                                                VerticalTextAlignment="End" Margin="0,0,0,5"/>
-                                    </HorizontalStackLayout>
+                                    </Grid>
                                     <Label Grid.Row="1" Text="ENTRY X"
                                            FontSize="9" FontAttributes="Bold"
                                            CharacterSpacing="1.2"
@@ -75,17 +89,25 @@
                             </Border.Shadow>
                             <Grid ColumnDefinitions="4,*">
                                 <BoxView Grid.Column="0" Color="{StaticResource Primary}"/>
-                                <Grid Grid.Column="1" RowDefinitions="*,Auto" Padding="6,6,6,6">
-                                    <HorizontalStackLayout Grid.Row="0" Spacing="2"
-                                                           HorizontalOptions="Center" VerticalOptions="Center">
+                                <Grid Grid.Column="1" RowDefinitions="*,Auto" Padding="4,4,4,4">
+                                    <Grid Grid.Row="0" ColumnDefinitions="*,Auto" ColumnSpacing="3"
+                                          HorizontalOptions="Fill" VerticalOptions="Fill" Padding="2,0"
+                                          SizeChanged="OnStatBoxSizeChanged">
                                         <Label x:Name="StatExitX" Text="--"
-                                               FontSize="26" FontAttributes="Bold"
+                                               Grid.Column="0"
+                                               FontSize="18" FontAttributes="Bold"
+                                               FontAutoScalingEnabled="False"
+                                               LineBreakMode="WordWrap"
+                                               MaxLines="2"
                                                TextColor="{AppThemeBinding Light={StaticResource Gray950}, Dark={StaticResource White}}"
+                                               HorizontalOptions="Fill"
+                                               HorizontalTextAlignment="End"
                                                VerticalTextAlignment="Center"/>
-                                        <Label Text="in" FontSize="11" FontAttributes="Bold"
+                                        <Label Grid.Column="1" Text="in" FontSize="10" FontAttributes="Bold"
+                                               FontAutoScalingEnabled="False"
                                                TextColor="{StaticResource Gray400}"
                                                VerticalTextAlignment="End" Margin="0,0,0,5"/>
-                                    </HorizontalStackLayout>
+                                    </Grid>
                                     <Label Grid.Row="1" Text="EXIT X"
                                            FontSize="9" FontAttributes="Bold"
                                            CharacterSpacing="1.2"
@@ -104,17 +126,25 @@
                             </Border.Shadow>
                             <Grid ColumnDefinitions="4,*">
                                 <BoxView Grid.Column="0" Color="{StaticResource Primary}"/>
-                                <Grid Grid.Column="1" RowDefinitions="*,Auto" Padding="6,6,6,6">
-                                    <HorizontalStackLayout Grid.Row="0" Spacing="1"
-                                                           HorizontalOptions="Center" VerticalOptions="Center">
+                                <Grid Grid.Column="1" RowDefinitions="*,Auto" Padding="4,4,4,4">
+                                    <Grid Grid.Row="0" ColumnDefinitions="*,Auto" ColumnSpacing="2"
+                                          HorizontalOptions="Fill" VerticalOptions="Fill" Padding="2,0"
+                                          SizeChanged="OnStatBoxSizeChanged">
                                         <Label x:Name="StatEntryAngle" Text="--"
-                                               FontSize="26" FontAttributes="Bold"
+                                               Grid.Column="0"
+                                               FontSize="18" FontAttributes="Bold"
+                                               FontAutoScalingEnabled="False"
+                                               LineBreakMode="WordWrap"
+                                               MaxLines="2"
                                                TextColor="{AppThemeBinding Light={StaticResource Gray950}, Dark={StaticResource White}}"
+                                               HorizontalOptions="Fill"
+                                               HorizontalTextAlignment="End"
                                                VerticalTextAlignment="Center"/>
-                                        <Label Text="&#x00B0;" FontSize="18" FontAttributes="Bold"
+                                        <Label Grid.Column="1" Text="&#x00B0;" FontSize="14" FontAttributes="Bold"
+                                               FontAutoScalingEnabled="False"
                                                TextColor="{StaticResource Gray400}"
-                                               VerticalTextAlignment="Start" Margin="0,4,0,0"/>
-                                    </HorizontalStackLayout>
+                                               VerticalTextAlignment="Start" Margin="0,2,0,0"/>
+                                    </Grid>
                                     <Label Grid.Row="1" Text="ENTRY ANGLE"
                                            FontSize="9" FontAttributes="Bold"
                                            CharacterSpacing="1.2"
@@ -133,18 +163,100 @@
                             </Border.Shadow>
                             <Grid ColumnDefinitions="4,*">
                                 <BoxView Grid.Column="0" Color="{StaticResource Primary}"/>
-                                <Grid Grid.Column="1" RowDefinitions="*,Auto" Padding="6,6,6,6">
-                                    <HorizontalStackLayout Grid.Row="0" Spacing="2"
-                                                           HorizontalOptions="Center" VerticalOptions="Center">
+                                <Grid Grid.Column="1" RowDefinitions="*,Auto" Padding="4,4,4,4">
+                                    <Grid Grid.Row="0" ColumnDefinitions="*,Auto" ColumnSpacing="3"
+                                          HorizontalOptions="Fill" VerticalOptions="Fill" Padding="2,0"
+                                          SizeChanged="OnStatBoxSizeChanged">
                                         <Label x:Name="StatBreakpoint" Text="--"
-                                               FontSize="26" FontAttributes="Bold"
+                                               Grid.Column="0"
+                                               FontSize="18" FontAttributes="Bold"
+                                               FontAutoScalingEnabled="False"
+                                               LineBreakMode="WordWrap"
+                                               MaxLines="2"
                                                TextColor="{AppThemeBinding Light={StaticResource Gray950}, Dark={StaticResource White}}"
+                                               HorizontalOptions="Fill"
+                                               HorizontalTextAlignment="End"
                                                VerticalTextAlignment="Center"/>
-                                        <Label Text="ft" FontSize="11" FontAttributes="Bold"
+                                        <Label Grid.Column="1" Text="ft" FontSize="10" FontAttributes="Bold"
+                                               FontAutoScalingEnabled="False"
                                                TextColor="{StaticResource Gray400}"
                                                VerticalTextAlignment="End" Margin="0,0,0,5"/>
-                                    </HorizontalStackLayout>
+                                    </Grid>
                                     <Label Grid.Row="1" Text="BREAKPOINT"
+                                           FontSize="9" FontAttributes="Bold"
+                                           CharacterSpacing="1.2"
+                                           TextColor="{AppThemeBinding Light={StaticResource Gray500}, Dark={StaticResource Gray300}}"
+                                           HorizontalTextAlignment="Center"/>
+                                </Grid>
+                            </Grid>
+                        </Border>
+                        <!-- Launch Angle -->
+                        <Border Grid.Row="2" Grid.Column="0"
+                                StrokeShape="RoundRectangle 10" StrokeThickness="0"
+                                BackgroundColor="{AppThemeBinding Light={StaticResource CardBackground}, Dark={StaticResource CardBackgroundDark}}"
+                                Padding="0">
+                            <Border.Shadow>
+                                <Shadow Brush="#30000000" Offset="0,2" Radius="6" Opacity="0.3"/>
+                            </Border.Shadow>
+                            <Grid ColumnDefinitions="4,*">
+                                <BoxView Grid.Column="0" Color="{StaticResource Primary}"/>
+                                <Grid Grid.Column="1" RowDefinitions="*,Auto" Padding="4,4,4,4">
+                                    <Grid Grid.Row="0" ColumnDefinitions="*,Auto" ColumnSpacing="2"
+                                          HorizontalOptions="Fill" VerticalOptions="Fill" Padding="2,0"
+                                          SizeChanged="OnStatBoxSizeChanged">
+                                        <Label x:Name="StatLaunchAngle" Text="--"
+                                               Grid.Column="0"
+                                               FontSize="18" FontAttributes="Bold"
+                                               FontAutoScalingEnabled="False"
+                                               LineBreakMode="WordWrap"
+                                               MaxLines="2"
+                                               TextColor="{AppThemeBinding Light={StaticResource Gray950}, Dark={StaticResource White}}"
+                                               HorizontalOptions="Fill"
+                                               HorizontalTextAlignment="End"
+                                               VerticalTextAlignment="Center"/>
+                                        <Label Grid.Column="1" Text="&#x00B0;" FontSize="14" FontAttributes="Bold"
+                                               FontAutoScalingEnabled="False"
+                                               TextColor="{StaticResource Gray400}"
+                                               VerticalTextAlignment="Start" Margin="0,2,0,0"/>
+                                    </Grid>
+                                    <Label Grid.Row="1" Text="LAUNCH ANGLE"
+                                           FontSize="9" FontAttributes="Bold"
+                                           CharacterSpacing="1.2"
+                                           TextColor="{AppThemeBinding Light={StaticResource Gray500}, Dark={StaticResource Gray300}}"
+                                           HorizontalTextAlignment="Center"/>
+                                </Grid>
+                            </Grid>
+                        </Border>
+                        <!-- Total Hook -->
+                        <Border Grid.Row="2" Grid.Column="1"
+                                StrokeShape="RoundRectangle 10" StrokeThickness="0"
+                                BackgroundColor="{AppThemeBinding Light={StaticResource CardBackground}, Dark={StaticResource CardBackgroundDark}}"
+                                Padding="0">
+                            <Border.Shadow>
+                                <Shadow Brush="#30000000" Offset="0,2" Radius="6" Opacity="0.3"/>
+                            </Border.Shadow>
+                            <Grid ColumnDefinitions="4,*">
+                                <BoxView Grid.Column="0" Color="{StaticResource Primary}"/>
+                                <Grid Grid.Column="1" RowDefinitions="*,Auto" Padding="4,4,4,4">
+                                    <Grid Grid.Row="0" ColumnDefinitions="*,Auto" ColumnSpacing="3"
+                                          HorizontalOptions="Fill" VerticalOptions="Fill" Padding="2,0"
+                                          SizeChanged="OnStatBoxSizeChanged">
+                                        <Label x:Name="StatTotalHook" Text="--"
+                                               Grid.Column="0"
+                                               FontSize="18" FontAttributes="Bold"
+                                               FontAutoScalingEnabled="False"
+                                               LineBreakMode="WordWrap"
+                                               MaxLines="2"
+                                               TextColor="{AppThemeBinding Light={StaticResource Gray950}, Dark={StaticResource White}}"
+                                               HorizontalOptions="Fill"
+                                               HorizontalTextAlignment="End"
+                                               VerticalTextAlignment="Center"/>
+                                        <Label Grid.Column="1" Text="in" FontSize="10" FontAttributes="Bold"
+                                               FontAutoScalingEnabled="False"
+                                               TextColor="{StaticResource Gray400}"
+                                               VerticalTextAlignment="End" Margin="0,0,0,5"/>
+                                    </Grid>
+                                    <Label Grid.Row="1" Text="TOTAL HOOK"
                                            FontSize="9" FontAttributes="Bold"
                                            CharacterSpacing="1.2"
                                            TextColor="{AppThemeBinding Light={StaticResource Gray500}, Dark={StaticResource Gray300}}"
@@ -174,17 +286,25 @@
                             </Border.Shadow>
                             <Grid ColumnDefinitions="4,*">
                                 <BoxView Grid.Column="0" Color="{StaticResource Secondary}"/>
-                                <Grid Grid.Column="1" RowDefinitions="*,Auto" Padding="6,6,6,6">
-                                    <HorizontalStackLayout Grid.Row="0" Spacing="2"
-                                                           HorizontalOptions="Center" VerticalOptions="Center">
+                                <Grid Grid.Column="1" RowDefinitions="*,Auto" Padding="4,4,4,4">
+                                    <Grid Grid.Row="0" ColumnDefinitions="*,Auto" ColumnSpacing="3"
+                                          HorizontalOptions="Fill" VerticalOptions="Fill" Padding="2,0"
+                                          SizeChanged="OnStatBoxSizeChanged">
                                         <Label x:Name="StatAvgSpeed" Text="--"
-                                               FontSize="26" FontAttributes="Bold"
+                                               Grid.Column="0"
+                                               FontSize="18" FontAttributes="Bold"
+                                               FontAutoScalingEnabled="False"
+                                               LineBreakMode="WordWrap"
+                                               MaxLines="2"
                                                TextColor="{AppThemeBinding Light={StaticResource Gray950}, Dark={StaticResource White}}"
+                                               HorizontalOptions="Fill"
+                                               HorizontalTextAlignment="End"
                                                VerticalTextAlignment="Center"/>
-                                        <Label Text="mph" FontSize="11" FontAttributes="Bold"
+                                        <Label Grid.Column="1" Text="mph" FontSize="10" FontAttributes="Bold"
+                                               FontAutoScalingEnabled="False"
                                                TextColor="{StaticResource Gray400}"
                                                VerticalTextAlignment="End" Margin="0,0,0,5"/>
-                                    </HorizontalStackLayout>
+                                    </Grid>
                                     <Label Grid.Row="1" Text="AVG SPEED"
                                            FontSize="9" FontAttributes="Bold"
                                            CharacterSpacing="1.2"
@@ -203,17 +323,25 @@
                             </Border.Shadow>
                             <Grid ColumnDefinitions="4,*">
                                 <BoxView Grid.Column="0" Color="{StaticResource Secondary}"/>
-                                <Grid Grid.Column="1" RowDefinitions="*,Auto" Padding="6,6,6,6">
-                                    <HorizontalStackLayout Grid.Row="0" Spacing="2"
-                                                           HorizontalOptions="Center" VerticalOptions="Center">
+                                <Grid Grid.Column="1" RowDefinitions="*,Auto" Padding="4,4,4,4">
+                                    <Grid Grid.Row="0" ColumnDefinitions="*,Auto" ColumnSpacing="3"
+                                          HorizontalOptions="Fill" VerticalOptions="Fill" Padding="2,0"
+                                          SizeChanged="OnStatBoxSizeChanged">
                                         <Label x:Name="StatAvgAccel" Text="--"
-                                               FontSize="26" FontAttributes="Bold"
+                                               Grid.Column="0"
+                                               FontSize="18" FontAttributes="Bold"
+                                               FontAutoScalingEnabled="False"
+                                               LineBreakMode="WordWrap"
+                                               MaxLines="2"
                                                TextColor="{AppThemeBinding Light={StaticResource Gray950}, Dark={StaticResource White}}"
+                                               HorizontalOptions="Fill"
+                                               HorizontalTextAlignment="End"
                                                VerticalTextAlignment="Center"/>
-                                        <Label Text="ft/s&#x00B2;" FontSize="11" FontAttributes="Bold"
+                                        <Label Grid.Column="1" Text="ft/s&#x00B2;" FontSize="10" FontAttributes="Bold"
+                                               FontAutoScalingEnabled="False"
                                                TextColor="{StaticResource Gray400}"
                                                VerticalTextAlignment="End" Margin="0,0,0,5"/>
-                                    </HorizontalStackLayout>
+                                    </Grid>
                                     <Label Grid.Row="1" Text="AVG ACCEL"
                                            FontSize="9" FontAttributes="Bold"
                                            CharacterSpacing="1.2"
@@ -232,17 +360,25 @@
                             </Border.Shadow>
                             <Grid ColumnDefinitions="4,*">
                                 <BoxView Grid.Column="0" Color="{StaticResource Secondary}"/>
-                                <Grid Grid.Column="1" RowDefinitions="*,Auto" Padding="6,6,6,6">
-                                    <HorizontalStackLayout Grid.Row="0" Spacing="2"
-                                                           HorizontalOptions="Center" VerticalOptions="Center">
+                                <Grid Grid.Column="1" RowDefinitions="*,Auto" Padding="4,4,4,4">
+                                    <Grid Grid.Row="0" ColumnDefinitions="*,Auto" ColumnSpacing="3"
+                                          HorizontalOptions="Fill" VerticalOptions="Fill" Padding="2,0"
+                                          SizeChanged="OnStatBoxSizeChanged">
                                         <Label x:Name="StatEntrySpeed" Text="--"
-                                               FontSize="26" FontAttributes="Bold"
+                                               Grid.Column="0"
+                                               FontSize="18" FontAttributes="Bold"
+                                               FontAutoScalingEnabled="False"
+                                               LineBreakMode="WordWrap"
+                                               MaxLines="2"
                                                TextColor="{AppThemeBinding Light={StaticResource Gray950}, Dark={StaticResource White}}"
+                                               HorizontalOptions="Fill"
+                                               HorizontalTextAlignment="End"
                                                VerticalTextAlignment="Center"/>
-                                        <Label Text="mph" FontSize="11" FontAttributes="Bold"
+                                        <Label Grid.Column="1" Text="mph" FontSize="10" FontAttributes="Bold"
+                                               FontAutoScalingEnabled="False"
                                                TextColor="{StaticResource Gray400}"
                                                VerticalTextAlignment="End" Margin="0,0,0,5"/>
-                                    </HorizontalStackLayout>
+                                    </Grid>
                                     <Label Grid.Row="1" Text="ENTRY SPEED"
                                            FontSize="9" FontAttributes="Bold"
                                            CharacterSpacing="1.2"
@@ -261,17 +397,25 @@
                             </Border.Shadow>
                             <Grid ColumnDefinitions="4,*">
                                 <BoxView Grid.Column="0" Color="{StaticResource Secondary}"/>
-                                <Grid Grid.Column="1" RowDefinitions="*,Auto" Padding="6,6,6,6">
-                                    <HorizontalStackLayout Grid.Row="0" Spacing="2"
-                                                           HorizontalOptions="Center" VerticalOptions="Center">
+                                <Grid Grid.Column="1" RowDefinitions="*,Auto" Padding="4,4,4,4">
+                                    <Grid Grid.Row="0" ColumnDefinitions="*,Auto" ColumnSpacing="3"
+                                          HorizontalOptions="Fill" VerticalOptions="Fill" Padding="2,0"
+                                          SizeChanged="OnStatBoxSizeChanged">
                                         <Label x:Name="StatExitSpeed" Text="--"
-                                               FontSize="26" FontAttributes="Bold"
+                                               Grid.Column="0"
+                                               FontSize="18" FontAttributes="Bold"
+                                               FontAutoScalingEnabled="False"
+                                               LineBreakMode="WordWrap"
+                                               MaxLines="2"
                                                TextColor="{AppThemeBinding Light={StaticResource Gray950}, Dark={StaticResource White}}"
+                                               HorizontalOptions="Fill"
+                                               HorizontalTextAlignment="End"
                                                VerticalTextAlignment="Center"/>
-                                        <Label Text="mph" FontSize="11" FontAttributes="Bold"
+                                        <Label Grid.Column="1" Text="mph" FontSize="10" FontAttributes="Bold"
+                                               FontAutoScalingEnabled="False"
                                                TextColor="{StaticResource Gray400}"
                                                VerticalTextAlignment="End" Margin="0,0,0,5"/>
-                                    </HorizontalStackLayout>
+                                    </Grid>
                                     <Label Grid.Row="1" Text="EXIT SPEED"
                                            FontSize="9" FontAttributes="Bold"
                                            CharacterSpacing="1.2"
@@ -298,13 +442,13 @@
                         <Border.Shadow>
                             <Shadow Brush="#30000000" Offset="0,3" Radius="8" Opacity="0.35"/>
                         </Border.Shadow>
+                        <Border.GestureRecognizers>
+                            <SwipeGestureRecognizer Direction="Left" Swiped="OnPlotSwipedLeft"/>
+                            <SwipeGestureRecognizer Direction="Right" Swiped="OnPlotSwipedRight"/>
+                        </Border.GestureRecognizers>
                         <Grid ColumnDefinitions="4,*">
                             <BoxView Grid.Column="0" Color="{StaticResource Tertiary}"/>
                             <Grid Grid.Column="1" RowDefinitions="*,Auto">
-                                <Grid.GestureRecognizers>
-                                    <SwipeGestureRecognizer Direction="Left" Swiped="OnPlotSwipedLeft"/>
-                                    <SwipeGestureRecognizer Direction="Right" Swiped="OnPlotSwipedRight"/>
-                                </Grid.GestureRecognizers>
 
                                 <!-- Plot panels stacked, toggled via IsVisible -->
                                 <Grid x:Name="PlotSpeedPanel" Grid.Row="0" IsVisible="True">
@@ -432,10 +576,11 @@
                     <Button x:Name="PlayStopButton"
                             Grid.Column="2"
                             Text="&#x25B6;"
-                            FontSize="20"
+                            FontSize="14"
+                            Padding="0"
                             Clicked="OnPlayStopClicked"
-                            WidthRequest="44"
-                            HeightRequest="44"
+                            WidthRequest="32"
+                            HeightRequest="32"
                             Style="{StaticResource AccentButton}"/>
                 </Grid>
             </Grid>
