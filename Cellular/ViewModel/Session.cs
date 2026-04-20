@@ -21,5 +21,20 @@ namespace Cellular.ViewModel
 
         /// <summary>Server-assigned row id from the cloud API. Used to correlate local rows across devices.</summary>
         public int? CloudID { get; set; }
+
+        /// <summary>
+        /// Non-persisted display label built after loading:
+        /// "{EventNickName}, {date}, Week {SessionNumber}"
+        /// </summary>
+        [Ignore]
+        public string DisplayName { get; set; }
+
+        /// <summary>Builds and assigns DisplayName from the supplied event nick-name.</summary>
+        public void BuildDisplayName(string eventNickName)
+        {
+            var nick = string.IsNullOrWhiteSpace(eventNickName) ? "?" : eventNickName;
+            var date = DateTime.HasValue ? DateTime.Value.ToString("MM/dd/yy") : "–";
+            DisplayName = $"{nick}, {date}, Week {SessionNumber}";
+        }
     }
 }

@@ -84,7 +84,7 @@ namespace Cellular
                 var (credOk, apiUsername, apiPassword) = await CloudSyncCredentialStore.TryGetAsync();
                 if (!credOk)
                 {
-                    await DisplayAlert("Info", "Sign in on the Login page first. API tests use the same credentials as cloud sync.", "OK");
+                    await DisplayAlertAsync("Info", "Sign in on the Login page first. API tests use the same credentials as cloud sync.", "OK");
                     return;
                 }
 

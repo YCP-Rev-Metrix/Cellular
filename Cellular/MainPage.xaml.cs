@@ -50,6 +50,7 @@ namespace Cellular
             arsenal.IsVisible = isLoggedIn;
             bluetooth.IsVisible = isLoggedIn;
             video.IsVisible = isLoggedIn;
+            stats.IsVisible = isLoggedIn;
             account.IsVisible = isLoggedIn;
             databaseVisualizer.IsVisible = isLoggedIn;
             EventList.IsVisible = isLoggedIn;
@@ -103,7 +104,7 @@ namespace Cellular
 
         private async void OnBluetoothClicked(object sender, EventArgs e)
         {
-            await Navigation.PushAsync(new Bluetooth());
+            await Navigation.PushAsync(new SmartDot());
         }
 
         private async void OnVideoClicked(object sender, EventArgs e)
@@ -129,6 +130,11 @@ namespace Cellular
         private async void OnAPIClicked(object sender, EventArgs e)
         {
             await Navigation.PushAsync(new APItestPage());
+        }
+
+        private async void OnStatsClicked(object sender, EventArgs e)
+        {
+            await Navigation.PushAsync(new Stats());
         }
 
         private async void OnCiclopesTestClicked(object sender, EventArgs e)

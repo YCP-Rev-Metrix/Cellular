@@ -14,8 +14,28 @@ public partial class CiclopesResultPopup : Popup
     private const double MpsToMph = 2.23694;
     private const double Mps2ToFtps2 = 3.28084;
 
-    private readonly CiclopesBallPointsDrawable _ballDrawable;
+    private CiclopesBallPointsDrawable _ballDrawable = null!;
     private int _currentPaneIndex;
+
+    // Multi-overlay state
+    private readonly bool _isMultiMode;
+    private Dictionary<string, LaneBallsShotData> _laneShots = [];
+    private Dictionary<string, FourDBodyShotData> _poseShots = [];
+    private List<string> _shotOrder = [];
+    private readonly Dictionary<string, Color> _shotColors = new();
+    private readonly Dictionary<string, Border> _shotChips = new();
+    private string? _activeShot;
+
+    private static readonly Color[] ShotPalette =
+    [
+        Color.FromArgb("#355070"), // Primary
+        Color.FromArgb("#FA8847"), // Secondary
+        Color.FromArgb("#2E7D52"), // Success green
+        Color.FromArgb("#C0392B"), // Error red
+        Color.FromArgb("#8E44AD"), // Purple
+        Color.FromArgb("#1E3448")  // Tertiary
+    ];
+
     private int _currentPlotIndex;
     private int _maxPoseFrameIndex;
     private bool _isPlaying;
@@ -35,21 +55,8 @@ public partial class CiclopesResultPopup : Popup
     public CiclopesResultPopup(LaneBallsRunResponse laneBallsResponse, Task<FourDBodyRunResponse?> fourDBodyTask)
     {
         InitializeComponent();
-
-        // Size the popup content as a percentage of the screen.
-        // Prefer Window dimensions (already in DIPs) over DeviceDisplay (raw pixels).
-        var (popupWidth, popupHeight) = ComputePopupSize(0.85);
-        MainGrid.WidthRequest = popupWidth;
-        MainGrid.HeightRequest = popupHeight;
-
-        _mainPanes = [BallPane, PosePane];
-        _plotPanels = [PlotSpeedPanel, PlotAccelPanel, PlotLateralPanel];
-        _plotDots = [PlotDot0, PlotDot1, PlotDot2];
-
-        // Speed picker setup
-        foreach (var label in SpeedLabels)
-            SpeedPicker.Items.Add(label);
-        SpeedPicker.SelectedIndex = 0;
+        InitCommonChrome();
+        _isMultiMode = false;
 
         _ballDrawable = new CiclopesBallPointsDrawable(laneBallsResponse.BallPoints);
         BallPlotView.Drawable = _ballDrawable;
@@ -67,6 +74,179 @@ public partial class CiclopesResultPopup : Popup
 
         // Fire-and-forget: load pose data when it arrives
         _ = LoadPoseDataAsync(fourDBodyTask);
+    }
+
+    public CiclopesResultPopup(LaneBallsQueryResponse laneBallsQuery, Task<FourDBodyQueryResponse?> fourDBodyQueryTask)
+    {
+        InitializeComponent();
+        InitCommonChrome();
+        _isMultiMode = true;
+
+        _laneShots = laneBallsQuery.Shots ?? [];
+        _shotOrder = _laneShots.Keys.OrderBy(k => int.TryParse(k, out var n) ? n : 0).ToList();
+
+        for (var i = 0; i < _shotOrder.Count; i++)
+            _shotColors[_shotOrder[i]] = ShotPalette[i % ShotPalette.Length];
+
+        BuildShotChips();
+
+        // Push ball pane content down so chips don't crowd the cards
+        BallPane.Margin = new Thickness(0, 36, 0, 0);
+
+        var series = _shotOrder
+            .Select(k => (_shotColors[k], (IReadOnlyList<CiclopesBallPoint>)_laneShots[k].BallPoints))
+            .ToList();
+        _ballDrawable = new CiclopesBallPointsDrawable(series);
+        BallPlotView.Drawable = _ballDrawable;
+        BallPlotView.Invalidate();
+
+        _maxPoseFrameIndex = 0;
+        FrameSlider.Maximum = 0;
+        FrameSlider.Value = 0;
+
+        if (_shotOrder.Count > 0)
+        {
+            SetActiveShot(_shotOrder[0]);
+        }
+
+        SetPane(0, false);
+        SetPlotPanel(0, false);
+
+        _ = LoadQueryPoseDataAsync(fourDBodyQueryTask);
+    }
+
+    private void InitCommonChrome()
+    {
+        var (popupWidth, popupHeight) = ComputePopupSize(0.85);
+        MainGrid.WidthRequest = popupWidth;
+        MainGrid.HeightRequest = popupHeight;
+
+        _mainPanes = [BallPane, PosePane];
+        _plotPanels = [PlotSpeedPanel, PlotAccelPanel, PlotLateralPanel];
+        _plotDots = [PlotDot0, PlotDot1, PlotDot2];
+
+        foreach (var label in SpeedLabels)
+            SpeedPicker.Items.Add(label);
+        SpeedPicker.SelectedIndex = 0;
+    }
+
+    private void BuildShotChips()
+    {
+        ShotChipBar.IsVisible = _shotOrder.Count > 0;
+        ShotChipBar.Children.Clear();
+        _shotChips.Clear();
+
+        foreach (var key in _shotOrder)
+        {
+            var color = _shotColors[key];
+            var chip = new Border
+            {
+                StrokeShape = new Microsoft.Maui.Controls.Shapes.RoundRectangle { CornerRadius = new CornerRadius(12) },
+                StrokeThickness = 1.5,
+                Stroke = color,
+                BackgroundColor = Colors.Transparent,
+                Padding = new Thickness(10, 4),
+                Content = new Label
+                {
+                    Text = $"Shot {key}",
+                    FontSize = 11,
+                    FontAttributes = FontAttributes.Bold,
+                    TextColor = color,
+                    VerticalTextAlignment = TextAlignment.Center
+                }
+            };
+
+            var tap = new TapGestureRecognizer();
+            var capturedKey = key;
+            tap.Tapped += (_, _) => SetActiveShot(capturedKey);
+            chip.GestureRecognizers.Add(tap);
+
+            _shotChips[key] = chip;
+            ShotChipBar.Children.Add(chip);
+        }
+    }
+
+    private void SetActiveShot(string key)
+    {
+        if (!_laneShots.TryGetValue(key, out var shot)) return;
+
+        _activeShot = key;
+
+        foreach (var (k, chip) in _shotChips)
+        {
+            var color = _shotColors[k];
+            var isActive = k == key;
+            chip.BackgroundColor = isActive ? color : Colors.Transparent;
+            if (chip.Content is Label lbl)
+                lbl.TextColor = isActive ? Colors.White : color;
+        }
+
+        PopulateStats(new LaneBallsRunResponse
+        {
+            BallPoints = shot.BallPoints,
+            KinematicsTable = shot.KinematicsTable,
+            Fps = shot.Fps
+        });
+        PopulatePlots(new LaneBallsRunResponse
+        {
+            BallPoints = shot.BallPoints,
+            KinematicsTable = shot.KinematicsTable,
+            Fps = shot.Fps
+        });
+
+        // Swap pose frames if pose data already loaded
+        if (_poseShots.TryGetValue(key, out var poseShot) && poseShot.SkeletonPoints.Count > 0)
+        {
+            if (_isPlaying)
+            {
+                _isPlaying = false;
+                _playbackTimer?.Stop();
+                PlayStopButton.Text = "\u25B6";
+            }
+            _maxPoseFrameIndex = Math.Max(0, poseShot.SkeletonPoints.Count - 1);
+            _poseFps = poseShot.Fps > 0 ? poseShot.Fps : 30f;
+            FrameSlider.Maximum = _maxPoseFrameIndex;
+            FrameSlider.Value = 0;
+            PoseView.LoadFrames(poseShot.SkeletonPoints);
+            PoseLoadingOverlay.IsVisible = false;
+        }
+    }
+
+    private async Task LoadQueryPoseDataAsync(Task<FourDBodyQueryResponse?> poseTask)
+    {
+        try
+        {
+            var response = await poseTask;
+            if (response?.Shots is { Count: > 0 })
+            {
+                MainThread.BeginInvokeOnMainThread(() =>
+                {
+                    _poseShots = response.Shots;
+                    if (_activeShot is not null && _poseShots.TryGetValue(_activeShot, out var poseShot) && poseShot.SkeletonPoints.Count > 0)
+                    {
+                        _maxPoseFrameIndex = Math.Max(0, poseShot.SkeletonPoints.Count - 1);
+                        _poseFps = poseShot.Fps > 0 ? poseShot.Fps : 30f;
+                        FrameSlider.Maximum = _maxPoseFrameIndex;
+                        FrameSlider.Value = 0;
+                        PoseView.LoadFrames(poseShot.SkeletonPoints);
+                        PoseLoadingOverlay.IsVisible = false;
+                    }
+                    else
+                    {
+                        PoseLoadingLabel.Text = "No pose data for this shot.";
+                    }
+                });
+            }
+            else
+            {
+                MainThread.BeginInvokeOnMainThread(() => PoseLoadingLabel.Text = "No pose data available.");
+            }
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine("Pose query failed: " + ex);
+            MainThread.BeginInvokeOnMainThread(() => PoseLoadingLabel.Text = "Pose estimation failed.");
+        }
     }
 
     private async Task LoadPoseDataAsync(Task<FourDBodyRunResponse?> fourDBodyTask)
@@ -146,11 +326,11 @@ public partial class CiclopesResultPopup : Popup
         {
             var first = pts[0];
             var last = pts[^1];
-            StatEntryX.Text = $"{first.X * MetersToInches:F1} in";
-            StatExitX.Text = $"{last.X * MetersToInches:F1} in";
+            StatEntryX.Text = $"{first.X * MetersToInches:F1}";
+            StatExitX.Text = $"{last.X * MetersToInches:F1}";
 
-            StatEntryAngle.Text = $"{ComputeEntryAngle(pts):F1}\u00B0";
-            StatBreakpoint.Text = $"{ComputeBreakpointDistance(pts) * MetersToFeet:F1} ft";
+            StatEntryAngle.Text = $"{ComputeEntryAngle(pts):F1}";
+            StatBreakpoint.Text = $"{ComputeBreakpointDistance(pts) * MetersToFeet:F1}";
         }
 
         if (kin.Count > 0)
@@ -160,10 +340,10 @@ public partial class CiclopesResultPopup : Popup
             var entrySpeed = kin[0].MeanSpeedMps * MpsToMph;
             var exitSpeed = kin[^1].MeanSpeedMps * MpsToMph;
 
-            StatAvgSpeed.Text = $"{avgSpeed:F1} mph";
-            StatAvgAccel.Text = $"{avgAccel:F1} ft/s\u00B2";
-            StatEntrySpeed.Text = $"{entrySpeed:F1} mph";
-            StatExitSpeed.Text = $"{exitSpeed:F1} mph";
+            StatAvgSpeed.Text = $"{avgSpeed:F1}";
+            StatAvgAccel.Text = $"{avgAccel:F1}";
+            StatEntrySpeed.Text = $"{entrySpeed:F1}";
+            StatExitSpeed.Text = $"{exitSpeed:F1}";
         }
     }
 
@@ -176,12 +356,12 @@ public partial class CiclopesResultPopup : Popup
             var speedValues = kin.Select(k => (float)(k.MeanSpeedMps * MpsToMph)).ToArray();
             var speedLabels = kin.Select(k => $"Q{k.Quarter}").ToArray();
             SpeedPlotView.Drawable = new CiclopesBarPlotDrawable(speedValues, speedLabels,
-                Color.FromArgb("#7c6bc4"), Color.FromArgb("#a594e0"));
+                Color.FromArgb("#355070"), Color.FromArgb("#FA8847"));
 
             var accelValues = kin.Select(k => (float)(k.MeanAccelerationMps2 * Mps2ToFtps2)).ToArray();
             var accelLabels = kin.Select(k => $"Q{k.Quarter}").ToArray();
             AccelPlotView.Drawable = new CiclopesBarPlotDrawable(accelValues, accelLabels,
-                Color.FromArgb("#4a6fa5"), Color.FromArgb("#7a9fd4"));
+                Color.FromArgb("#4A6D90"), Color.FromArgb("#FA8847"));
         }
 
         var pts = response.BallPoints;

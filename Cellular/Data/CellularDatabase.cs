@@ -39,6 +39,9 @@ namespace Cellular.Data
             await _database.CreateTableAsync<Shot>();
             await ImportHakesBowlingDataAsync();
 
+            // Local-only device profile table — never synced to cloud
+            await _database.CreateTableAsync<SmartDotDevice>();
+
             await EnsureCloudIdColumnsAsync(_database);
             await BackfillSessionEstablishmentsAsync();
         }
@@ -231,6 +234,7 @@ namespace Cellular.Data
                     return;
                 }
                 var csvFileName = "Fa25-LeagueScores(JoshMods-4-13-26).csv";
+                //var csvFileName = "lessLineScores.csv";
                 using var stream = await FileSystem.OpenAppPackageFileAsync(csvFileName);
                 using var reader = new StreamReader(stream);
 
@@ -399,6 +403,26 @@ namespace Cellular.Data
                                     conn.Insert(shot2);
                                     shot2Id = shot2.ShotId;
                                 }
+                                string frameResult = null;
+                                if (shot1.Count == 10)
+                                {
+                                    frameResult = "Strike";
+                                }
+                                else if (shot2Id != -1)
+                                {
+                                    if (s2Raw == "/")
+                                    {
+                                        frameResult = "Spare";
+                                    }
+                                    else
+                                    {
+                                        frameResult = "Open";
+                                    }
+                                }
+                                else
+                                {
+                                    frameResult = "Open";
+                                }
 
                                 var frame = new BowlingFrame
                                 {
@@ -406,6 +430,7 @@ namespace Cellular.Data
                                     FrameNumber = frameNumber,
                                     Shot1 = shot1.ShotId,
                                     Shot2 = shot2Id,
+                                    Result = frameResult,
                                     Lane = int.TryParse(SafeGet(block.Lane, s1Col), out var l) ? (l > 0 ? l : 0) : 0
                                 };
                                 conn.Insert(frame);

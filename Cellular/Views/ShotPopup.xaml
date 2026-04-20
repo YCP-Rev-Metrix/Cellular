@@ -10,13 +10,13 @@
         <StackLayout Spacing="6" Padding="12" WidthRequest="275">
 
             <Label Text="Shot Info"
-                   FontSize="18"
-                   TextColor="Black"
+                   FontSize="20"
+                   TextColor="{StaticResource Primary}"
                    FontAttributes="Bold"
                    HorizontalOptions="Center" />
 
             <!-- Player -->
-            <Label Text="Player" FontAttributes="Bold" TextColor="Black" />
+            <Label Text="Player" FontAttributes="Bold" TextColor="{StaticResource Primary}" />
             <Picker ItemsSource="{Binding PlayerUsers}"
                     ItemDisplayBinding="{Binding FirstName}"
                     SelectedItem="{Binding SelectedPlayerUser}"
@@ -25,7 +25,7 @@
                     Title="Select player" />
 
             <!-- Strike Ball -->
-            <Label Text="Strike Ball" FontAttributes="Bold" TextColor="Black" />
+            <Label Text="Strike Ball" FontAttributes="Bold" TextColor="{StaticResource Primary}" />
             <Picker ItemsSource="{Binding Arsenal}"
                     ItemDisplayBinding="{Binding Name}"
                     SelectedItem="{Binding SelectedStrikeBall}"
@@ -34,7 +34,7 @@
                     Title="Select ball" />
 
             <!-- Spare Ball -->
-            <Label Text="Spare Ball" FontAttributes="Bold" TextColor="Black" />
+            <Label Text="Spare Ball" FontAttributes="Bold" TextColor="{StaticResource Primary}" />
             <Picker ItemsSource="{Binding Arsenal}"
                     ItemDisplayBinding="{Binding Name}"
                     SelectedItem="{Binding SelectedSpareBall}"
@@ -43,7 +43,7 @@
                     Title="Select ball" />
 
             <!-- Stance -->
-            <Label Text="Stance" FontAttributes="Bold" TextColor="Black" />
+            <Label Text="Stance" FontAttributes="Bold" TextColor="{StaticResource Primary}" />
             <StackLayout Orientation="Horizontal" Spacing="6">
                 <Picker ItemsSource="{Binding StanceWholes}"
                         SelectedItem="{Binding SelectedStanceWhole}"
@@ -60,7 +60,7 @@
             </StackLayout>
 
             <!-- Ball Speed -->
-            <Label Text="Ball Speed" FontAttributes="Bold" TextColor="Black" />
+            <Label Text="Ball Speed" FontAttributes="Bold" TextColor="{StaticResource Primary}" />
             <StackLayout Orientation="Horizontal" Spacing="6">
                 <Picker ItemsSource="{Binding SpeedWholes}"
                         SelectedItem="{Binding SelectedSpeedWhole}"
@@ -77,7 +77,7 @@
             </StackLayout>
 
             <!-- Position -->
-            <Label Text="Position" FontAttributes="Bold" TextColor="Black" />
+            <Label Text="Position" FontAttributes="Bold" TextColor="{StaticResource Primary}" />
             <Picker ItemsSource="{Binding PositionOptions}"
                     SelectedItem="{Binding SelectedPosition}"
                     TextColor="Black"
@@ -85,7 +85,7 @@
                     Title="Select position" />
 
             <!-- Lane -->
-            <Label Text="Lane" FontAttributes="Bold" TextColor="Black" />
+            <Label Text="Lane" FontAttributes="Bold" TextColor="{StaticResource Primary}" />
             <Picker ItemsSource="{Binding LaneNumbers}"
                     SelectedItem="{Binding SelectedLane}"
                     TextColor="Black"
@@ -96,7 +96,7 @@
             <StackLayout Orientation="Horizontal" HorizontalOptions="Center" Spacing="20" Margin="0,8,0,0">
                 <Button Text="Close"
                         WidthRequest="100"
-                        BackgroundColor="DarkSlateGray"
+                        BackgroundColor="{StaticResource Secondary}"
                         TextColor="White"
                         Clicked="OnCloseClicked" />
             </StackLayout>

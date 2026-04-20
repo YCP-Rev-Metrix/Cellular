@@ -70,19 +70,13 @@
                 FontSize="14"
                 TextColor="{StaticResource Gray600}" />
 
-            <Label
+                <Label
                 x:Name="syncErrorLabel"
                 FontSize="14"
                 TextColor="Red"
                 IsVisible="False" />
 
-            <Button
-                x:Name="stats"
-                Text="Get Stats" 
-                SemanticProperties.Hint="Brings the user to the stats page, which they specify"
-                Clicked="OnStatsClicked" />
-
-            <Button
+                <Button
                 x:Name="editAccountButton"
                 Text="Edit Account Info"
                 SemanticProperties.Hint="Allows the user to edit their account info"

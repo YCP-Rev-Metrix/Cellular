@@ -60,7 +60,7 @@ namespace Cellular
             foreach (Session session in viewModel.Sessions)
             {
                 Debug.WriteLine($"Session ID: {session.SessionId}, Session Number: {session.SessionNumber}");
-                Button sessionButton = new Button { Text = "Session " + session.SessionNumber.ToString() };
+                Button sessionButton = new Button { Text = session.DisplayName ?? ("Session " + session.SessionNumber.ToString()) };
                 sessionButton.Clicked += (sender, e) => OnSessionClicked(sender, e, session.SessionId, session.SessionNumber);
                 _sessionlist.Children.Add(sessionButton);
                 StackLayout sessiongames = new StackLayout { IsVisible = false, Padding = 20 };
