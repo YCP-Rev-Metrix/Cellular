@@ -59,19 +59,19 @@ namespace Cellular
 
             if (existingUserByUsername != null || cloudUserExists)
             {
-                await DisplayAlert("Registration Error", "Username already exists", "OK");
+                await DisplayAlertAsync("Registration Error", "Username already exists", "OK");
             }
             else if (existingUserByEmail != null)
             {
-                await DisplayAlert("Registration Error", "Email already exists", "OK");
+                await DisplayAlertAsync("Registration Error", "Email already exists", "OK");
             }
             else if (password != cpassword)
             {
-                await DisplayAlert("Registration Error", "Passwords do not match", "OK");
+                await DisplayAlertAsync("Registration Error", "Passwords do not match", "OK");
             }
             else if (email != cemail)
             {
-                await DisplayAlert("Registration Error", "Emails do not match", "OK");
+                await DisplayAlertAsync("Registration Error", "Emails do not match", "OK");
             }
             else
             {

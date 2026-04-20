@@ -296,24 +296,24 @@ namespace Cellular
 
         private async void OnResetDeviceClicked(object sender, EventArgs e)
         {
-            bool confirm = await DisplayAlert("Reset Device",
+            bool confirm = await DisplayAlertAsync("Reset Device",
                 "This will reset the SmartDot device. Are you sure?", "Reset", "Cancel");
             if (!confirm) return;
 
             try
             {
                 await _metaWearService.ResetAsync();
-                await DisplayAlert("Reset", "Device reset command sent.", "OK");
+                await DisplayAlertAsync("Reset", "Device reset command sent.", "OK");
             }
             catch (Exception ex)
             {
-                await DisplayAlert("Error", $"Failed to reset device: {ex.Message}", "OK");
+                await DisplayAlertAsync("Error", $"Failed to reset device: {ex.Message}", "OK");
             }
         }
 
         private async void OnSleepModeClicked(object sender, EventArgs e)
         {
-            bool confirm = await DisplayAlert("Sleep Mode",
+            bool confirm = await DisplayAlertAsync("Sleep Mode",
                 "Put the SmartDot into deep sleep? It will disconnect and stop advertising to save battery.", "Sleep", "Cancel");
             if (!confirm) return;
 
@@ -338,11 +338,11 @@ namespace Cellular
                 LightSensorLabel.Text = "";
 
                 await UpdateIsConnectedStatusAsync(false);
-                await DisplayAlert("Sleep", "SmartDot is now in deep sleep mode.", "OK");
+                await DisplayAlertAsync("Sleep", "SmartDot is now in deep sleep mode.", "OK");
             }
             catch (Exception ex)
             {
-                await DisplayAlert("Error", $"Failed to send sleep command: {ex.Message}", "OK");
+                await DisplayAlertAsync("Error", $"Failed to send sleep command: {ex.Message}", "OK");
             }
         }
 
@@ -377,7 +377,7 @@ namespace Cellular
                 SensorBufferManager.GyroRange = GyroRangeValues[GyroRangePicker.SelectedIndex];
 
             await SaveCurrentDeviceSettingsAsync();
-            await DisplayAlert("Saved", "Sensor configuration saved. Changes take effect on the next recording.", "OK");
+            await DisplayAlertAsync("Saved", "Sensor configuration saved. Changes take effect on the next recording.", "OK");
         }
 
         private async void OnSaveLightThresholdClicked(object sender, EventArgs e)
@@ -859,7 +859,7 @@ namespace Cellular
                     var locationStatus = await Permissions.RequestAsync<Permissions.LocationWhenInUse>();
                     if (locationStatus != PermissionStatus.Granted)
                     {
-                        await DisplayAlert("Permission Required", 
+                        await DisplayAlertAsync("Permission Required", 
                             "Location permission is required to scan for Bluetooth devices. Please grant the permission in your device settings.", 
                             "OK");
                         return;
@@ -869,7 +869,7 @@ namespace Cellular
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Permission request error: {ex.Message}");
-                await DisplayAlert("Permission Error", 
+                await DisplayAlertAsync("Permission Error", 
                     $"Unable to request permissions: {ex.Message}. Please ensure Bluetooth permissions are granted in device settings.", 
                     "OK");
                 return;

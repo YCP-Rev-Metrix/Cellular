@@ -24,7 +24,7 @@ public partial class EventPopup : Popup
         {
             try
             {
-                await Application.Current?.MainPage?.DisplayAlertAsync(title, message, cancel);
+                await Application.Current?.Windows[0]?.Page?.DisplayAlertAsync(title, message, cancel);
             }
             catch (System.Exception ex)
             {
@@ -38,7 +38,7 @@ public partial class EventPopup : Popup
             try
             {
                 // Ensure Close runs on the UI thread
-                Application.Current?.MainPage?.Dispatcher.Dispatch(() => CloseAsync());
+                Application.Current?.Windows[0]?.Page?.Dispatcher.Dispatch(() => CloseAsync());
             }
             catch (Exception ex)
             {
