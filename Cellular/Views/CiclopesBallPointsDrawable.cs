@@ -84,14 +84,19 @@ public class CiclopesBallPointsDrawable : IDrawable
             laneHeight
         );
 
-        // Soft drop shadow hugging the gutter+lane composite so it reads as a
-        // physical object instead of being painted onto the popup background.
+        // NOTE: canvas.SetShadow is unreliable on Android GraphicsView (renders
+        // as a solid opaque blob or not at all). Approximate the drop shadow
+        // by stacking two translucent offset rects instead — looks identical
+        // on all platforms.
         var compositeRect = new RectF(compositeLeft, laneTop, totalWidth, laneHeight);
-        canvas.SaveState();
-        canvas.SetShadow(new SizeF(0, 3), 8f, Color.FromArgb("#80000000"));
-        canvas.FillColor = Color.FromArgb("#FF000000");
-        canvas.FillRoundedRectangle(compositeRect, 3f);
-        canvas.RestoreState();
+        canvas.FillColor = Color.FromArgb("#30000000");
+        canvas.FillRoundedRectangle(
+            new RectF(compositeRect.Left, compositeRect.Top + 3f, compositeRect.Width, compositeRect.Height),
+            3f);
+        canvas.FillColor = Color.FromArgb("#20000000");
+        canvas.FillRoundedRectangle(
+            new RectF(compositeRect.Left - 1f, compositeRect.Top + 5f, compositeRect.Width + 2f, compositeRect.Height),
+            3f);
 
         DrawGutter(canvas, new RectF(compositeLeft, laneTop, gutterPad, laneHeight), leftSide: true);
         DrawGutter(canvas, new RectF(laneRect.Right, laneTop, gutterPad, laneHeight), leftSide: false);

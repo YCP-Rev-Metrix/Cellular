@@ -7,7 +7,15 @@
                CanBeDismissedByTappingOutsideOfPopup="True"
                Color="Transparent"
                BackgroundColor="Transparent">
-    <Border StrokeShape="RoundRectangle 14"
+    <!-- ContentView wrapper is required because CommunityToolkit.Maui Popup
+         measures its content with infinite available space, so WidthRequest
+         on star-sized Grids/Borders inside gets ignored. Hard size on an outer
+         ContentView is the documented way to cap popup dimensions. -->
+    <ContentView x:Name="RootContent"
+                 HorizontalOptions="Center"
+                 VerticalOptions="Center">
+    <Border x:Name="RootBorder"
+            StrokeShape="RoundRectangle 14"
             Padding="0"
             StrokeThickness="0"
             BackgroundColor="{AppThemeBinding Light={StaticResource Surface}, Dark={StaticResource OffBlack}}">
@@ -15,17 +23,22 @@
               RowDefinitions="*,Auto">
 
             <!-- ===== BALL PANE (lane + stats + plots) ===== -->
+            <!-- Swipes live on the BallPane itself. BackgroundColor must be a
+                 non-null (near-transparent) color on Android — a fully
+                 Transparent layout does not receive touch events there. -->
             <Grid x:Name="BallPane" IsVisible="True"
                   Grid.Row="0"
                   ColumnDefinitions="160,*"
-                  ColumnSpacing="0">
-                <!-- Lane column (also acts as swipe target to switch to Pose pane) -->
-                <Grid Grid.Column="0" BackgroundColor="Transparent">
-                    <Grid.GestureRecognizers>
-                        <SwipeGestureRecognizer Direction="Left" Swiped="OnMainSwipedLeft"/>
-                        <SwipeGestureRecognizer Direction="Right" Swiped="OnMainSwipedRight"/>
-                    </Grid.GestureRecognizers>
-                    <GraphicsView x:Name="BallPlotView" Margin="0"/>
+                  ColumnSpacing="0"
+                  BackgroundColor="#01000000">
+                <Grid.GestureRecognizers>
+                    <SwipeGestureRecognizer Direction="Left" Swiped="OnMainSwipedLeft"/>
+                    <SwipeGestureRecognizer Direction="Right" Swiped="OnMainSwipedRight"/>
+                </Grid.GestureRecognizers>
+                <!-- GraphicsView must be InputTransparent so the Ball pane's
+                     swipe gesture receives touches that start over the lane. -->
+                <Grid Grid.Column="0" BackgroundColor="#01000000">
+                    <GraphicsView x:Name="BallPlotView" Margin="0" InputTransparent="True"/>
                 </Grid>
 
                 <!-- Right column: hero stats + analysis, fills height -->
@@ -53,12 +66,12 @@
                             <Grid ColumnDefinitions="4,*">
                                 <BoxView Grid.Column="0" Color="{StaticResource Primary}"/>
                                 <Grid Grid.Column="1" RowDefinitions="*,Auto" Padding="4,4,4,4">
-                                    <Grid Grid.Row="0" ColumnDefinitions="*,Auto" ColumnSpacing="3"
+                                    <Grid Grid.Row="0" ColumnDefinitions="*,Auto,*" ColumnSpacing="3"
                                           HorizontalOptions="Fill" VerticalOptions="Fill" Padding="2,0"
                                           SizeChanged="OnStatBoxSizeChanged">
                                         <Label x:Name="StatEntryX" Text="--"
                                                Grid.Column="0"
-                                               FontSize="18" FontAttributes="Bold"
+                                               FontSize="11" FontAttributes="Bold"
                                                FontAutoScalingEnabled="False"
                                                LineBreakMode="WordWrap"
                                                MaxLines="2"
@@ -90,12 +103,12 @@
                             <Grid ColumnDefinitions="4,*">
                                 <BoxView Grid.Column="0" Color="{StaticResource Primary}"/>
                                 <Grid Grid.Column="1" RowDefinitions="*,Auto" Padding="4,4,4,4">
-                                    <Grid Grid.Row="0" ColumnDefinitions="*,Auto" ColumnSpacing="3"
+                                    <Grid Grid.Row="0" ColumnDefinitions="*,Auto,*" ColumnSpacing="3"
                                           HorizontalOptions="Fill" VerticalOptions="Fill" Padding="2,0"
                                           SizeChanged="OnStatBoxSizeChanged">
                                         <Label x:Name="StatExitX" Text="--"
                                                Grid.Column="0"
-                                               FontSize="18" FontAttributes="Bold"
+                                               FontSize="11" FontAttributes="Bold"
                                                FontAutoScalingEnabled="False"
                                                LineBreakMode="WordWrap"
                                                MaxLines="2"
@@ -127,12 +140,12 @@
                             <Grid ColumnDefinitions="4,*">
                                 <BoxView Grid.Column="0" Color="{StaticResource Primary}"/>
                                 <Grid Grid.Column="1" RowDefinitions="*,Auto" Padding="4,4,4,4">
-                                    <Grid Grid.Row="0" ColumnDefinitions="*,Auto" ColumnSpacing="2"
+                                    <Grid Grid.Row="0" ColumnDefinitions="*,Auto,*" ColumnSpacing="2"
                                           HorizontalOptions="Fill" VerticalOptions="Fill" Padding="2,0"
                                           SizeChanged="OnStatBoxSizeChanged">
                                         <Label x:Name="StatEntryAngle" Text="--"
                                                Grid.Column="0"
-                                               FontSize="18" FontAttributes="Bold"
+                                               FontSize="11" FontAttributes="Bold"
                                                FontAutoScalingEnabled="False"
                                                LineBreakMode="WordWrap"
                                                MaxLines="2"
@@ -164,12 +177,12 @@
                             <Grid ColumnDefinitions="4,*">
                                 <BoxView Grid.Column="0" Color="{StaticResource Primary}"/>
                                 <Grid Grid.Column="1" RowDefinitions="*,Auto" Padding="4,4,4,4">
-                                    <Grid Grid.Row="0" ColumnDefinitions="*,Auto" ColumnSpacing="3"
+                                    <Grid Grid.Row="0" ColumnDefinitions="*,Auto,*" ColumnSpacing="3"
                                           HorizontalOptions="Fill" VerticalOptions="Fill" Padding="2,0"
                                           SizeChanged="OnStatBoxSizeChanged">
                                         <Label x:Name="StatBreakpoint" Text="--"
                                                Grid.Column="0"
-                                               FontSize="18" FontAttributes="Bold"
+                                               FontSize="11" FontAttributes="Bold"
                                                FontAutoScalingEnabled="False"
                                                LineBreakMode="WordWrap"
                                                MaxLines="2"
@@ -201,12 +214,12 @@
                             <Grid ColumnDefinitions="4,*">
                                 <BoxView Grid.Column="0" Color="{StaticResource Primary}"/>
                                 <Grid Grid.Column="1" RowDefinitions="*,Auto" Padding="4,4,4,4">
-                                    <Grid Grid.Row="0" ColumnDefinitions="*,Auto" ColumnSpacing="2"
+                                    <Grid Grid.Row="0" ColumnDefinitions="*,Auto,*" ColumnSpacing="2"
                                           HorizontalOptions="Fill" VerticalOptions="Fill" Padding="2,0"
                                           SizeChanged="OnStatBoxSizeChanged">
                                         <Label x:Name="StatLaunchAngle" Text="--"
                                                Grid.Column="0"
-                                               FontSize="18" FontAttributes="Bold"
+                                               FontSize="11" FontAttributes="Bold"
                                                FontAutoScalingEnabled="False"
                                                LineBreakMode="WordWrap"
                                                MaxLines="2"
@@ -238,12 +251,12 @@
                             <Grid ColumnDefinitions="4,*">
                                 <BoxView Grid.Column="0" Color="{StaticResource Primary}"/>
                                 <Grid Grid.Column="1" RowDefinitions="*,Auto" Padding="4,4,4,4">
-                                    <Grid Grid.Row="0" ColumnDefinitions="*,Auto" ColumnSpacing="3"
+                                    <Grid Grid.Row="0" ColumnDefinitions="*,Auto,*" ColumnSpacing="3"
                                           HorizontalOptions="Fill" VerticalOptions="Fill" Padding="2,0"
                                           SizeChanged="OnStatBoxSizeChanged">
                                         <Label x:Name="StatTotalHook" Text="--"
                                                Grid.Column="0"
-                                               FontSize="18" FontAttributes="Bold"
+                                               FontSize="11" FontAttributes="Bold"
                                                FontAutoScalingEnabled="False"
                                                LineBreakMode="WordWrap"
                                                MaxLines="2"
@@ -287,12 +300,12 @@
                             <Grid ColumnDefinitions="4,*">
                                 <BoxView Grid.Column="0" Color="{StaticResource Secondary}"/>
                                 <Grid Grid.Column="1" RowDefinitions="*,Auto" Padding="4,4,4,4">
-                                    <Grid Grid.Row="0" ColumnDefinitions="*,Auto" ColumnSpacing="3"
+                                    <Grid Grid.Row="0" ColumnDefinitions="*,Auto,*" ColumnSpacing="3"
                                           HorizontalOptions="Fill" VerticalOptions="Fill" Padding="2,0"
                                           SizeChanged="OnStatBoxSizeChanged">
                                         <Label x:Name="StatAvgSpeed" Text="--"
                                                Grid.Column="0"
-                                               FontSize="18" FontAttributes="Bold"
+                                               FontSize="11" FontAttributes="Bold"
                                                FontAutoScalingEnabled="False"
                                                LineBreakMode="WordWrap"
                                                MaxLines="2"
@@ -324,12 +337,12 @@
                             <Grid ColumnDefinitions="4,*">
                                 <BoxView Grid.Column="0" Color="{StaticResource Secondary}"/>
                                 <Grid Grid.Column="1" RowDefinitions="*,Auto" Padding="4,4,4,4">
-                                    <Grid Grid.Row="0" ColumnDefinitions="*,Auto" ColumnSpacing="3"
+                                    <Grid Grid.Row="0" ColumnDefinitions="*,Auto,*" ColumnSpacing="3"
                                           HorizontalOptions="Fill" VerticalOptions="Fill" Padding="2,0"
                                           SizeChanged="OnStatBoxSizeChanged">
                                         <Label x:Name="StatAvgAccel" Text="--"
                                                Grid.Column="0"
-                                               FontSize="18" FontAttributes="Bold"
+                                               FontSize="11" FontAttributes="Bold"
                                                FontAutoScalingEnabled="False"
                                                LineBreakMode="WordWrap"
                                                MaxLines="2"
@@ -361,12 +374,12 @@
                             <Grid ColumnDefinitions="4,*">
                                 <BoxView Grid.Column="0" Color="{StaticResource Secondary}"/>
                                 <Grid Grid.Column="1" RowDefinitions="*,Auto" Padding="4,4,4,4">
-                                    <Grid Grid.Row="0" ColumnDefinitions="*,Auto" ColumnSpacing="3"
+                                    <Grid Grid.Row="0" ColumnDefinitions="*,Auto,*" ColumnSpacing="3"
                                           HorizontalOptions="Fill" VerticalOptions="Fill" Padding="2,0"
                                           SizeChanged="OnStatBoxSizeChanged">
                                         <Label x:Name="StatEntrySpeed" Text="--"
                                                Grid.Column="0"
-                                               FontSize="18" FontAttributes="Bold"
+                                               FontSize="11" FontAttributes="Bold"
                                                FontAutoScalingEnabled="False"
                                                LineBreakMode="WordWrap"
                                                MaxLines="2"
@@ -398,12 +411,12 @@
                             <Grid ColumnDefinitions="4,*">
                                 <BoxView Grid.Column="0" Color="{StaticResource Secondary}"/>
                                 <Grid Grid.Column="1" RowDefinitions="*,Auto" Padding="4,4,4,4">
-                                    <Grid Grid.Row="0" ColumnDefinitions="*,Auto" ColumnSpacing="3"
+                                    <Grid Grid.Row="0" ColumnDefinitions="*,Auto,*" ColumnSpacing="3"
                                           HorizontalOptions="Fill" VerticalOptions="Fill" Padding="2,0"
                                           SizeChanged="OnStatBoxSizeChanged">
                                         <Label x:Name="StatExitSpeed" Text="--"
                                                Grid.Column="0"
-                                               FontSize="18" FontAttributes="Bold"
+                                               FontSize="11" FontAttributes="Bold"
                                                FontAutoScalingEnabled="False"
                                                LineBreakMode="WordWrap"
                                                MaxLines="2"
@@ -456,21 +469,21 @@
                                            TextColor="{AppThemeBinding Light={StaticResource Gray500}, Dark={StaticResource Gray300}}"
                                            Margin="8,4,0,0"
                                            VerticalOptions="Start"/>
-                                    <GraphicsView x:Name="SpeedPlotView" Margin="0,18,0,0"/>
+                                    <GraphicsView x:Name="SpeedPlotView" Margin="0,18,0,0" InputTransparent="True"/>
                                 </Grid>
                                 <Grid x:Name="PlotAccelPanel" Grid.Row="0" IsVisible="False">
                                     <Label Text="Accel by Quarter (ft/s&#x00B2;)" FontSize="9" FontAttributes="Bold"
                                            TextColor="{AppThemeBinding Light={StaticResource Gray500}, Dark={StaticResource Gray300}}"
                                            Margin="8,4,0,0"
                                            VerticalOptions="Start"/>
-                                    <GraphicsView x:Name="AccelPlotView" Margin="0,18,0,0"/>
+                                    <GraphicsView x:Name="AccelPlotView" Margin="0,18,0,0" InputTransparent="True"/>
                                 </Grid>
                                 <Grid x:Name="PlotLateralPanel" Grid.Row="0" IsVisible="False">
                                     <Label Text="Lateral Position (in)" FontSize="9" FontAttributes="Bold"
                                            TextColor="{AppThemeBinding Light={StaticResource Gray500}, Dark={StaticResource Gray300}}"
                                            Margin="8,4,0,0"
                                            VerticalOptions="Start"/>
-                                    <GraphicsView x:Name="LateralPlotView" Margin="0,18,0,0"/>
+                                    <GraphicsView x:Name="LateralPlotView" Margin="0,18,0,0" InputTransparent="True"/>
                                 </Grid>
 
                                 <!-- Plot dot navigation -->
@@ -646,4 +659,5 @@
 
         </Grid>
     </Border>
+    </ContentView>
 </toolkit:Popup>

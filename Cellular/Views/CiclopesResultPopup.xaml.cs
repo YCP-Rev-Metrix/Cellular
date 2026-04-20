@@ -117,9 +117,18 @@ public partial class CiclopesResultPopup : Popup
 
     private void InitCommonChrome()
     {
-        var (popupWidth, popupHeight) = ComputePopupSize(0.92);
-        MainGrid.WidthRequest = popupWidth;
-        MainGrid.HeightRequest = popupHeight;
+        // Hardcoded for Samsung Galaxy S23 viewport (~360x780 DIPs). Tuned to
+        // fit comfortably inside that screen with margin for status/nav bars.
+        // Revisit if other form factors need to be supported.
+        const double popupWidth = 340;
+        const double popupHeight = 700;
+        const double laneWidth = 160;
+
+        RootContent.WidthRequest = popupWidth;
+        RootContent.HeightRequest = popupHeight;
+
+        if (BallPane.ColumnDefinitions.Count > 0)
+            BallPane.ColumnDefinitions[0].Width = new GridLength(laneWidth);
 
         _mainPanes = [BallPane, PosePane];
         _plotPanels = [PlotSpeedPanel, PlotAccelPanel, PlotLateralPanel];
@@ -315,8 +324,11 @@ public partial class CiclopesResultPopup : Popup
         // the visible viewport on a phone (status bar + nav bar eat ~10%).
         const double maxWidth = 600;
         const double maxHeight = 780;
-        const double minWidth = 320;
-        const double minHeight = 520;
+        // Floors are intentionally low so the popup can collapse to whatever
+        // the viewport actually provides on tiny phones. The card font scaler
+        // in OnStatBoxSizeChanged takes care of legibility at small widths.
+        const double minWidth = 240;
+        const double minHeight = 420;
 
         double w, h;
 
