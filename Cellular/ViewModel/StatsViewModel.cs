@@ -114,9 +114,10 @@ namespace Cellular.ViewModel
         // --- Collections ---
         public ObservableCollection<string> Lanes { get; } = new();
         public ObservableCollection<string> Frames { get; } = new();
+        public ObservableCollection<string> GamePositions { get; } = new(); // 1-4 game position picker
 
         public ObservableCollection<Session> Sessions { get; } = new();
-        public ObservableCollection<Game> Games { get; } = new();
+        public ObservableCollection<Game> Games { get; } = new();   // internal stats data, not picker source
         public ObservableCollection<Event> Events { get; } = new();
         public ObservableCollection<Ball> Balls { get; } = new();
         public ObservableCollection<Establishment> Establishments { get; } = new();
@@ -130,11 +131,12 @@ namespace Cellular.ViewModel
         private string _selectedLane;
         private string _selectedFrame;
         private Session _selectedSession;
-        private Game _selectedGame;
         private Event _selectedEvent;
         private Ball _selected_ball;
         private Establishment _selectedEstablishment;
         private string _selectedStatType;
+        private string _selectedGamePosition;      // "1"–"4" or null
+        private int    _selectedGamePositionInt = -1; // parsed game number
 
         // --- Stat results (all types) ---
         public double StrikePercent { get; set; }
@@ -206,7 +208,7 @@ namespace Cellular.ViewModel
 
             sb.AppendLine($"Event: {_selectedEvent?.NickName ?? _selectedEvent?.LongName ?? "All"}");
             sb.AppendLine($"Session: {_selectedSession?.DisplayName ?? (_selectedSession != null ? _selectedSession.SessionNumber.ToString() : "All")}");
-            sb.AppendLine($"Game: {(_selectedGame != null ? _selectedGame.GameNumber.ToString() : "All")}");
+            sb.AppendLine($"Game: {(_selectedGamePositionInt > 0 ? _selectedGamePositionInt.ToString() : "All")}");
             sb.AppendLine($"Ball: {_selected_ball?.Name ?? "All"}");
             sb.AppendLine($"House: {_selectedEstablishment?.NickName ?? "All"}");
             sb.AppendLine($"Lane: {(_selectedLaneInt > 0 ? _selectedLaneInt.ToString() : "All")}");
@@ -218,22 +220,16 @@ namespace Cellular.ViewModel
             OnPropertyChanged(nameof(FilterSummary));
         }
 
-        // Suppress flags used when repopulating collections to avoid binding recursion/null-write that clears saved ids
-        private bool _suppressSelectedGameSetter = false;
+        // Suppress flag for session setter — fires when Sessions collection is cleared mid-load
         private bool _suppressSelectedSessionSetter = false;
 
-        // Prevent restoration when ClearSessionSelection explicitly clears selection
-        private bool _preventRestoreSelectedGame = false;
-
-        // Useful ids for queries
-        // -1 indicates "none selected"
-        private int _selectedSessionId = -1;
-        private int _selectedEventId = -1;
-        private int _selectedGameId = -1;
-        private int _selectedBallId = -1;
+        // Useful ids for queries (-1 = none selected)
+        private int _selectedSessionId    = -1;
+        private int _selectedEventId      = -1;
+        private int _selectedBallId       = -1;
         private int _selectedEstablishmentId = -1;
-        private int _selectedLaneInt = -1;
-        private int _selectedFrameInt = -1;
+        private int _selectedLaneInt      = -1;
+        private int _selectedFrameInt     = -1;
 
         public int SelectedSessionId
         {
@@ -261,15 +257,16 @@ namespace Cellular.ViewModel
             }
         }
 
-        public int SelectedGameId
+        public string SelectedGamePosition
         {
-            get => _selectedGameId;
-            private set
+            get => _selectedGamePosition;
+            set
             {
-                if (_selectedGameId != value)
+                if (_selectedGamePosition != value)
                 {
-                    _selectedGameId = value;
+                    _selectedGamePosition = value;
                     OnPropertyChanged();
+                    _selectedGamePositionInt = int.TryParse(_selectedGamePosition, out var n) ? n : -1;
                 }
             }
         }
@@ -397,29 +394,6 @@ namespace Cellular.ViewModel
             }
         }
 
-        public Game SelectedGame
-        {
-            get => _selectedGame;
-            set
-            {
-                if (_selectedGame != value)
-                {
-                    _selectedGame = value;
-
-                    // Suppress fires when the Games collection is cleared mid-load — ignore those.
-                    if (_suppressSelectedGameSetter)
-                    {
-                        OnPropertyChanged(nameof(SelectedGame));
-                        return;
-                    }
-
-                    OnPropertyChanged(nameof(SelectedGame));
-                    SelectedGameId = _selectedGame?.GameId ?? -1;
-                    // No cascade needed — game is a leaf selection.
-                }
-            }
-        }
-
         public Ball SelectedBall
         {
             get => _selected_ball;
@@ -486,10 +460,9 @@ namespace Cellular.ViewModel
                 OnPropertyChanged(nameof(SelectedEventId));
 
                 Games.Clear();
-                _selectedGame = null;
-                _selectedGameId = -1;
-                OnPropertyChanged(nameof(SelectedGame));
-                OnPropertyChanged(nameof(SelectedGameId));
+                _selectedGamePosition = null;
+                _selectedGamePositionInt = -1;
+                OnPropertyChanged(nameof(SelectedGamePosition));
 
                 BowlingFrames.Clear();
                 Shots.Clear();
@@ -533,6 +506,9 @@ namespace Cellular.ViewModel
             Frames.Clear();
             for (int i = 1; i <= 10; i++) Frames.Add(i.ToString());
             Frames.Add("All Frames");
+
+            GamePositions.Clear();
+            for (int i = 1; i <= 4; i++) GamePositions.Add(i.ToString());
 
             StatTypes.Clear();
             StatTypes.Add("Game");
@@ -649,17 +625,12 @@ namespace Cellular.ViewModel
             if (_isCascading) return;
             _isCascading = true;
             _suppressSelectedSessionSetter = true;
-            _suppressSelectedGameSetter = true;
             try
             {
-                // Clear dependent selections — the old session/game no longer apply.
+                // Clear dependent selections — the old session/game position no longer apply.
                 _selectedSession = null;
                 _selectedSessionId = -1;
                 OnPropertyChanged(nameof(SelectedSession));
-
-                _selectedGame = null;
-                _selectedGameId = -1;
-                OnPropertyChanged(nameof(SelectedGame));
 
                 Sessions.Clear();
                 Games.Clear();
@@ -700,30 +671,22 @@ namespace Cellular.ViewModel
             {
                 _isCascading = false;
                 _suppressSelectedSessionSetter = false;
-                _suppressSelectedGameSetter = false;
                 OnPropertyChanged(nameof(Sessions));
                 OnPropertyChanged(nameof(Games));
                 OnPropertyChanged(nameof(SelectedSession));
-                OnPropertyChanged(nameof(SelectedGame));
             }
         }
 
         /// <summary>
         /// Called when the user selects a new Session.
-        /// Clears the stale game selection and repopulates the Games dropdown
-        /// without doing the expensive frames+shots load.
+        /// Repopulates the Games collection (used for stats data, not picker source).
         /// </summary>
         private async Task CascadeSessionSelectionAsync()
         {
             if (_isCascading) return;
             _isCascading = true;
-            _suppressSelectedGameSetter = true;
             try
             {
-                // Clear game selection — old game may belong to a different session.
-                _selectedGame = null;
-                _selectedGameId = -1;
-                OnPropertyChanged(nameof(SelectedGame));
                 Games.Clear();
 
                 if (SelectedSessionId == -1)
@@ -768,9 +731,7 @@ namespace Cellular.ViewModel
             finally
             {
                 _isCascading = false;
-                _suppressSelectedGameSetter = false;
                 OnPropertyChanged(nameof(Games));
-                OnPropertyChanged(nameof(SelectedGame));
             }
         }
 
@@ -784,14 +745,10 @@ namespace Cellular.ViewModel
             // Track how many sessions we considered for this load so we can log it later
             int sessionsConsideredCount = 0;
 
-            // Capture the ids the UI currently wants selected so we can restore them
-            // even if clearing/repopulating the bound collections causes the UI to write null back.
-            var desiredSelectedGameId = SelectedGameId;
-            var desiredSelectedEventId = SelectedEventId;
+            // Capture the ids in case clearing collections causes MAUI to write null back via bindings.
+            var desiredSelectedEventId   = SelectedEventId;
             var desiredSelectedSessionId = SelectedSessionId;
 
-            // Suppress setter side-effects while repopulating bound collections.
-            _suppressSelectedGameSetter = true;
             _suppressSelectedSessionSetter = true;
             try
             {
@@ -882,13 +839,14 @@ namespace Cellular.ViewModel
 
                 foreach (var session in sessionsToConsider)
                 {
-                    // Get games for session (respect frame filter if set)
+                    // Get games for session, applying game-position filter (1–4) if set
                     List<Game> gamesForSession;
-                    if (SelectedGameId != -1)
+                    if (_selectedGamePositionInt > 0)
                     {
-                        // explicit single game selected
-                        var single = (await _gameRepo.GetGamesListBySessionAsync(session.SessionId, UserId)).FirstOrDefault(g => g.GameId == SelectedGameId);
-                        gamesForSession = single != null ? new List<Game> { single } : new List<Game>();
+                        // Game position selected — grab whichever game in this session has that GameNumber
+                        var all = await _gameRepo.GetGamesListBySessionAsync(session.SessionId, UserId);
+                        var match = all.FirstOrDefault(g => g.GameNumber == _selectedGamePositionInt);
+                        gamesForSession = match != null ? new List<Game> { match } : new List<Game>();
                     }
                     else if (SelectedFrameInt > 0)
                     {
@@ -954,17 +912,6 @@ namespace Cellular.ViewModel
                     }
                 }
 
-                // Restore SelectedGame to the instance in the newly-populated Games collection
-                if (desiredSelectedGameId != -1)
-                {
-                    var restored = Games.FirstOrDefault(g => g.GameId == desiredSelectedGameId);
-                    if (restored != null)
-                    {
-                        _selectedGame = restored;
-                        SelectedGameId = restored.GameId;
-                    }
-                }
-
                 // Restore SelectedEvent to the instance in the newly-populated Events collection
                 if (desiredSelectedEventId != -1)
                 {
@@ -982,13 +929,11 @@ namespace Cellular.ViewModel
                 _isLoadingFilteredData = false;
 
                 // Re-enable setter behavior and notify UI.
-                _suppressSelectedGameSetter = false;
                 _suppressSelectedSessionSetter = false;
                 OnPropertyChanged(nameof(Games));
                 OnPropertyChanged(nameof(Sessions));
                 OnPropertyChanged(nameof(BowlingFrames));
                 OnPropertyChanged(nameof(Shots));
-                OnPropertyChanged(nameof(SelectedGame));
                 OnPropertyChanged(nameof(SelectedSession));
 
                 // Log counts so we can see how many items were loaded for this call.

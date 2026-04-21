@@ -49,10 +49,9 @@
 
                 <Picker Grid.Row="2" Grid.Column="0"
                         x:Name="GamePicker"
-                        Title="Game"
-                        ItemsSource="{Binding Games}"
-                        ItemDisplayBinding="{Binding DisplayLabel}"
-                        SelectedItem="{Binding SelectedGame}"
+                        Title="Game #"
+                        ItemsSource="{Binding GamePositions}"
+                        SelectedItem="{Binding SelectedGamePosition}"
                         WidthRequest="140" />
 
                 <Picker Grid.Row="3" Grid.Column="0"
