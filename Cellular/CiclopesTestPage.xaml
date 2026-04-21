@@ -28,6 +28,12 @@
                     WidthRequest="220"
                     Style="{StaticResource AccentButton}" />
 
+            <Button x:Name="ExperimentalVideoButton"
+                    Text="Experimental Video Demo"
+                    Clicked="OnExperimentalVideoClicked"
+                    WidthRequest="220"
+                    Style="{StaticResource AccentButton}" />
+
             <Border x:Name="ShotDropdown"
                     IsVisible="False"
                     WidthRequest="220"

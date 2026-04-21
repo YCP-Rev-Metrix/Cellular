@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
+             x:Class="Cellular.CiclopesExperimentalVideoPage"
+             Title="Ciclopes Video Demo"
+             BackgroundColor="{AppThemeBinding Light={StaticResource Surface}, Dark={StaticResource OffBlack}}">
+
+    <Grid>
+        <ScrollView>
+            <VerticalStackLayout Padding="24,20,24,32"
+                                 Spacing="18">
+                <Image Source="logo.png"
+                       HeightRequest="120"
+                       Aspect="AspectFit"
+                       HorizontalOptions="Center"
+                       SemanticProperties.Description="RevMetrix Logo" />
+
+                <VerticalStackLayout Spacing="4">
+                    <Label Text="EXPERIMENTAL POSE DEMO"
+                           FontSize="12"
+                           FontAttributes="Bold"
+                           CharacterSpacing="1.6"
+                           TextColor="{StaticResource Secondary}"
+                           HorizontalTextAlignment="Center"/>
+                    <Label Text="Record a video, upload it, send the returned key to FourDBody, and preview the pose render in the Ciclopes popup."
+                           FontSize="13"
+                           HorizontalTextAlignment="Center"
+                           TextColor="{AppThemeBinding Light={StaticResource Gray500}, Dark={StaticResource Gray300}}"/>
+                </VerticalStackLayout>
+
+                <Border StrokeShape="RoundRectangle 14"
+                        StrokeThickness="0"
+                        BackgroundColor="{AppThemeBinding Light={StaticResource CardBackground}, Dark={StaticResource CardBackgroundDark}}"
+                        Padding="14">
+                    <VerticalStackLayout Spacing="12">
+                        <Label Text="Capture Resolution"
+                               FontSize="11"
+                               FontAttributes="Bold"
+                               CharacterSpacing="1.2"
+                               TextColor="{StaticResource Primary}"/>
+                        <Picker x:Name="ResolutionPicker"
+                                Title="Select Resolution"
+                                SelectedIndexChanged="ResolutionPicker_SelectedIndexChanged"
+                                TextColor="{AppThemeBinding Light={StaticResource Gray950}, Dark={StaticResource White}}"/>
+                    </VerticalStackLayout>
+                </Border>
+
+                <Grid HorizontalOptions="Center">
+                    <toolkit:CameraView x:Name="cameraView"
+                                        WidthRequest="300"
+                                        HeightRequest="420"
+                                        HorizontalOptions="Center"/>
+
+                    <Border VerticalOptions="End"
+                            HorizontalOptions="Fill"
+                            Margin="10"
+                            Padding="10,8"
+                            StrokeShape="RoundRectangle 12"
+                            StrokeThickness="0"
+                            BackgroundColor="#88000000">
+                        <Label x:Name="StatusValueLabel"
+                               Text="Waiting for camera..."
+                               FontSize="12"
+                               TextColor="{StaticResource White}"
+                               HorizontalTextAlignment="Center"/>
+                    </Border>
+                </Grid>
+
+                <Button x:Name="RecordBtn"
+                        Text="Record"
+                        Clicked="OnRecordClicked"
+                        IsEnabled="False"
+                        WidthRequest="220"
+                        HorizontalOptions="Center"
+                        Style="{StaticResource AccentButton}" />
+            </VerticalStackLayout>
+        </ScrollView>
+
+        <Grid x:Name="BusyOverlay"
+              IsVisible="False"
+              BackgroundColor="{AppThemeBinding Light=#B0000000, Dark=#B0000000}">
+            <VerticalStackLayout HorizontalOptions="Center"
+                                 VerticalOptions="Center"
+                                 Spacing="12">
+                <ActivityIndicator IsRunning="True"
+                                   Color="{StaticResource Secondary}"
+                                   WidthRequest="56"
+                                   HeightRequest="56"/>
+                <Label x:Name="BusyLabel"
+                       Text="Working..."
+                       FontSize="14"
+                       TextColor="{StaticResource White}"
+                       HorizontalTextAlignment="Center"/>
+            </VerticalStackLayout>
+        </Grid>
+    </Grid>
+</ContentPage>

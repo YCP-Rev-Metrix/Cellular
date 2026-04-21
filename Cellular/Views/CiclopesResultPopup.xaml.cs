@@ -115,6 +115,23 @@ public partial class CiclopesResultPopup : Popup
         _ = LoadQueryPoseDataAsync(fourDBodyQueryTask);
     }
 
+    public CiclopesResultPopup(Task<FourDBodyRunResponse?> fourDBodyTask)
+    {
+        InitializeComponent();
+        InitCommonChrome();
+        _isMultiMode = false;
+
+        ConfigurePoseOnlyMode();
+
+        _maxPoseFrameIndex = 0;
+        FrameSlider.Maximum = 0;
+        FrameSlider.Value = 0;
+
+        SetPane(1, false);
+
+        _ = LoadPoseDataAsync(fourDBodyTask);
+    }
+
     private void InitCommonChrome()
     {
         // Hardcoded for Samsung Galaxy S23 viewport (~360x780 DIPs). Tuned to
@@ -137,6 +154,17 @@ public partial class CiclopesResultPopup : Popup
         foreach (var label in SpeedLabels)
             SpeedPicker.Items.Add(label);
         SpeedPicker.SelectedIndex = 0;
+    }
+
+    private void ConfigurePoseOnlyMode()
+    {
+        BallPane.IsVisible = false;
+        BallDot.IsVisible = false;
+        BallDot.InputTransparent = true;
+        PoseDot.Opacity = 1.0;
+        PoseDot.InputTransparent = true;
+        PoseLoadingLabel.Text = "Running pose estimation...";
+        ShotChipBar.IsVisible = false;
     }
 
     private void BuildShotChips()

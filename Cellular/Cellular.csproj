@@ -198,6 +198,9 @@
 		<Compile Update="ClickerPage.xaml.cs">
 			<DependentUpon>ClickerPage.xaml</DependentUpon>
 		</Compile>
+		<Compile Update="CiclopesExperimentalVideoPage.xaml.cs">
+			<DependentUpon>CiclopesExperimentalVideoPage.xaml</DependentUpon>
+		</Compile>
 	</ItemGroup>
 
 	<ItemGroup>
@@ -223,6 +226,9 @@
 			<Generator>MSBuild:Compile</Generator>
 		</MauiXaml>
 		<MauiXaml Update="Account.xaml">
+			<Generator>MSBuild:Compile</Generator>
+		</MauiXaml>
+		<MauiXaml Update="CiclopesExperimentalVideoPage.xaml">
 			<Generator>MSBuild:Compile</Generator>
 		</MauiXaml>
 		<MauiXaml Update="Bluetooth.xaml">

@@ -10,6 +10,7 @@ namespace Cellular
         public AppShell()
         {
             InitializeComponent();
+            Routing.RegisterRoute(nameof(CiclopesExperimentalVideoPage), typeof(CiclopesExperimentalVideoPage));
             LoadLoginState(); // Load login state when the app starts
         }
 

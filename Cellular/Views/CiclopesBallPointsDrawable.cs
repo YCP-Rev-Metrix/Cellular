@@ -192,16 +192,14 @@ public class CiclopesBallPointsDrawable : IDrawable
             canvas.DrawLine(x, laneRect.Top, x, laneRect.Bottom);
         }
 
-        // Top-down vignette so the surface looks slightly polished.
-        var vignette = new LinearGradientPaint
-        {
-            StartColor = Color.FromArgb("#30FFFFFF"),
-            EndColor = Color.FromArgb("#30000000"),
-            StartPoint = new Point(0.5, 0),
-            EndPoint = new Point(0.5, 1)
-        };
-        canvas.SetFillPaint(vignette, laneRect);
-        canvas.FillRectangle(laneRect);
+        // Android's GraphicsView backend can wash out LinearGradientPaint fills
+        // here, so use deterministic alpha bands for the same polished look.
+        DrawHorizontalGradientBands(
+            canvas,
+            laneRect,
+            Color.FromArgb("#30FFFFFF"),
+            Color.FromArgb("#30000000"),
+            28);
     }
 
     /// <summary>
@@ -215,32 +213,82 @@ public class CiclopesBallPointsDrawable : IDrawable
 
         // Concave shading — darker on the side adjacent to the lane, lighter
         // on the outer rim, simulating a curved channel under top lighting.
-        var gradient = new LinearGradientPaint
-        {
-            StartColor = leftSide ? Color.FromArgb("#FFB8BDC2") : Color.FromArgb("#FF4A4F55"),
-            EndColor = leftSide ? Color.FromArgb("#FF4A4F55") : Color.FromArgb("#FFB8BDC2"),
-            StartPoint = new Point(0, 0.5),
-            EndPoint = new Point(1, 0.5)
-        };
-        canvas.SetFillPaint(gradient, rect);
-        canvas.FillRectangle(rect);
+        DrawVerticalGradientBands(
+            canvas,
+            rect,
+            leftSide ? Color.FromArgb("#FFB8BDC2") : Color.FromArgb("#FF4A4F55"),
+            leftSide ? Color.FromArgb("#FF4A4F55") : Color.FromArgb("#FFB8BDC2"),
+            18);
 
         // Soft top highlight to suggest a glossy rim.
-        var topGloss = new LinearGradientPaint
-        {
-            StartColor = Color.FromArgb("#50FFFFFF"),
-            EndColor = Color.FromArgb("#00FFFFFF"),
-            StartPoint = new Point(0.5, 0),
-            EndPoint = new Point(0.5, 0.25)
-        };
-        canvas.SetFillPaint(topGloss, rect);
-        canvas.FillRectangle(rect);
+        var glossHeight = rect.Height * 0.25f;
+        DrawHorizontalGradientBands(
+            canvas,
+            new RectF(rect.Left, rect.Top, rect.Width, glossHeight),
+            Color.FromArgb("#50FFFFFF"),
+            Color.FromArgb("#00FFFFFF"),
+            8);
 
         // Crisp inner edge against the lane.
         canvas.StrokeColor = Color.FromArgb("#FF2C3034");
         canvas.StrokeSize = 1f;
         var edgeX = leftSide ? rect.Right : rect.Left;
         canvas.DrawLine(edgeX, rect.Top, edgeX, rect.Bottom);
+    }
+
+    private static void DrawHorizontalGradientBands(
+        ICanvas canvas,
+        RectF rect,
+        Color startColor,
+        Color endColor,
+        int steps)
+    {
+        if (steps <= 0 || rect.Width <= 0f || rect.Height <= 0f)
+        {
+            return;
+        }
+
+        var bandHeight = rect.Height / steps;
+        for (var i = 0; i < steps; i++)
+        {
+            var t = steps == 1 ? 0f : i / (float)(steps - 1);
+            var top = rect.Top + i * bandHeight;
+            var height = i == steps - 1 ? rect.Bottom - top : bandHeight + 0.5f;
+            canvas.FillColor = Lerp(startColor, endColor, t);
+            canvas.FillRectangle(rect.Left, top, rect.Width, height);
+        }
+    }
+
+    private static void DrawVerticalGradientBands(
+        ICanvas canvas,
+        RectF rect,
+        Color startColor,
+        Color endColor,
+        int steps)
+    {
+        if (steps <= 0 || rect.Width <= 0f || rect.Height <= 0f)
+        {
+            return;
+        }
+
+        var bandWidth = rect.Width / steps;
+        for (var i = 0; i < steps; i++)
+        {
+            var t = steps == 1 ? 0f : i / (float)(steps - 1);
+            var left = rect.Left + i * bandWidth;
+            var width = i == steps - 1 ? rect.Right - left : bandWidth + 0.5f;
+            canvas.FillColor = Lerp(startColor, endColor, t);
+            canvas.FillRectangle(left, rect.Top, width, rect.Height);
+        }
+    }
+
+    private static Color Lerp(Color start, Color end, float amount)
+    {
+        return new Color(
+            start.Red + ((end.Red - start.Red) * amount),
+            start.Green + ((end.Green - start.Green) * amount),
+            start.Blue + ((end.Blue - start.Blue) * amount),
+            start.Alpha + ((end.Alpha - start.Alpha) * amount));
     }
 
     /// <summary>

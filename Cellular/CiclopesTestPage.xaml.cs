@@ -100,4 +100,9 @@ public partial class CiclopesTestPage : ContentPage
             RunQueryButton.IsEnabled = _selectedShots.Count > 0;
         }
     }
+
+    private async void OnExperimentalVideoClicked(object sender, EventArgs e)
+    {
+        await Shell.Current.GoToAsync(nameof(CiclopesExperimentalVideoPage));
+    }
 }
