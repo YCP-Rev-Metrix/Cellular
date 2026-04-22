@@ -26,8 +26,10 @@ namespace Cellular.ViewModel
 
         public int UserId = Preferences.Get("UserId", 0);
 
-        // Command to clear session selection
+        // Command to clear all selections (full reset)
         public ICommand ClearSessionCommand { get; }
+        // Command to clear a single picker — pass the picker name as string parameter
+        public ICommand ClearPickerCommand { get; }
 
         // Nullable filter values used by the query engine.
         // Null = no date boundary on that side.
@@ -107,6 +109,7 @@ namespace Cellular.ViewModel
 
             // initialize commands
             ClearSessionCommand = new Command(ClearSessionSelection);
+            ClearPickerCommand  = new Command<string>(ClearPicker);
 
             LoadStaticData();
         }
@@ -510,6 +513,58 @@ namespace Cellular.ViewModel
             _ = LoadAsync();
         }
 
+        // Clear a single picker without resetting everything else.
+        private void ClearPicker(string pickerName)
+        {
+            switch (pickerName)
+            {
+                case "Event":
+                    _selectedEvent = null;
+                    _selectedEventId = -1;
+                    OnPropertyChanged(nameof(SelectedEvent));
+                    _ = CascadeEventSelectionAsync();   // restores full session/game lists
+                    break;
+                case "Session":
+                    _selectedSession = null;
+                    _selectedSessionId = -1;
+                    OnPropertyChanged(nameof(SelectedSession));
+                    _ = CascadeSessionSelectionAsync(); // restores games for current event (or all)
+                    break;
+                case "GamePosition":
+                    _selectedGamePosition = null;
+                    _selectedGamePositionInt = -1;
+                    OnPropertyChanged(nameof(SelectedGamePosition));
+                    break;
+                case "Ball":
+                    _selected_ball = null;
+                    _selectedBallId = -1;
+                    OnPropertyChanged(nameof(SelectedBall));
+                    break;
+                case "Establishment":
+                    _selectedEstablishment = null;
+                    _selectedEstablishmentId = -1;
+                    OnPropertyChanged(nameof(SelectedEstablishment));
+                    break;
+                case "Lane":
+                    _selectedLane = null;
+                    _selectedLaneInt = -1;
+                    OnPropertyChanged(nameof(SelectedLane));
+                    break;
+                case "Frame":
+                    _selectedFrame = null;
+                    _selectedFrameInt = -1;
+                    OnPropertyChanged(nameof(SelectedFrame));
+                    break;
+                case "StatType":
+                    _selectedStatType = null;
+                    OnPropertyChanged(nameof(SelectedStatType));
+                    OnPropertyChanged(nameof(IsGameType));
+                    OnPropertyChanged(nameof(IsFirstBallType));
+                    OnPropertyChanged(nameof(IsSecondBallType));
+                    break;
+            }
+        }
+
         // --- Helper Methods ---
         private void LoadStaticData()
         {
@@ -774,10 +829,17 @@ namespace Cellular.ViewModel
 
                 // Determine sessions to consider
                 List<Session> sessionsToConsider;
+                // All sessions for the selected event — used to repopulate the Sessions picker
+                // without narrowing it to just the selected session.
+                List<Session> allSessionsForEventDisplay = null;
+
                 // If an event is selected, prefer sessions under that event
                 if (SelectedEventId != -1)
                 {
                     var sessionsForEvent = await _sessionRepo.GetSessionsByUserIdAndEventAsync(UserId, SelectedEventId);
+
+                    // Keep the full list for the picker so the user can still see/change their selection.
+                    allSessionsForEventDisplay = sessionsForEvent.ToList();
 
                     // apply optional date range filter
                     if (SelectedStartDate.HasValue || SelectedEndDate.HasValue)
@@ -835,10 +897,14 @@ namespace Cellular.ViewModel
                 // Sessions list intact: clearing it here (a) collapses the picker to a single entry
                 // and (b) causes MAUI to immediately write null back through the two-way SelectedItem
                 // binding, which previously caused the freeze.
+                // When an event is selected, repopulate Sessions with ALL sessions for that event
+                // (not just sessionsToConsider, which may be narrowed to a single selected session).
+                // This ensures the picker still shows every available session after a query.
                 if (SelectedEventId != -1)
                 {
+                    var displayList = allSessionsForEventDisplay ?? sessionsToConsider;
                     Sessions.Clear();
-                    foreach (var sess in sessionsToConsider.OrderByDescending(s => s.SessionNumber))
+                    foreach (var sess in displayList.OrderByDescending(s => s.SessionNumber))
                     {
                         var nickName = Events.FirstOrDefault(e => e.EventId == sess.EventId)?.NickName ?? string.Empty;
                         sess.BuildDisplayName(nickName);

@@ -39,27 +39,48 @@
                             Date="{Binding StartDateDisplay, Mode=TwoWay}"
                             WidthRequest="140" />
 
-                <Picker Grid.Row="1" Grid.Column="0"
-                        x:Name="SessionPicker"
-                        Title="Session"
-                        ItemsSource="{Binding Sessions}"
-                        ItemDisplayBinding="{Binding DisplayName}"
-                        SelectedItem="{Binding SelectedSession}"
-                        WidthRequest="140" />
+                <!-- Session picker + clear -->
+                <HorizontalStackLayout Grid.Row="1" Grid.Column="0" Spacing="2" VerticalOptions="Center">
+                    <Picker x:Name="SessionPicker"
+                            Title="Session"
+                            ItemsSource="{Binding Sessions}"
+                            ItemDisplayBinding="{Binding DisplayName}"
+                            SelectedItem="{Binding SelectedSession}"
+                            WidthRequest="122" />
+                    <Label Text="×" FontSize="18" TextColor="LightGray" VerticalOptions="Center">
+                        <Label.GestureRecognizers>
+                            <TapGestureRecognizer Command="{Binding ClearPickerCommand}" CommandParameter="Session" />
+                        </Label.GestureRecognizers>
+                    </Label>
+                </HorizontalStackLayout>
 
-                <Picker Grid.Row="2" Grid.Column="0"
-                        x:Name="GamePicker"
-                        Title="Game #"
-                        ItemsSource="{Binding GamePositions}"
-                        SelectedItem="{Binding SelectedGamePosition}"
-                        WidthRequest="140" />
+                <!-- Game # picker + clear -->
+                <HorizontalStackLayout Grid.Row="2" Grid.Column="0" Spacing="2" VerticalOptions="Center">
+                    <Picker x:Name="GamePicker"
+                            Title="Game #"
+                            ItemsSource="{Binding GamePositions}"
+                            SelectedItem="{Binding SelectedGamePosition}"
+                            WidthRequest="122" />
+                    <Label Text="×" FontSize="18" TextColor="LightGray" VerticalOptions="Center">
+                        <Label.GestureRecognizers>
+                            <TapGestureRecognizer Command="{Binding ClearPickerCommand}" CommandParameter="GamePosition" />
+                        </Label.GestureRecognizers>
+                    </Label>
+                </HorizontalStackLayout>
 
-                <Picker Grid.Row="3" Grid.Column="0"
-                        x:Name="LanesPicker"
-                        Title="Lanes"
-                        ItemsSource="{Binding Lanes}"
-                        SelectedItem="{Binding SelectedLane}"
-                        WidthRequest="140" />
+                <!-- Lane picker + clear -->
+                <HorizontalStackLayout Grid.Row="3" Grid.Column="0" Spacing="2" VerticalOptions="Center">
+                    <Picker x:Name="LanesPicker"
+                            Title="Lanes"
+                            ItemsSource="{Binding Lanes}"
+                            SelectedItem="{Binding SelectedLane}"
+                            WidthRequest="122" />
+                    <Label Text="×" FontSize="18" TextColor="LightGray" VerticalOptions="Center">
+                        <Label.GestureRecognizers>
+                            <TapGestureRecognizer Command="{Binding ClearPickerCommand}" CommandParameter="Lane" />
+                        </Label.GestureRecognizers>
+                    </Label>
+                </HorizontalStackLayout>
 
                 <!-- Right column -->
                 <DatePicker Grid.Row="0" Grid.Column="1"
@@ -67,48 +88,79 @@
                             Date="{Binding EndDateDisplay, Mode=TwoWay}"
                             WidthRequest="140" />
 
-                <Picker Grid.Row="1" Grid.Column="1"
-                        x:Name="EventPicker"
-                        Title="Event"
-                        ItemsSource="{Binding Events}"
-                        ItemDisplayBinding="{Binding LongName}"
-                        SelectedItem="{Binding SelectedEvent}"
-                        WidthRequest="140" />
+                <!-- Event picker + clear -->
+                <HorizontalStackLayout Grid.Row="1" Grid.Column="1" Spacing="2" VerticalOptions="Center">
+                    <Picker x:Name="EventPicker"
+                            Title="Event"
+                            ItemsSource="{Binding Events}"
+                            ItemDisplayBinding="{Binding LongName}"
+                            SelectedItem="{Binding SelectedEvent}"
+                            WidthRequest="122" />
+                    <Label Text="×" FontSize="18" TextColor="LightGray" VerticalOptions="Center">
+                        <Label.GestureRecognizers>
+                            <TapGestureRecognizer Command="{Binding ClearPickerCommand}" CommandParameter="Event" />
+                        </Label.GestureRecognizers>
+                    </Label>
+                </HorizontalStackLayout>
 
-                <Picker Grid.Row="2" Grid.Column="1"
-                        x:Name="BallPicker"
-                        Title="Ball"
-                        ItemsSource="{Binding Balls}"
-                        ItemDisplayBinding="{Binding Name}"
-                        SelectedItem="{Binding SelectedBall}"
-                        WidthRequest="140" />
+                <!-- Ball picker + clear -->
+                <HorizontalStackLayout Grid.Row="2" Grid.Column="1" Spacing="2" VerticalOptions="Center">
+                    <Picker x:Name="BallPicker"
+                            Title="Ball"
+                            ItemsSource="{Binding Balls}"
+                            ItemDisplayBinding="{Binding Name}"
+                            SelectedItem="{Binding SelectedBall}"
+                            WidthRequest="122" />
+                    <Label Text="×" FontSize="18" TextColor="LightGray" VerticalOptions="Center">
+                        <Label.GestureRecognizers>
+                            <TapGestureRecognizer Command="{Binding ClearPickerCommand}" CommandParameter="Ball" />
+                        </Label.GestureRecognizers>
+                    </Label>
+                </HorizontalStackLayout>
 
-                <Picker Grid.Row="3" Grid.Column="1"
-                        x:Name="FramePicker"
-                        Title="Frame"
-                        ItemsSource="{Binding Frames}"
-                        SelectedItem="{Binding SelectedFrame}"
-                        WidthRequest="140" />
+                <!-- Frame picker + clear -->
+                <HorizontalStackLayout Grid.Row="3" Grid.Column="1" Spacing="2" VerticalOptions="Center">
+                    <Picker x:Name="FramePicker"
+                            Title="Frame"
+                            ItemsSource="{Binding Frames}"
+                            SelectedItem="{Binding SelectedFrame}"
+                            WidthRequest="122" />
+                    <Label Text="×" FontSize="18" TextColor="LightGray" VerticalOptions="Center">
+                        <Label.GestureRecognizers>
+                            <TapGestureRecognizer Command="{Binding ClearPickerCommand}" CommandParameter="Frame" />
+                        </Label.GestureRecognizers>
+                    </Label>
+                </HorizontalStackLayout>
 
-                <!-- House (establishment) centered below the lane/frame row -->
+                <!-- House picker + clear -->
                 <HorizontalStackLayout Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="2"
-                                       HorizontalOptions="Center" Spacing="8" Padding="0,10,0,0">
+                                       HorizontalOptions="Center" Spacing="4" Padding="0,10,0,0">
                     <Picker x:Name="HousePicker"
                             Title="House"
                             ItemsSource="{Binding Establishments}"
                             ItemDisplayBinding="{Binding NickName}"
                             SelectedItem="{Binding SelectedEstablishment}"
-                            WidthRequest="200" />
+                            WidthRequest="185" />
+                    <Label Text="×" FontSize="18" TextColor="LightGray" VerticalOptions="Center">
+                        <Label.GestureRecognizers>
+                            <TapGestureRecognizer Command="{Binding ClearPickerCommand}" CommandParameter="Establishment" />
+                        </Label.GestureRecognizers>
+                    </Label>
                 </HorizontalStackLayout>
 
-                <!-- StatType centered below house -->
+                <!-- StatType picker + clear -->
                 <HorizontalStackLayout Grid.Row="5" Grid.Column="0" Grid.ColumnSpan="2"
-                                       HorizontalOptions="Center" Spacing="8" Padding="0,10,0,0">
+                                       HorizontalOptions="Center" Spacing="4" Padding="0,10,0,0">
                     <Picker x:Name="StatTypePicker"
                             Title="Stat Type"
                             ItemsSource="{Binding StatTypes}"
                             SelectedItem="{Binding SelectedStatType}"
-                            WidthRequest="200" />
+                            WidthRequest="185" />
+                    <Label Text="×" FontSize="18" TextColor="LightGray" VerticalOptions="Center">
+                        <Label.GestureRecognizers>
+                            <TapGestureRecognizer Command="{Binding ClearPickerCommand}" CommandParameter="StatType" />
+                        </Label.GestureRecognizers>
+                    </Label>
                 </HorizontalStackLayout>
 
                 <!-- Load Stats and Clear buttons side-by-side centered -->
