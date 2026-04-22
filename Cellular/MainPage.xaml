@@ -11,18 +11,11 @@
 
             <!-- Header -->
             <Image Source="logo.png"
-                   HeightRequest="110"
+                   HeightRequest="220"
                    Aspect="AspectFit"
                    HorizontalOptions="Center"
                    Margin="0,0,0,12"
                    SemanticProperties.Description="RevMetrix Logo" />
-
-            <Label Text="RevMetrix"
-                   FontSize="30"
-                   FontAttributes="Bold"
-                   HorizontalOptions="Center"
-                   TextColor="{AppThemeBinding Light={StaticResource Primary}, Dark={StaticResource White}}"
-                   Margin="0,0,0,4" />
 
             <!-- Welcome row — shown when logged in -->
             <HorizontalStackLayout x:Name="welcomeRow"

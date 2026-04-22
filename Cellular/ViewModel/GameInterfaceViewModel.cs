@@ -52,8 +52,7 @@ namespace Cellular.ViewModel
 
         public static readonly IReadOnlyList<string> Positions = new[]
         {
-            "Left", "Brooklyn", "Nose", "High", "High Pocket",
-            "Pocket", "Light Pocket", "Light", "Right"
+            "Right", "Light", "Light Pocket", "Pocket", "High Pocket", "High", "Nose", "Brooklyn", "Left"
         };
 
         public static readonly IReadOnlyList<int> StanceWholeOptions =

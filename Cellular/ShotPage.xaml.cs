@@ -91,7 +91,7 @@ namespace Cellular
                     viewModel.pinStates ^= (short)pinBit;
                     // Update button color based on pin state
                     bool isPinDown = (viewModel.pinStates & pinBit) == 0;
-                    button.BackgroundColor = isPinDown ? Colors.LightSlateGrey : Color.FromArgb("#FA8847");
+                    button.BackgroundColor = isPinDown ? Colors.LightSlateGrey : Color.FromArgb("#33539c");
 
                     Console.WriteLine($"Pin {pinNumber} is now {(isPinDown ? "Down" : "Up")}");
                 }
@@ -120,7 +120,7 @@ namespace Cellular
                     else
                     {
                         // Pin was knocked down (0) -> Should be blue
-                        button.BackgroundColor = Color.FromArgb("#FA8847");
+                        button.BackgroundColor = Color.FromArgb("#33539c");
                     }
                 }
 
@@ -200,7 +200,7 @@ namespace Cellular
                 if (foul == true && viewModel.CurrentShot == 1)
                 {
                     foreach (var pin in pins)
-                        pin.BackgroundColor = Color.FromArgb("#FA8847");
+                        pin.BackgroundColor = Color.FromArgb("#33539c");
                 }
                 viewModel.shot1PinStates = viewModel.pinStates;
                 viewModel.pinStates = 0;
@@ -511,7 +511,7 @@ namespace Cellular
                     }
                     else if (wasUpInShot1 && !isCurrentlyUp)
                     {
-                        pins[i].BackgroundColor = Color.FromArgb("#FA8847"); // Was up, now down
+                        pins[i].BackgroundColor = Color.FromArgb("#33539c"); // Was up, now down
                     }
                     else
                     {
@@ -520,7 +520,7 @@ namespace Cellular
                 }
                 else // Shot 1
                 {
-                    pins[i].BackgroundColor = isCurrentlyUp ? Color.FromArgb("#FA8847") : Colors.LightSlateGray;
+                    pins[i].BackgroundColor = isCurrentlyUp ? Color.FromArgb("#33539c") : Colors.LightSlateGray;
                 }
             }
         }
@@ -555,7 +555,7 @@ namespace Cellular
                     viewModel.pinStates |= (short)(1 << i); // Set each bit from 0 to 9 to 1
                 }
                 foreach (var pin in pins)
-                    pin.BackgroundColor = Color.FromArgb("#FA8847");
+                    pin.BackgroundColor = Color.FromArgb("#33539c");
             }
             else
             {
@@ -1156,6 +1156,11 @@ namespace Cellular
             {
                 var frame = i < frameIds.Count ? await frameRepository.GetFrameById(frameIds[i]) : null;
                 var existingFrame = viewModel.Frames[i];
+                ShotPageFrame? lastFrameReload = null;
+                if(viewModel.CurrentShot == 11)
+                {
+                    lastFrameReload = viewModel.Frames[i - 1];
+                }
 
                 if (frame != null)
                 {
@@ -1192,7 +1197,7 @@ namespace Cellular
                         // Process shot 1 and shot 2 using helpers to avoid duplication
                         if (shot1 != null)
                         {
-                            ProcessLoadedShotOne(existingFrame, shot1);
+                            ProcessLoadedShotOne(lastFrameReload, existingFrame, shot1);
                         }
 
                         if (shot2 != null)
@@ -1341,7 +1346,7 @@ namespace Cellular
         }
 
         // Helper used when reloading a saved game: process the first shot UI/state update
-        private void ProcessLoadedShotOne(ShotPageFrame existingFrame, ViewModel.Shot shot1)
+        private void ProcessLoadedShotOne(ShotPageFrame lastFrameReload, ShotPageFrame existingFrame, ViewModel.Shot shot1)
         {
             if (shot1 == null) return;
 
@@ -1365,7 +1370,7 @@ namespace Cellular
                 if (viewModel.CurrentFrame == 11)
                 {
                     // Only add frame 12 if one doesn't already exist
-                    if (!viewModel.Frames.Any(f => f.FrameNumber == 12))
+                    if (!viewModel.Frames.Any(f => f.FrameNumber == 12) && lastFrameReload != null && lastFrameReload.ShotOneBox.Equals("X"))
                     {
                         ShotPageFrame newFrame = new ShotPageFrame(12);
                         viewModel.Frames.Add(newFrame);

@@ -28,11 +28,11 @@ namespace Cellular.Data
             await _database.CreateTableAsync<User>();
             await ImportUsersFromCsvAsync();
             await _database.CreateTableAsync<Ball>();
-            await ImportBallsFromCsvAsync();
+            await ImportBallsFromCsvAsync(1);
             await _database.CreateTableAsync<Event>();
-            await ImportEventsFromCsvAsync();
+            await ImportEventsFromCsvAsync(1);
             await _database.CreateTableAsync<Establishment>();
-            await ImportEstabishmentsFromCsvAsync();
+            await ImportEstabishmentsFromCsvAsync(1);
             await _database.CreateTableAsync<Session>();
             await _database.CreateTableAsync<Game>();
             await _database.CreateTableAsync<BowlingFrame>();
@@ -118,7 +118,7 @@ namespace Cellular.Data
             }
         }
 
-        private async Task ImportEstabishmentsFromCsvAsync()
+        private async Task ImportEstabishmentsFromCsvAsync(int userId)
         {
             var csvFileName = "establishments3.csv"; // File in Resources/Raw
 
@@ -137,7 +137,7 @@ namespace Cellular.Data
 
                     var esta = new Establishment
                     {
-                        UserId = int.TryParse(data[0].Trim(), out int UserId) ? UserId : 0,
+                        UserId = userId,
                         FullName = data[1].Trim(),
                         NickName = data[2].Trim(),
                         Address = data[3].Trim(),
@@ -169,7 +169,7 @@ namespace Cellular.Data
                 Console.WriteLine($"Error reading CSV: {ex.Message}");
             }
         }
-        private async Task ImportEventsFromCsvAsync()
+        private async Task ImportEventsFromCsvAsync(int userId)
         {
             var csvFileName = "events3.csv"; // File in Resources/Raw
 
@@ -188,7 +188,7 @@ namespace Cellular.Data
 
                     var event_ = new Event
                     {
-                        UserId = int.TryParse(data[0].Trim(), out int UserId) ? UserId : 0,
+                        UserId = userId,
                         LongName = data[1].Trim(),
                         NickName = data[2].Trim(),
                         Type = data[3].Trim(),
@@ -460,7 +460,7 @@ namespace Cellular.Data
                 Console.WriteLine($"Import Error: {ex.Message}");
             }
         }
-        private async Task ImportBallsFromCsvAsync()
+        private async Task ImportBallsFromCsvAsync(int userId)
         {
             var csvFileName = "balls3.csv"; // File in Resources/Raw
 
@@ -479,7 +479,7 @@ namespace Cellular.Data
 
                     var ball = new Ball
                     {
-                        UserId = int.TryParse(data[0].Trim(), out int UserId) ? UserId : 0,
+                        UserId = userId,
                         Name = data[2].Trim(),
                         BallMFG = data[3].Trim(),
                         BallMFGName = data[1].Trim(),

@@ -26,8 +26,10 @@ namespace Cellular.ViewModel
 
         public int UserId = Preferences.Get("UserId", 0);
 
-        // Command to clear session selection
+        // Command to clear all selections (full reset)
         public ICommand ClearSessionCommand { get; }
+        // Command to clear a single picker — pass the picker name as string parameter
+        public ICommand ClearPickerCommand { get; }
 
         // Nullable filter values used by the query engine.
         // Null = no date boundary on that side.
@@ -107,6 +109,7 @@ namespace Cellular.ViewModel
 
             // initialize commands
             ClearSessionCommand = new Command(ClearSessionSelection);
+            ClearPickerCommand  = new Command<string>(ClearPicker);
 
             LoadStaticData();
         }
@@ -114,9 +117,10 @@ namespace Cellular.ViewModel
         // --- Collections ---
         public ObservableCollection<string> Lanes { get; } = new();
         public ObservableCollection<string> Frames { get; } = new();
+        public ObservableCollection<string> GamePositions { get; } = new(); // 1-4 game position picker
 
         public ObservableCollection<Session> Sessions { get; } = new();
-        public ObservableCollection<Game> Games { get; } = new();
+        public ObservableCollection<Game> Games { get; } = new();   // internal stats data, not picker source
         public ObservableCollection<Event> Events { get; } = new();
         public ObservableCollection<Ball> Balls { get; } = new();
         public ObservableCollection<Establishment> Establishments { get; } = new();
@@ -130,17 +134,20 @@ namespace Cellular.ViewModel
         private string _selectedLane;
         private string _selectedFrame;
         private Session _selectedSession;
-        private Game _selectedGame;
         private Event _selectedEvent;
         private Ball _selected_ball;
         private Establishment _selectedEstablishment;
         private string _selectedStatType;
+        private string _selectedGamePosition;      // "1"–"4" or null
+        private int    _selectedGamePositionInt = -1; // parsed game number
 
         // --- Stat results (all types) ---
         public double StrikePercent { get; set; }
         public double SparePercent { get; set; }
         public double OpenPercent { get; set; }
+        public int SplitCount { get; set; }
         public double SplitPercent { get; set; }
+        public int washoutCount { get; set; }
         public double WashoutPercent { get; set; }
         public double GameAverage { get; set; }
 
@@ -152,17 +159,28 @@ namespace Cellular.ViewModel
         // Strike-type stats
         public int TotalStrikes { get; set; }
         public double StrikesPerGame { get; set; }
-        public double CarryPercent { get; set; }    // 
-        public double PocketPercent { get; set; }   // 
+        public double TotalCarryPercent { get; set; }
+        public double TruePocketCarryPercent { get; set; }
+        public double HighPocketCarryPercent { get; set; }
+        public double LightPocketCarryPercent { get; set; }
+        public double CarryPercent { get; set; }
+        public double BNLDPercent { get; set; }
+        public int TotalCarryCount { get; set; }
+        public double HighShotPercent { get; set; }
+        public double LightShotPercent { get; set; }
+
+        public double PocketPercent { get; set; }
         public double CountAverage { get; set; }    // avg pins knocked down on first ball
         public int StrikeAttempts { get; set; }     // total frames attempted including fill balls (up to 12)
 
         // Pocket position counts (first-ball shots, all frames)
-        public int PocketCount { get; set; }        // position == "pocket" exactly
+        public int TruePocketCount { get; set; }        // position == "pocket" exactly
         public int HighPocketCount { get; set; }    // position == "high pocket" exactly
         public int LightPocketCount { get; set; }   // position == "light pocket" exactly
         public int TotalPocketCount { get; set; }   // pocket + high pocket + light pocket
         public int BNLDCount { get; set; }          // position contains "BNLD"
+        public int HighShots {  get; set; }         // position == "high"
+        public int LightShots { get; set; }          // position == "light"
 
         // Spare-type stats
         public double SpareConversionRate { get; set; }
@@ -171,8 +189,8 @@ namespace Cellular.ViewModel
 
         // Type visibility helpers
         public bool IsGameType => _selectedStatType == "Game";
-        public bool IsStrikeType => _selectedStatType == "Strike";
-        public bool IsSpareType => _selectedStatType == "Spare";
+        public bool IsFirstBallType => _selectedStatType == "First Ball";
+        public bool IsSecondBallType => _selectedStatType == "Second Ball";
 
         // True while the Load Stats button operation is in progress — drives the loading overlay in Stats.xaml
         private bool _isLoading;
@@ -206,7 +224,7 @@ namespace Cellular.ViewModel
 
             sb.AppendLine($"Event: {_selectedEvent?.NickName ?? _selectedEvent?.LongName ?? "All"}");
             sb.AppendLine($"Session: {_selectedSession?.DisplayName ?? (_selectedSession != null ? _selectedSession.SessionNumber.ToString() : "All")}");
-            sb.AppendLine($"Game: {(_selectedGame != null ? _selectedGame.GameNumber.ToString() : "All")}");
+            sb.AppendLine($"Game: {(_selectedGamePositionInt > 0 ? _selectedGamePositionInt.ToString() : "All")}");
             sb.AppendLine($"Ball: {_selected_ball?.Name ?? "All"}");
             sb.AppendLine($"House: {_selectedEstablishment?.NickName ?? "All"}");
             sb.AppendLine($"Lane: {(_selectedLaneInt > 0 ? _selectedLaneInt.ToString() : "All")}");
@@ -218,22 +236,16 @@ namespace Cellular.ViewModel
             OnPropertyChanged(nameof(FilterSummary));
         }
 
-        // Suppress flags used when repopulating collections to avoid binding recursion/null-write that clears saved ids
-        private bool _suppressSelectedGameSetter = false;
+        // Suppress flag for session setter — fires when Sessions collection is cleared mid-load
         private bool _suppressSelectedSessionSetter = false;
 
-        // Prevent restoration when ClearSessionSelection explicitly clears selection
-        private bool _preventRestoreSelectedGame = false;
-
-        // Useful ids for queries
-        // -1 indicates "none selected"
-        private int _selectedSessionId = -1;
-        private int _selectedEventId = -1;
-        private int _selectedGameId = -1;
-        private int _selectedBallId = -1;
+        // Useful ids for queries (-1 = none selected)
+        private int _selectedSessionId    = -1;
+        private int _selectedEventId      = -1;
+        private int _selectedBallId       = -1;
         private int _selectedEstablishmentId = -1;
-        private int _selectedLaneInt = -1;
-        private int _selectedFrameInt = -1;
+        private int _selectedLaneInt      = -1;
+        private int _selectedFrameInt     = -1;
 
         public int SelectedSessionId
         {
@@ -261,15 +273,16 @@ namespace Cellular.ViewModel
             }
         }
 
-        public int SelectedGameId
+        public string SelectedGamePosition
         {
-            get => _selectedGameId;
-            private set
+            get => _selectedGamePosition;
+            set
             {
-                if (_selectedGameId != value)
+                if (_selectedGamePosition != value)
                 {
-                    _selectedGameId = value;
+                    _selectedGamePosition = value;
                     OnPropertyChanged();
+                    _selectedGamePositionInt = int.TryParse(_selectedGamePosition, out var n) ? n : -1;
                 }
             }
         }
@@ -397,29 +410,6 @@ namespace Cellular.ViewModel
             }
         }
 
-        public Game SelectedGame
-        {
-            get => _selectedGame;
-            set
-            {
-                if (_selectedGame != value)
-                {
-                    _selectedGame = value;
-
-                    // Suppress fires when the Games collection is cleared mid-load — ignore those.
-                    if (_suppressSelectedGameSetter)
-                    {
-                        OnPropertyChanged(nameof(SelectedGame));
-                        return;
-                    }
-
-                    OnPropertyChanged(nameof(SelectedGame));
-                    SelectedGameId = _selectedGame?.GameId ?? -1;
-                    // No cascade needed — game is a leaf selection.
-                }
-            }
-        }
-
         public Ball SelectedBall
         {
             get => _selected_ball;
@@ -458,8 +448,8 @@ namespace Cellular.ViewModel
                     _selectedStatType = value;
                     OnPropertyChanged();
                     OnPropertyChanged(nameof(IsGameType));
-                    OnPropertyChanged(nameof(IsStrikeType));
-                    OnPropertyChanged(nameof(IsSpareType));
+                    OnPropertyChanged(nameof(IsFirstBallType));
+                    OnPropertyChanged(nameof(IsSecondBallType));
                     // Stat type is a leaf selection — no cascade needed.
                 }
             }
@@ -486,10 +476,9 @@ namespace Cellular.ViewModel
                 OnPropertyChanged(nameof(SelectedEventId));
 
                 Games.Clear();
-                _selectedGame = null;
-                _selectedGameId = -1;
-                OnPropertyChanged(nameof(SelectedGame));
-                OnPropertyChanged(nameof(SelectedGameId));
+                _selectedGamePosition = null;
+                _selectedGamePositionInt = -1;
+                OnPropertyChanged(nameof(SelectedGamePosition));
 
                 BowlingFrames.Clear();
                 Shots.Clear();
@@ -524,6 +513,58 @@ namespace Cellular.ViewModel
             _ = LoadAsync();
         }
 
+        // Clear a single picker without resetting everything else.
+        private void ClearPicker(string pickerName)
+        {
+            switch (pickerName)
+            {
+                case "Event":
+                    _selectedEvent = null;
+                    _selectedEventId = -1;
+                    OnPropertyChanged(nameof(SelectedEvent));
+                    _ = CascadeEventSelectionAsync();   // restores full session/game lists
+                    break;
+                case "Session":
+                    _selectedSession = null;
+                    _selectedSessionId = -1;
+                    OnPropertyChanged(nameof(SelectedSession));
+                    _ = CascadeSessionSelectionAsync(); // restores games for current event (or all)
+                    break;
+                case "GamePosition":
+                    _selectedGamePosition = null;
+                    _selectedGamePositionInt = -1;
+                    OnPropertyChanged(nameof(SelectedGamePosition));
+                    break;
+                case "Ball":
+                    _selected_ball = null;
+                    _selectedBallId = -1;
+                    OnPropertyChanged(nameof(SelectedBall));
+                    break;
+                case "Establishment":
+                    _selectedEstablishment = null;
+                    _selectedEstablishmentId = -1;
+                    OnPropertyChanged(nameof(SelectedEstablishment));
+                    break;
+                case "Lane":
+                    _selectedLane = null;
+                    _selectedLaneInt = -1;
+                    OnPropertyChanged(nameof(SelectedLane));
+                    break;
+                case "Frame":
+                    _selectedFrame = null;
+                    _selectedFrameInt = -1;
+                    OnPropertyChanged(nameof(SelectedFrame));
+                    break;
+                case "StatType":
+                    _selectedStatType = null;
+                    OnPropertyChanged(nameof(SelectedStatType));
+                    OnPropertyChanged(nameof(IsGameType));
+                    OnPropertyChanged(nameof(IsFirstBallType));
+                    OnPropertyChanged(nameof(IsSecondBallType));
+                    break;
+            }
+        }
+
         // --- Helper Methods ---
         private void LoadStaticData()
         {
@@ -534,10 +575,13 @@ namespace Cellular.ViewModel
             for (int i = 1; i <= 10; i++) Frames.Add(i.ToString());
             Frames.Add("All Frames");
 
+            GamePositions.Clear();
+            for (int i = 1; i <= 4; i++) GamePositions.Add(i.ToString());
+
             StatTypes.Clear();
             StatTypes.Add("Game");
-            StatTypes.Add("Strike");
-            StatTypes.Add("Spare");
+            StatTypes.Add("First Ball");
+            StatTypes.Add("Second Ball");
         }
 
         // Public initialization to load DB-backed collections
@@ -619,7 +663,7 @@ namespace Cellular.ViewModel
             }
 
             var ballsFromDb = await _ballRepo.GetBallsByUserIdAsync(UserId);
-            foreach (var b in ballsFromDb.OrderBy(b => b.Name))
+            foreach (var b in ballsFromDb.Where(e => e.Enabled).OrderBy(b => b.Name))
                 Balls.Add(b);
         }
 
@@ -649,17 +693,12 @@ namespace Cellular.ViewModel
             if (_isCascading) return;
             _isCascading = true;
             _suppressSelectedSessionSetter = true;
-            _suppressSelectedGameSetter = true;
             try
             {
-                // Clear dependent selections — the old session/game no longer apply.
+                // Clear dependent selections — the old session/game position no longer apply.
                 _selectedSession = null;
                 _selectedSessionId = -1;
                 OnPropertyChanged(nameof(SelectedSession));
-
-                _selectedGame = null;
-                _selectedGameId = -1;
-                OnPropertyChanged(nameof(SelectedGame));
 
                 Sessions.Clear();
                 Games.Clear();
@@ -700,30 +739,22 @@ namespace Cellular.ViewModel
             {
                 _isCascading = false;
                 _suppressSelectedSessionSetter = false;
-                _suppressSelectedGameSetter = false;
                 OnPropertyChanged(nameof(Sessions));
                 OnPropertyChanged(nameof(Games));
                 OnPropertyChanged(nameof(SelectedSession));
-                OnPropertyChanged(nameof(SelectedGame));
             }
         }
 
         /// <summary>
         /// Called when the user selects a new Session.
-        /// Clears the stale game selection and repopulates the Games dropdown
-        /// without doing the expensive frames+shots load.
+        /// Repopulates the Games collection (used for stats data, not picker source).
         /// </summary>
         private async Task CascadeSessionSelectionAsync()
         {
             if (_isCascading) return;
             _isCascading = true;
-            _suppressSelectedGameSetter = true;
             try
             {
-                // Clear game selection — old game may belong to a different session.
-                _selectedGame = null;
-                _selectedGameId = -1;
-                OnPropertyChanged(nameof(SelectedGame));
                 Games.Clear();
 
                 if (SelectedSessionId == -1)
@@ -768,9 +799,7 @@ namespace Cellular.ViewModel
             finally
             {
                 _isCascading = false;
-                _suppressSelectedGameSetter = false;
                 OnPropertyChanged(nameof(Games));
-                OnPropertyChanged(nameof(SelectedGame));
             }
         }
 
@@ -784,14 +813,10 @@ namespace Cellular.ViewModel
             // Track how many sessions we considered for this load so we can log it later
             int sessionsConsideredCount = 0;
 
-            // Capture the ids the UI currently wants selected so we can restore them
-            // even if clearing/repopulating the bound collections causes the UI to write null back.
-            var desiredSelectedGameId = SelectedGameId;
-            var desiredSelectedEventId = SelectedEventId;
+            // Capture the ids in case clearing collections causes MAUI to write null back via bindings.
+            var desiredSelectedEventId   = SelectedEventId;
             var desiredSelectedSessionId = SelectedSessionId;
 
-            // Suppress setter side-effects while repopulating bound collections.
-            _suppressSelectedGameSetter = true;
             _suppressSelectedSessionSetter = true;
             try
             {
@@ -804,10 +829,17 @@ namespace Cellular.ViewModel
 
                 // Determine sessions to consider
                 List<Session> sessionsToConsider;
+                // All sessions for the selected event — used to repopulate the Sessions picker
+                // without narrowing it to just the selected session.
+                List<Session> allSessionsForEventDisplay = null;
+
                 // If an event is selected, prefer sessions under that event
                 if (SelectedEventId != -1)
                 {
                     var sessionsForEvent = await _sessionRepo.GetSessionsByUserIdAndEventAsync(UserId, SelectedEventId);
+
+                    // Keep the full list for the picker so the user can still see/change their selection.
+                    allSessionsForEventDisplay = sessionsForEvent.ToList();
 
                     // apply optional date range filter
                     if (SelectedStartDate.HasValue || SelectedEndDate.HasValue)
@@ -865,10 +897,14 @@ namespace Cellular.ViewModel
                 // Sessions list intact: clearing it here (a) collapses the picker to a single entry
                 // and (b) causes MAUI to immediately write null back through the two-way SelectedItem
                 // binding, which previously caused the freeze.
+                // When an event is selected, repopulate Sessions with ALL sessions for that event
+                // (not just sessionsToConsider, which may be narrowed to a single selected session).
+                // This ensures the picker still shows every available session after a query.
                 if (SelectedEventId != -1)
                 {
+                    var displayList = allSessionsForEventDisplay ?? sessionsToConsider;
                     Sessions.Clear();
-                    foreach (var sess in sessionsToConsider.OrderByDescending(s => s.SessionNumber))
+                    foreach (var sess in displayList.OrderByDescending(s => s.SessionNumber))
                     {
                         var nickName = Events.FirstOrDefault(e => e.EventId == sess.EventId)?.NickName ?? string.Empty;
                         sess.BuildDisplayName(nickName);
@@ -882,13 +918,14 @@ namespace Cellular.ViewModel
 
                 foreach (var session in sessionsToConsider)
                 {
-                    // Get games for session (respect frame filter if set)
+                    // Get games for session, applying game-position filter (1–4) if set
                     List<Game> gamesForSession;
-                    if (SelectedGameId != -1)
+                    if (_selectedGamePositionInt > 0)
                     {
-                        // explicit single game selected
-                        var single = (await _gameRepo.GetGamesListBySessionAsync(session.SessionId, UserId)).FirstOrDefault(g => g.GameId == SelectedGameId);
-                        gamesForSession = single != null ? new List<Game> { single } : new List<Game>();
+                        // Game position selected — grab whichever game in this session has that GameNumber
+                        var all = await _gameRepo.GetGamesListBySessionAsync(session.SessionId, UserId);
+                        var match = all.FirstOrDefault(g => g.GameNumber == _selectedGamePositionInt);
+                        gamesForSession = match != null ? new List<Game> { match } : new List<Game>();
                     }
                     else if (SelectedFrameInt > 0)
                     {
@@ -923,21 +960,32 @@ namespace Cellular.ViewModel
                             if (SelectedFrameInt > 0 && (frame.FrameNumber ?? -1) != SelectedFrameInt)
                                 continue;
 
-                            BowlingFrames.Add(frame);
-
-                            // load shots for this frame and apply ball and other filters
+                            // Load all shots for this frame first so we can inspect Shot1's ball.
                             var shotIds = await _frameRepo.GetShotIdsByFrameIdAsync(frame.FrameId);
+                            var frameShots = new List<ViewModel.Shot>();
                             foreach (var sid in shotIds)
                             {
                                 var shot = await _shotRepo.GetShotById(sid);
-                                if (shot == null) continue;
-
-                                if (SelectedBallId != -1 && (shot.Ball ?? -1) != SelectedBallId)
-                                    continue;
-
-                                // stat type or event filters could be applied here as needed
-                                Shots.Add(shot);
+                                if (shot != null) frameShots.Add(shot);
                             }
+
+                            // Ball filter: skip frames where the FIRST ball was not thrown with
+                            // the selected ball.  Filtering at the shot level (as before) caused
+                            // denominator/numerator mismatches in Pocket% and Carry% because
+                            // BowlingFrames would contain frames thrown with other balls while
+                            // Shots only had the filtered-ball entries.
+                            if (SelectedBallId != -1)
+                            {
+                                var shot1 = frame.Shot1.HasValue
+                                    ? frameShots.FirstOrDefault(s => s.ShotId == frame.Shot1.Value)
+                                    : null;
+                                if (shot1 == null || (shot1.Ball ?? -1) != SelectedBallId)
+                                    continue;
+                            }
+
+                            BowlingFrames.Add(frame);
+                            foreach (var shot in frameShots)
+                                Shots.Add(shot);
                         }
                     }
                 }
@@ -951,17 +999,6 @@ namespace Cellular.ViewModel
                         _selectedSession = restoredSess;
                         SelectedSessionId = restoredSess.SessionId;
                         OnPropertyChanged(nameof(SelectedSession));
-                    }
-                }
-
-                // Restore SelectedGame to the instance in the newly-populated Games collection
-                if (desiredSelectedGameId != -1)
-                {
-                    var restored = Games.FirstOrDefault(g => g.GameId == desiredSelectedGameId);
-                    if (restored != null)
-                    {
-                        _selectedGame = restored;
-                        SelectedGameId = restored.GameId;
                     }
                 }
 
@@ -982,13 +1019,11 @@ namespace Cellular.ViewModel
                 _isLoadingFilteredData = false;
 
                 // Re-enable setter behavior and notify UI.
-                _suppressSelectedGameSetter = false;
                 _suppressSelectedSessionSetter = false;
                 OnPropertyChanged(nameof(Games));
                 OnPropertyChanged(nameof(Sessions));
                 OnPropertyChanged(nameof(BowlingFrames));
                 OnPropertyChanged(nameof(Shots));
-                OnPropertyChanged(nameof(SelectedGame));
                 OnPropertyChanged(nameof(SelectedSession));
 
                 // Log counts so we can see how many items were loaded for this call.
@@ -1000,8 +1035,6 @@ namespace Cellular.ViewModel
                 StrikePercent = CalculateStrikePercentage(BowlingFrames);
                 SparePercent = CalculateSparePercentage(BowlingFrames);
                 OpenPercent = CalculateOpenPercentage(BowlingFrames);
-                SplitPercent = CalculateSplitPercentage(Shots);
-                WashoutPercent = CalculateWashoutPercentage(Shots);
                 GameAverage = CalculateScoreAverage(Games);
 
                 // Game-type stats — unwrap nullable Score and ignore unscored (0 / null) games
@@ -1024,7 +1057,7 @@ namespace Cellular.ViewModel
                                     .ToDictionary(g => g.Key, g => g.First());
 
                 // Position counts — first-ball shots across all frames (including fill balls)
-                PocketCount = BowlingFrames.Count(f =>
+                TruePocketCount = BowlingFrames.Count(f =>
                     f.Shot1.HasValue &&
                     shotById.TryGetValue(f.Shot1.Value, out var s1) &&
                     string.Equals(s1.Position, "pocket", StringComparison.OrdinalIgnoreCase));
@@ -1039,23 +1072,62 @@ namespace Cellular.ViewModel
                     shotById.TryGetValue(f.Shot1.Value, out var s1) &&
                     string.Equals(s1.Position, "l-pocket", StringComparison.OrdinalIgnoreCase));
 
-                TotalPocketCount = PocketCount + HighPocketCount + LightPocketCount;
-
-                BNLDCount = BowlingFrames.Count(f =>
-                    // 1. Ensure Shot 1 exists
+                HighShots = BowlingFrames.Count(f =>
                     f.Shot1.HasValue &&
                     shotById.TryGetValue(f.Shot1.Value, out var s1) &&
-                    // 2. It must be a Strike
+                    string.Equals(s1.Position, "high", StringComparison.OrdinalIgnoreCase));
+
+                LightShots = BowlingFrames.Count(f =>
+                    f.Shot1.HasValue &&
+                    shotById.TryGetValue(f.Shot1.Value, out var s1) &&
+                    string.Equals(s1.Position, "light", StringComparison.OrdinalIgnoreCase));
+
+                TotalPocketCount = TruePocketCount + HighPocketCount + LightPocketCount;
+
+                BNLDCount = BowlingFrames.Count(f =>
+                    f.Shot1.HasValue &&
+                    shotById.TryGetValue(f.Shot1.Value, out var s1) &&
                     s1.Count == 10 &&
-                    // 3. It must NOT be a pocket hit
-                    // (This excludes "pocket", "h-pocket", and "l-pocket")
                     s1.Position != null &&
                     !s1.Position.Contains("pocket", StringComparison.OrdinalIgnoreCase));
 
-                CountAverage = CalculateCountAverage(Shots);
+                // Per-position strike counts (frames where first ball was a strike from that entry point)
+                int truePocketStrikes = BowlingFrames.Count(f =>
+                    f.Result == "Strike" &&
+                    f.Shot1.HasValue &&
+                    shotById.TryGetValue(f.Shot1.Value, out var s1tp) &&
+                    string.Equals(s1tp.Position, "pocket", StringComparison.OrdinalIgnoreCase));
+                int highPocketStrikes = BowlingFrames.Count(f =>
+                    f.Result == "Strike" &&
+                    f.Shot1.HasValue &&
+                    shotById.TryGetValue(f.Shot1.Value, out var s1hp) &&
+                    string.Equals(s1hp.Position, "h-pocket", StringComparison.OrdinalIgnoreCase));
+                int lightPocketStrikes = BowlingFrames.Count(f =>
+                    f.Result == "Strike" &&
+                    f.Shot1.HasValue &&
+                    shotById.TryGetValue(f.Shot1.Value, out var s1lp) &&
+                    string.Equals(s1lp.Position, "l-pocket", StringComparison.OrdinalIgnoreCase));
 
-                PocketPercent = (double)TotalPocketCount / StrikeAttempts;
-                CarryPercent = (double)(TotalStrikes - BNLDCount) / TotalPocketCount;
+                TotalCarryCount = TotalStrikes - BNLDCount;
+                TruePocketCarryPercent = TruePocketCount > 0 ? (double)truePocketStrikes / TruePocketCount : 0;
+                HighPocketCarryPercent = HighPocketCount > 0 ? (double)highPocketStrikes / HighPocketCount : 0;
+                LightPocketCarryPercent = LightPocketCount > 0 ? (double)lightPocketStrikes / LightPocketCount : 0;
+                HighShotPercent = StrikeAttempts > 0 ? (double)HighShots / StrikeAttempts : 0;
+                LightShotPercent = StrikeAttempts > 0 ? (double)LightShots / StrikeAttempts : 0;
+                BNLDPercent = StrikeAttempts > 0 ? (double)BNLDCount / StrikeAttempts : 0;
+                PocketPercent = StrikeAttempts > 0 ? (double)TotalPocketCount / StrikeAttempts : 0;
+                CarryPercent = TotalPocketCount > 0 ? (double)TotalCarryCount / TotalPocketCount : 0;
+
+                // Split / washout raw counts and frame-based percentages
+                const int SplitMask   = 4096;  // bit 12
+                const int WashoutMask = 8192;  // bit 13
+                var firstBallShots = Shots.Where(s => s.ShotNumber == 1).ToList();
+                SplitCount   = firstBallShots.Count(s => (s.LeaveType & SplitMask)   != 0);
+                washoutCount = firstBallShots.Count(s => (s.LeaveType & WashoutMask) != 0);
+                SplitPercent   = StrikeAttempts > 0 ? (double)SplitCount   / StrikeAttempts : 0;
+                WashoutPercent = StrikeAttempts > 0 ? (double)washoutCount / StrikeAttempts : 0;
+
+                CountAverage = CalculateCountAverage(Shots);
 
                 Debug.WriteLine($"Pocket: {PocketPercent}, Carry: {CarryPercent}");
 
@@ -1079,7 +1151,7 @@ namespace Cellular.ViewModel
                 OnPropertyChanged(nameof(TotalStrikes));
                 OnPropertyChanged(nameof(StrikesPerGame));
                 OnPropertyChanged(nameof(StrikeAttempts));
-                OnPropertyChanged(nameof(PocketCount));
+                OnPropertyChanged(nameof(TruePocketCount));
                 OnPropertyChanged(nameof(HighPocketCount));
                 OnPropertyChanged(nameof(LightPocketCount));
                 OnPropertyChanged(nameof(TotalPocketCount));
@@ -1087,12 +1159,21 @@ namespace Cellular.ViewModel
                 OnPropertyChanged(nameof(CarryPercent));
                 OnPropertyChanged(nameof(PocketPercent));
                 OnPropertyChanged(nameof(CountAverage));
+                OnPropertyChanged(nameof(TotalCarryCount));
+                OnPropertyChanged(nameof(TruePocketCarryPercent));
+                OnPropertyChanged(nameof(HighPocketCarryPercent));
+                OnPropertyChanged(nameof(LightPocketCarryPercent));
+                OnPropertyChanged(nameof(BNLDPercent));
+                OnPropertyChanged(nameof(HighShotPercent));
+                OnPropertyChanged(nameof(LightShotPercent));
+                OnPropertyChanged(nameof(SplitCount));
+                OnPropertyChanged(nameof(washoutCount));
                 OnPropertyChanged(nameof(TotalSpares));
                 OnPropertyChanged(nameof(TotalOpens));
                 OnPropertyChanged(nameof(SpareConversionRate));
                 OnPropertyChanged(nameof(IsGameType));
-                OnPropertyChanged(nameof(IsStrikeType));
-                OnPropertyChanged(nameof(IsSpareType));
+                OnPropertyChanged(nameof(IsFirstBallType));
+                OnPropertyChanged(nameof(IsSecondBallType));
 
                 BuildFilterSummary();
             }
