@@ -6,7 +6,8 @@
              BackgroundColor="{AppThemeBinding Light={StaticResource Surface}, Dark={StaticResource OffBlack}}">
 
     <Grid>
-        <VerticalStackLayout VerticalOptions="Center"
+        <ScrollView>
+        <VerticalStackLayout VerticalOptions="Start"
                              HorizontalOptions="Center"
                              Spacing="24"
                              Padding="24">
@@ -25,12 +26,6 @@
             <Button x:Name="QueryTestButton"
                     Text="Query Test"
                     Clicked="OnQueryTestClicked"
-                    WidthRequest="220"
-                    Style="{StaticResource AccentButton}" />
-
-            <Button x:Name="ExperimentalVideoButton"
-                    Text="Experimental Video Demo"
-                    Clicked="OnExperimentalVideoClicked"
                     WidthRequest="220"
                     Style="{StaticResource AccentButton}" />
 
@@ -86,7 +81,25 @@
                             Margin="0,4,0,0"/>
                 </VerticalStackLayout>
             </Border>
+
+            <Button x:Name="ExperimentalVideoButton"
+                    Text="Experimental Video Demo"
+                    Clicked="OnExperimentalVideoClicked"
+                    WidthRequest="220"
+                    Style="{StaticResource AccentButton}" />
+
+            <Button x:Name="UpdateApiUrlButton"
+                    Text="Update Ciclopes-API URL"
+                    Clicked="OnUpdateApiUrlClicked"
+                    WidthRequest="220"
+                    Style="{StaticResource AccentButton}" />
+
+            <Label x:Name="CurrentApiUrlLabel"
+                   FontSize="11"
+                   HorizontalTextAlignment="Center"
+                   TextColor="{StaticResource Gray400}" />
         </VerticalStackLayout>
+        </ScrollView>
 
         <!-- Loading overlay -->
         <Grid x:Name="LoadingOverlay"

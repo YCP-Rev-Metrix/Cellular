@@ -1,13 +1,32 @@
 using System.Reflection;
 using System.Text.Json;
+using Microsoft.Maui.Storage;
 
 namespace Cellular.Cloud_API;
 
 public static class CiclopesSettings
 {
-    private static readonly Lazy<Dictionary<string, string>> _settings = new(LoadSettings);
+    private const string ApiBaseOverrideKey = "CICLOPES_API_BASE_OVERRIDE";
 
-    public static string? ApiBase => NormalizeBaseUrl(Get("CICLOPES_API_BASE"));
+    private static readonly Lazy<Dictionary<string, string>> _settings = new(LoadSettings);
+    private static string? _apiBaseOverride = Preferences.Default.Get<string?>(ApiBaseOverrideKey, null);
+
+    public static string? ApiBase => NormalizeBaseUrl(
+        !string.IsNullOrWhiteSpace(_apiBaseOverride) ? _apiBaseOverride : Get("CICLOPES_API_BASE"));
+
+    public static void SetApiBaseOverride(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            _apiBaseOverride = null;
+            Preferences.Default.Remove(ApiBaseOverrideKey);
+        }
+        else
+        {
+            _apiBaseOverride = value.Trim();
+            Preferences.Default.Set(ApiBaseOverrideKey, _apiBaseOverride);
+        }
+    }
 
     public static string? Ip => Get("CICLOPES_IP");
 

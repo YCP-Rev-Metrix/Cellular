@@ -1,3 +1,4 @@
+using Cellular.Cloud_API;
 using Cellular.ViewModel;
 using Cellular.Views;
 using CommunityToolkit.Maui;
@@ -16,6 +17,29 @@ public partial class CiclopesTestPage : ContentPage
         InitializeComponent();
         _viewModel = new CiclopesTestViewModel();
         BindingContext = _viewModel;
+        UpdateApiUrlLabel();
+    }
+
+    private void UpdateApiUrlLabel()
+    {
+        CurrentApiUrlLabel.Text = $"Current: {CiclopesSettings.ApiBase ?? "(not set)"}";
+    }
+
+    private async void OnUpdateApiUrlClicked(object sender, EventArgs e)
+    {
+        var result = await DisplayPromptAsync(
+            "Update Ciclopes-API URL",
+            "Enter new base URL (leave blank to reset to settings.json default):",
+            accept: "Save",
+            cancel: "Cancel",
+            placeholder: "https://example.trycloudflare.com",
+            initialValue: CiclopesSettings.ApiBase ?? string.Empty);
+
+        if (result is null) return;
+
+        CiclopesSettings.SetApiBaseOverride(result);
+        UpdateApiUrlLabel();
+        await DisplayAlertAsync("Ciclopes", $"API URL set to:\n{CiclopesSettings.ApiBase ?? "(default)"}", "OK");
     }
 
     private async void OnStartTestClicked(object sender, EventArgs e)
