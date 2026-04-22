@@ -319,14 +319,17 @@ namespace Cellular
 
             try
             {
-                await _metaWearService.SleepAsync();
-
-                // Give the device a moment to process the sleep command, then disconnect
-                await Task.Delay(500);
+                // Stop all sensors BEFORE sleep command — device resets immediately on the sleep command
                 await _metaWearService.StopAccelerometerAsync();
                 await _metaWearService.StopGyroscopeAsync();
                 await _metaWearService.StopMagnetometerAsync();
                 await _metaWearService.StopLightSensorAsync();
+                await Task.Delay(200);
+
+                await _metaWearService.SleepAsync();
+
+                // Device resets itself; just mark as disconnected on our side
+                await Task.Delay(500);
                 await _metaWearService.DisconnectAsync();
 
                 IsConnected = false;
@@ -1246,7 +1249,14 @@ namespace Cellular
                 accelData,
                 gyroData,
                 magData,
-                lightData);
+                lightData,
+                onClear: () =>
+                {
+                    lock (AccelerometerData) AccelerometerData.Clear();
+                    lock (GyroscopeData)     GyroscopeData.Clear();
+                    lock (MagnetometerData)  MagnetometerData.Clear();
+                    lock (LightSensorData)   LightSensorData.Clear();
+                });
             await Navigation.PushAsync(graphPage);
         }
 
