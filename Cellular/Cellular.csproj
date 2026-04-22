@@ -234,6 +234,9 @@
 		<MauiXaml Update="Bluetooth.xaml">
 			<Generator>MSBuild:Compile</Generator>
 		</MauiXaml>
+		<MauiXaml Update="SmartDot.xaml">
+			<Generator>MSBuild:Compile</Generator>
+		</MauiXaml>
 		<MauiXaml Update="SensorGraphPage.xaml">
 			<Generator>MSBuild:Compile</Generator>
 		</MauiXaml>
