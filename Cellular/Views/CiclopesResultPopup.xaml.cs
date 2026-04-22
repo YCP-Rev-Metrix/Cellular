@@ -601,16 +601,13 @@ public partial class CiclopesResultPopup : Popup
     {
         if (sender is not Grid box || box.Height <= 0 || box.Width <= 0) return;
 
-        // Heuristic: value font ≈ 55% of box height, unit ≈ 32%, clamped so
-        // we never go absurdly small or large at extreme aspect ratios.
-        var valueFont = Math.Clamp(box.Height * 0.50, 10, 22);
-        var unitFont = Math.Clamp(box.Height * 0.28, 7, 12);
+        var valueFont = Math.Clamp(box.Height * 0.58, 12, 26);
+        var unitFont = Math.Clamp(valueFont * 0.55, 9, 14);
 
-        // Width also caps the value font — if a 4-char number wouldn't fit at
-        // the height-derived size, scale it down by available width.
-        // Approx 0.6em per digit for a bold sans font.
-        var widthCap = (box.Width * 0.62) / 4.5;
-        valueFont = Math.Min(valueFont, Math.Max(9, widthCap));
+        // Value + unit share one centered row: "-12.3 mph" ≈ 8 glyphs at ~0.58em.
+        var widthCap = box.Width / (8 * 0.58);
+        valueFont = Math.Min(valueFont, Math.Max(11, widthCap));
+        unitFont = Math.Min(unitFont, valueFont * 0.6);
 
         foreach (var child in box.Children)
         {
