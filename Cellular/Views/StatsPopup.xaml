@@ -114,7 +114,7 @@
                                Text="{Binding StrikeAttempts, StringFormat='Attempts: {0}'}"
                                HorizontalOptions="Center" TextColor="Black" FontSize="13" />
                         <Label Grid.Row="1" Grid.Column="1"
-                               Text="{Binding CountAverage, StringFormat='Count Ave: {0:N1}'}"
+                               Text="{Binding CountAverage, StringFormat='Count Ave: {0:N2}'}"
                                HorizontalOptions="Center" TextColor="Black" FontSize="13" />
 
                         <!-- Row 3: Strikes / Strike % -->
@@ -122,7 +122,7 @@
                                Text="{Binding TotalStrikes, StringFormat='Strikes: {0}'}"
                                HorizontalOptions="Center" TextColor="Black" FontSize="13" />
                         <Label Grid.Row="2" Grid.Column="1"
-                               Text="{Binding StrikePercent, StringFormat='Strike %: {0:P1}'}"
+                               Text="{Binding StrikePercent, StringFormat='Strike %: {0:P2}'}"
                                HorizontalOptions="Center" TextColor="Black" FontSize="13" />
 
                         <!-- Row 4: B-N-L-D count / B-N-L-D % (BNLD/Frames) -->
@@ -130,7 +130,7 @@
                                Text="{Binding BNLDCount, StringFormat='B-N-L-D: {0}'}"
                                HorizontalOptions="Center" TextColor="Black" FontSize="13" />
                         <Label Grid.Row="3" Grid.Column="1"
-                               Text="{Binding BNLDPercent, StringFormat='B-N-L-D %: {0:P1}'}"
+                               Text="{Binding BNLDPercent, StringFormat='B-N-L-D %: {0:P2}'}"
                                HorizontalOptions="Center" TextColor="Black" FontSize="13" />
 
                         <!-- Row 5: Total Pocket / Pocket % (TotalPocket/Frames) -->
@@ -138,7 +138,7 @@
                                Text="{Binding TotalPocketCount, StringFormat='Total Pocket: {0}'}"
                                HorizontalOptions="Center" TextColor="Black" FontSize="13" />
                         <Label Grid.Row="4" Grid.Column="1"
-                               Text="{Binding PocketPercent, StringFormat='Pocket %: {0:P1}'}"
+                               Text="{Binding PocketPercent, StringFormat='Pocket %: {0:P2}'}"
                                HorizontalOptions="Center" TextColor="Black" FontSize="13" />
 
                         <!-- Row 6: Total Carry / Carry % ((Strikes-BNLD)/TotalPocket) -->
@@ -146,7 +146,7 @@
                                Text="{Binding TotalCarryCount, StringFormat='Total Carry: {0}'}"
                                HorizontalOptions="Center" TextColor="Black" FontSize="13" />
                         <Label Grid.Row="5" Grid.Column="1"
-                               Text="{Binding CarryPercent, StringFormat='Carry %: {0:P1}'}"
+                               Text="{Binding CarryPercent, StringFormat='Carry %: {0:P2}'}"
                                HorizontalOptions="Center" TextColor="Black" FontSize="13" />
 
                         <!-- Row 7: True Pocket / Carry % (TruePocket strikes / TruePocket shots) -->
@@ -154,7 +154,7 @@
                                Text="{Binding TruePocketCount, StringFormat='True Pocket: {0}'}"
                                HorizontalOptions="Center" TextColor="Black" FontSize="13" />
                         <Label Grid.Row="6" Grid.Column="1"
-                               Text="{Binding TruePocketCarryPercent, StringFormat='Carry %: {0:P1}'}"
+                               Text="{Binding TruePocketCarryPercent, StringFormat='Carry %: {0:P2}'}"
                                HorizontalOptions="Center" TextColor="Black" FontSize="13" />
 
                         <!-- Row 8: High Pocket / Carry % (HPocket strikes / HPocket shots) -->
@@ -162,7 +162,7 @@
                                Text="{Binding HighPocketCount, StringFormat='High Pocket: {0}'}"
                                HorizontalOptions="Center" TextColor="Black" FontSize="13" />
                         <Label Grid.Row="7" Grid.Column="1"
-                               Text="{Binding HighPocketCarryPercent, StringFormat='Carry %: {0:P1}'}"
+                               Text="{Binding HighPocketCarryPercent, StringFormat='Carry %: {0:P2}'}"
                                HorizontalOptions="Center" TextColor="Black" FontSize="13" />
 
                         <!-- Row 9: Light Pocket / Carry % (LPocket strikes / LPocket shots) -->
@@ -170,7 +170,7 @@
                                Text="{Binding LightPocketCount, StringFormat='Light Pocket: {0}'}"
                                HorizontalOptions="Center" TextColor="Black" FontSize="13" />
                         <Label Grid.Row="8" Grid.Column="1"
-                               Text="{Binding LightPocketCarryPercent, StringFormat='Carry %: {0:P1}'}"
+                               Text="{Binding LightPocketCarryPercent, StringFormat='Carry %: {0:P2}'}"
                                HorizontalOptions="Center" TextColor="Black" FontSize="13" />
 
                         <!-- Row 10: High Shots / Frame % (High/Frames) -->
@@ -178,7 +178,7 @@
                                Text="{Binding HighShots, StringFormat='High Shots: {0}'}"
                                HorizontalOptions="Center" TextColor="Black" FontSize="13" />
                         <Label Grid.Row="9" Grid.Column="1"
-                               Text="{Binding HighShotPercent, StringFormat='Frame %: {0:P1}'}"
+                               Text="{Binding HighShotPercent, StringFormat='Frame %: {0:P2}'}"
                                HorizontalOptions="Center" TextColor="Black" FontSize="13" />
 
                         <!-- Row 11: Light Shots / Frame % (Light/Frames) -->
@@ -186,7 +186,7 @@
                                Text="{Binding LightShots, StringFormat='Light Shots: {0}'}"
                                HorizontalOptions="Center" TextColor="Black" FontSize="13" />
                         <Label Grid.Row="10" Grid.Column="1"
-                               Text="{Binding LightShotPercent, StringFormat='Frame %: {0:P1}'}"
+                               Text="{Binding LightShotPercent, StringFormat='Frame %: {0:P2}'}"
                                HorizontalOptions="Center" TextColor="Black" FontSize="13" />
 
                         <!-- Row 12: Splits / Frame % (Splits/Frames) -->
@@ -194,7 +194,7 @@
                                Text="{Binding SplitCount, StringFormat='Splits: {0}'}"
                                HorizontalOptions="Center" TextColor="Black" FontSize="13" />
                         <Label Grid.Row="11" Grid.Column="1"
-                               Text="{Binding SplitPercent, StringFormat='Frame %: {0:P1}'}"
+                               Text="{Binding SplitPercent, StringFormat='Frame %: {0:P2}'}"
                                HorizontalOptions="Center" TextColor="Black" FontSize="13" />
 
                         <!-- Row 13: Washouts / Frame % (Washouts/Frames) -->
@@ -202,7 +202,7 @@
                                Text="{Binding washoutCount, StringFormat='Washouts: {0}'}"
                                HorizontalOptions="Center" TextColor="Black" FontSize="13" />
                         <Label Grid.Row="12" Grid.Column="1"
-                               Text="{Binding WashoutPercent, StringFormat='Frame %: {0:P1}'}"
+                               Text="{Binding WashoutPercent, StringFormat='Frame %: {0:P2}'}"
                                HorizontalOptions="Center" TextColor="Black" FontSize="13" />
                     </Grid>
                 </VerticalStackLayout>
