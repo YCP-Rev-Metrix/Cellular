@@ -28,11 +28,11 @@ namespace Cellular.Data
             await _database.CreateTableAsync<User>();
             await ImportUsersFromCsvAsync();
             await _database.CreateTableAsync<Ball>();
-            await ImportBallsFromCsvAsync(2);
+            await ImportBallsFromCsvAsync(1);
             await _database.CreateTableAsync<Event>();
-            await ImportEventsFromCsvAsync(2);
+            await ImportEventsFromCsvAsync(1);
             await _database.CreateTableAsync<Establishment>();
-            await ImportEstabishmentsFromCsvAsync(2);
+            await ImportEstabishmentsFromCsvAsync(1);
             await _database.CreateTableAsync<Session>();
             await _database.CreateTableAsync<Game>();
             await _database.CreateTableAsync<BowlingFrame>();
