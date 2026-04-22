@@ -210,7 +210,7 @@ public partial class CiclopesExperimentalVideoPage : ContentPage
             var request = new CiclopesRunRequest
             {
                 VideoKey = videoKey,
-                SdKey = string.Empty
+                SdKey = "key"
             };
 
             var poseTask = controller.ExecuteFourDBodyRunRequest(request);
