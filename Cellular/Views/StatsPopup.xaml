@@ -4,189 +4,261 @@
                x:Class="Cellular.Views.StatsPopup"
                xmlns:vm="clr-namespace:Cellular.ViewModel"
                CanBeDismissedByTappingOutsideOfPopup="False">
-
+ 
     <Border StrokeShape="RoundRectangle 10"
             Padding="10"
             BackgroundColor="White">
+        <ScrollView>
+            <VerticalStackLayout Spacing="12" WidthRequest="230" HorizontalOptions="Center">
 
-        <VerticalStackLayout Spacing="12" WidthRequest="280">
+                <Label Text="Stats"
+                       FontSize="22"
+                       TextColor="Black"
+                       FontAttributes="Bold"
+                       HorizontalOptions="Center" />
 
-            <Label Text="Stats"
-                   FontSize="22"
-                   TextColor="Black"
-                   FontAttributes="Bold"
-                   HorizontalOptions="Center" />
+                <BoxView HeightRequest="1" Color="Gray" Opacity="0.5" />
 
-            <BoxView HeightRequest="1" Color="Gray" Opacity="0.5" />
+                <!-- ======================== FILTER SUMMARY ======================== -->
+                <Label Text="{Binding FilterSummary}"
+                       FontSize="12"
+                       TextColor="DimGray"
+                       HorizontalOptions="Center"
+                       HorizontalTextAlignment="Center"
+                       LineBreakMode="WordWrap" />
 
-            <!-- ======================== FILTER SUMMARY ======================== -->
-            <Label Text="{Binding FilterSummary}"
-                   FontSize="12"
-                   TextColor="DimGray"
-                   HorizontalOptions="Center"
-                   HorizontalTextAlignment="Center"
-                   LineBreakMode="WordWrap" />
+                <BoxView HeightRequest="1" Color="Gray" Opacity="0.3" />
 
-            <BoxView HeightRequest="1" Color="Gray" Opacity="0.3" />
+                <!-- ======================== GAME TYPE ======================== -->
+                <VerticalStackLayout IsVisible="{Binding IsGameType}" Spacing="8">
+                    <Label Text="Game Stats"
+                           FontSize="17" FontAttributes="Bold"
+                           TextColor="DarkSlateGray" HorizontalOptions="Center" />
 
-            <!-- ======================== GAME TYPE ======================== -->
-            <VerticalStackLayout IsVisible="{Binding IsGameType}" Spacing="8">
-                <Label Text="Game Stats"
-                       FontSize="17" FontAttributes="Bold"
-                       TextColor="DarkSlateGray" HorizontalOptions="Center" />
+                    <Grid ColumnSpacing="6" RowSpacing="6">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
 
-                <Grid ColumnSpacing="6" RowSpacing="6">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="*" />
-                    </Grid.ColumnDefinitions>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="Auto" />
-                    </Grid.RowDefinitions>
+                        <Label Grid.Row="0" Grid.Column="0"
+                               Text="{Binding GamesPlayed, StringFormat='Games: {0}'}"
+                               HorizontalOptions="Center" TextColor="Black" FontSize="14" />
+                        <Label Grid.Row="0" Grid.Column="1"
+                               Text="{Binding GameAverage, StringFormat='Average: {0:N2}'}"
+                               HorizontalOptions="Center" TextColor="Black" FontSize="14" />
 
-                    <Label Grid.Row="0" Grid.Column="0"
-                           Text="{Binding GamesPlayed, StringFormat='Games: {0}'}"
-                           HorizontalOptions="Center" TextColor="Black" FontSize="14" />
-                    <Label Grid.Row="0" Grid.Column="1"
-                           Text="{Binding GameAverage, StringFormat='Average: {0:N2}'}"
-                           HorizontalOptions="Center" TextColor="Black" FontSize="14" />
+                        <Label Grid.Row="1" Grid.Column="0"
+                               Text="{Binding HighGame, StringFormat='High: {0}'}"
+                               HorizontalOptions="Center" TextColor="Black" FontSize="14" />
+                        <Label Grid.Row="1" Grid.Column="1"
+                               Text="{Binding LowGame, StringFormat='Low: {0}'}"
+                               HorizontalOptions="Center" TextColor="Black" FontSize="14" />
 
-                    <Label Grid.Row="1" Grid.Column="0"
-                           Text="{Binding HighGame, StringFormat='High: {0}'}"
-                           HorizontalOptions="Center" TextColor="Black" FontSize="14" />
-                    <Label Grid.Row="1" Grid.Column="1"
-                           Text="{Binding LowGame, StringFormat='Low: {0}'}"
-                           HorizontalOptions="Center" TextColor="Black" FontSize="14" />
+                        <Label Grid.Row="2" Grid.Column="0"
+                               Text="{Binding StrikePercent, StringFormat='Strike: {0:P1}'}"
+                               HorizontalOptions="Center" TextColor="Black" FontSize="14" />
+                        <Label Grid.Row="2" Grid.Column="1"
+                               Text="{Binding SparePercent, StringFormat='Spare: {0:P1}'}"
+                               HorizontalOptions="Center" TextColor="Black" FontSize="14" />
 
-                    <Label Grid.Row="2" Grid.Column="0"
-                           Text="{Binding StrikePercent, StringFormat='Strike: {0:P1}'}"
-                           HorizontalOptions="Center" TextColor="Black" FontSize="14" />
-                    <Label Grid.Row="2" Grid.Column="1"
-                           Text="{Binding SparePercent, StringFormat='Spare: {0:P1}'}"
-                           HorizontalOptions="Center" TextColor="Black" FontSize="14" />
+                        <Label Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2"
+                               Text="{Binding OpenPercent, StringFormat='Open: {0:P1}'}"
+                               HorizontalOptions="Center" TextColor="Black" FontSize="14" />
+                    </Grid>
+                </VerticalStackLayout>
 
-                    <Label Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2"
-                           Text="{Binding OpenPercent, StringFormat='Open: {0:P1}'}"
-                           HorizontalOptions="Center" TextColor="Black" FontSize="14" />
-                </Grid>
+                <!-- ======================== STRIKE TYPE ======================== -->
+                <VerticalStackLayout IsVisible="{Binding IsFirstBallType}" Spacing="8">
+                    <Label Text="First Ball Stats"
+                           FontSize="17" FontAttributes="Bold"
+                           TextColor="DarkSlateGray" HorizontalOptions="Center" />
+
+                    <Grid ColumnSpacing="6" RowSpacing="5">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+
+                        <!-- Row 1: Games / Average -->
+                        <Label Grid.Row="0" Grid.Column="0"
+                               Text="{Binding GamesPlayed, StringFormat='Games: {0}'}"
+                               HorizontalOptions="Center" TextColor="Black" FontSize="13" />
+                        <Label Grid.Row="0" Grid.Column="1"
+                               Text="{Binding GameAverage, StringFormat='Average: {0:N2}'}"
+                               HorizontalOptions="Center" TextColor="Black" FontSize="13" />
+
+                        <!-- Row 2: Attempts / Count Ave -->
+                        <Label Grid.Row="1" Grid.Column="0"
+                               Text="{Binding StrikeAttempts, StringFormat='Attempts: {0}'}"
+                               HorizontalOptions="Center" TextColor="Black" FontSize="13" />
+                        <Label Grid.Row="1" Grid.Column="1"
+                               Text="{Binding CountAverage, StringFormat='Count Ave: {0:N1}'}"
+                               HorizontalOptions="Center" TextColor="Black" FontSize="13" />
+
+                        <!-- Row 3: Strikes / Strike % -->
+                        <Label Grid.Row="2" Grid.Column="0"
+                               Text="{Binding TotalStrikes, StringFormat='Strikes: {0}'}"
+                               HorizontalOptions="Center" TextColor="Black" FontSize="13" />
+                        <Label Grid.Row="2" Grid.Column="1"
+                               Text="{Binding StrikePercent, StringFormat='Strike %: {0:P1}'}"
+                               HorizontalOptions="Center" TextColor="Black" FontSize="13" />
+
+                        <!-- Row 4: B-N-L-D count / B-N-L-D % (BNLD/Frames) -->
+                        <Label Grid.Row="3" Grid.Column="0"
+                               Text="{Binding BNLDCount, StringFormat='B-N-L-D: {0}'}"
+                               HorizontalOptions="Center" TextColor="Black" FontSize="13" />
+                        <Label Grid.Row="3" Grid.Column="1"
+                               Text="{Binding BNLDPercent, StringFormat='B-N-L-D %: {0:P1}'}"
+                               HorizontalOptions="Center" TextColor="Black" FontSize="13" />
+
+                        <!-- Row 5: Total Pocket / Pocket % (TotalPocket/Frames) -->
+                        <Label Grid.Row="4" Grid.Column="0"
+                               Text="{Binding TotalPocketCount, StringFormat='Total Pocket: {0}'}"
+                               HorizontalOptions="Center" TextColor="Black" FontSize="13" />
+                        <Label Grid.Row="4" Grid.Column="1"
+                               Text="{Binding PocketPercent, StringFormat='Pocket %: {0:P1}'}"
+                               HorizontalOptions="Center" TextColor="Black" FontSize="13" />
+
+                        <!-- Row 6: Total Carry / Carry % ((Strikes-BNLD)/TotalPocket) -->
+                        <Label Grid.Row="5" Grid.Column="0"
+                               Text="{Binding TotalCarryCount, StringFormat='Total Carry: {0}'}"
+                               HorizontalOptions="Center" TextColor="Black" FontSize="13" />
+                        <Label Grid.Row="5" Grid.Column="1"
+                               Text="{Binding CarryPercent, StringFormat='Carry %: {0:P1}'}"
+                               HorizontalOptions="Center" TextColor="Black" FontSize="13" />
+
+                        <!-- Row 7: True Pocket / Carry % (TruePocket strikes / TruePocket shots) -->
+                        <Label Grid.Row="6" Grid.Column="0"
+                               Text="{Binding TruePocketCount, StringFormat='True Pocket: {0}'}"
+                               HorizontalOptions="Center" TextColor="Black" FontSize="13" />
+                        <Label Grid.Row="6" Grid.Column="1"
+                               Text="{Binding TruePocketCarryPercent, StringFormat='Carry %: {0:P1}'}"
+                               HorizontalOptions="Center" TextColor="Black" FontSize="13" />
+
+                        <!-- Row 8: High Pocket / Carry % (HPocket strikes / HPocket shots) -->
+                        <Label Grid.Row="7" Grid.Column="0"
+                               Text="{Binding HighPocketCount, StringFormat='High Pocket: {0}'}"
+                               HorizontalOptions="Center" TextColor="Black" FontSize="13" />
+                        <Label Grid.Row="7" Grid.Column="1"
+                               Text="{Binding HighPocketCarryPercent, StringFormat='Carry %: {0:P1}'}"
+                               HorizontalOptions="Center" TextColor="Black" FontSize="13" />
+
+                        <!-- Row 9: Light Pocket / Carry % (LPocket strikes / LPocket shots) -->
+                        <Label Grid.Row="8" Grid.Column="0"
+                               Text="{Binding LightPocketCount, StringFormat='Light Pocket: {0}'}"
+                               HorizontalOptions="Center" TextColor="Black" FontSize="13" />
+                        <Label Grid.Row="8" Grid.Column="1"
+                               Text="{Binding LightPocketCarryPercent, StringFormat='Carry %: {0:P1}'}"
+                               HorizontalOptions="Center" TextColor="Black" FontSize="13" />
+
+                        <!-- Row 10: High Shots / Frame % (High/Frames) -->
+                        <Label Grid.Row="9" Grid.Column="0"
+                               Text="{Binding HighShots, StringFormat='High Shots: {0}'}"
+                               HorizontalOptions="Center" TextColor="Black" FontSize="13" />
+                        <Label Grid.Row="9" Grid.Column="1"
+                               Text="{Binding HighShotPercent, StringFormat='Frame %: {0:P1}'}"
+                               HorizontalOptions="Center" TextColor="Black" FontSize="13" />
+
+                        <!-- Row 11: Light Shots / Frame % (Light/Frames) -->
+                        <Label Grid.Row="10" Grid.Column="0"
+                               Text="{Binding LightShots, StringFormat='Light Shots: {0}'}"
+                               HorizontalOptions="Center" TextColor="Black" FontSize="13" />
+                        <Label Grid.Row="10" Grid.Column="1"
+                               Text="{Binding LightShotPercent, StringFormat='Frame %: {0:P1}'}"
+                               HorizontalOptions="Center" TextColor="Black" FontSize="13" />
+
+                        <!-- Row 12: Splits / Frame % (Splits/Frames) -->
+                        <Label Grid.Row="11" Grid.Column="0"
+                               Text="{Binding SplitCount, StringFormat='Splits: {0}'}"
+                               HorizontalOptions="Center" TextColor="Black" FontSize="13" />
+                        <Label Grid.Row="11" Grid.Column="1"
+                               Text="{Binding SplitPercent, StringFormat='Frame %: {0:P1}'}"
+                               HorizontalOptions="Center" TextColor="Black" FontSize="13" />
+
+                        <!-- Row 13: Washouts / Frame % (Washouts/Frames) -->
+                        <Label Grid.Row="12" Grid.Column="0"
+                               Text="{Binding washoutCount, StringFormat='Washouts: {0}'}"
+                               HorizontalOptions="Center" TextColor="Black" FontSize="13" />
+                        <Label Grid.Row="12" Grid.Column="1"
+                               Text="{Binding WashoutPercent, StringFormat='Frame %: {0:P1}'}"
+                               HorizontalOptions="Center" TextColor="Black" FontSize="13" />
+                    </Grid>
+                </VerticalStackLayout>
+
+                <!-- ======================== SPARE TYPE ======================== -->
+                <VerticalStackLayout IsVisible="{Binding IsSecondBallType}" Spacing="8">
+                    <Label Text="Second Ball Stats"
+                           FontSize="17" FontAttributes="Bold"
+                           TextColor="DarkSlateGray" HorizontalOptions="Center" />
+
+                    <Grid ColumnSpacing="6" RowSpacing="6">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+
+                        <Label Grid.Row="0" Grid.Column="0"
+                               Text="{Binding TotalSpares, StringFormat='Spares: {0}'}"
+                               HorizontalOptions="Center" TextColor="Black" FontSize="14" />
+                        <Label Grid.Row="0" Grid.Column="1"
+                               Text="{Binding TotalOpens, StringFormat='Opens: {0}'}"
+                               HorizontalOptions="Center" TextColor="Black" FontSize="14" />
+
+                        <Label Grid.Row="1" Grid.Column="0"
+                               Text="{Binding SpareConversionRate, StringFormat='Conv. Rate: {0:P1}'}"
+                               HorizontalOptions="Center" TextColor="Black" FontSize="14" />
+                        <Label Grid.Row="1" Grid.Column="1"
+                               Text="{Binding SparePercent, StringFormat='Spare%: {0:P1}'}"
+                               HorizontalOptions="Center" TextColor="Black" FontSize="14" />
+
+                        <Label Grid.Row="2" Grid.Column="0"
+                               Text="{Binding OpenPercent, StringFormat='Open%: {0:P1}'}"
+                               HorizontalOptions="Center" TextColor="Black" FontSize="14" />
+                        <Label Grid.Row="2" Grid.Column="1"
+                               Text="{Binding SplitPercent, StringFormat='Split%: {0:P1}'}"
+                               HorizontalOptions="Center" TextColor="Black" FontSize="14" />
+
+                        <Label Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2"
+                               Text="{Binding WashoutPercent, StringFormat='Washout%: {0:P1}'}"
+                               HorizontalOptions="Center" TextColor="Black" FontSize="14" />
+                    </Grid>
+                </VerticalStackLayout>
+
+                <Button Text="Close"
+                        Clicked="OnCloseClicked"
+                        Margin="0,10,0,0"
+                        HorizontalOptions="Center"
+                        WidthRequest="120" />
+
             </VerticalStackLayout>
-
-            <!-- ======================== STRIKE TYPE ======================== -->
-            <VerticalStackLayout IsVisible="{Binding IsFirstBallType}" Spacing="8">
-                <Label Text="First Ball Stats"
-                       FontSize="17" FontAttributes="Bold"
-                       TextColor="DarkSlateGray" HorizontalOptions="Center" />
-
-                <Grid ColumnSpacing="6" RowSpacing="6">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="*" />
-                    </Grid.ColumnDefinitions>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="Auto" />
-                    </Grid.RowDefinitions>
-
-                    <Label Grid.Row="0" Grid.Column="0"
-                           Text="{Binding CountAverage, StringFormat='Count Avg: {0:N1}'}"
-                           HorizontalOptions="Center" TextColor="Black" FontSize="14" />
-                    <Label Grid.Row="0" Grid.Column="1"
-                           Text="{Binding StrikeAttempts, StringFormat='Attempts: {0}'}"
-                           HorizontalOptions="Center" TextColor="Black" FontSize="14" />
-
-                    <Label Grid.Row="1" Grid.Column="0"
-                           Text="{Binding TotalStrikes, StringFormat='Strikes: {0}'}"
-                           HorizontalOptions="Center" TextColor="Black" FontSize="14" />
-                    <Label Grid.Row="1" Grid.Column="1"
-                           Text="{Binding StrikePercent, StringFormat='Strike: {0:P1}'}"
-                           HorizontalOptions="Center" TextColor="Black" FontSize="14" />
-
-                    <Label Grid.Row="2" Grid.Column="0"
-                           Text="{Binding PocketCount, StringFormat='Pocket: {0}'}"
-                           HorizontalOptions="Center" TextColor="Black" FontSize="14" />
-                    <Label Grid.Row="2" Grid.Column="1"
-                           Text="{Binding HighPocketCount, StringFormat='High Pocket: {0}'}"
-                           HorizontalOptions="Center" TextColor="Black" FontSize="14" />
-
-                    <Label Grid.Row="3" Grid.Column="0"
-                           Text="{Binding LightPocketCount, StringFormat='Light Pocket: {0}'}"
-                           HorizontalOptions="Center" TextColor="Black" FontSize="14" />
-                    <Label Grid.Row="3" Grid.Column="1"
-                           Text="{Binding TotalPocketCount, StringFormat='Total Pocket: {0}'}"
-                           HorizontalOptions="Center" TextColor="Black" FontSize="14" />
-
-                    <Label Grid.Row="4" Grid.Column="0"
-                           Text="{Binding BNLDCount, StringFormat='B-N-L-D: {0}'}"
-                           HorizontalOptions="Center" TextColor="Black" FontSize="14" />
-                    <Label Grid.Row="4" Grid.Column="1"
-                           Text="{Binding PocketPercent, StringFormat='Pocket: {0:P1}'}"
-                           HorizontalOptions="Center" TextColor="Black" FontSize="14" />
-                    
-                    <Label Grid.Row="5" Grid.Column="0"
-                           Text="{Binding CarryPercent, StringFormat='Carry: {0:P1}'}"
-                           HorizontalOptions="Center" TextColor="Black" FontSize="14" />
-                   
-                </Grid>
-            </VerticalStackLayout>
-
-            <!-- ======================== SPARE TYPE ======================== -->
-            <VerticalStackLayout IsVisible="{Binding IsSecondBallType}" Spacing="8">
-                <Label Text="Second Ball Stats"
-                       FontSize="17" FontAttributes="Bold"
-                       TextColor="DarkSlateGray" HorizontalOptions="Center" />
-
-                <Grid ColumnSpacing="6" RowSpacing="6">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="*" />
-                    </Grid.ColumnDefinitions>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="Auto" />
-                    </Grid.RowDefinitions>
-
-                    <Label Grid.Row="0" Grid.Column="0"
-                           Text="{Binding TotalSpares, StringFormat='Spares: {0}'}"
-                           HorizontalOptions="Center" TextColor="Black" FontSize="14" />
-                    <Label Grid.Row="0" Grid.Column="1"
-                           Text="{Binding TotalOpens, StringFormat='Opens: {0}'}"
-                           HorizontalOptions="Center" TextColor="Black" FontSize="14" />
-
-                    <Label Grid.Row="1" Grid.Column="0"
-                           Text="{Binding SpareConversionRate, StringFormat='Conv. Rate: {0:P1}'}"
-                           HorizontalOptions="Center" TextColor="Black" FontSize="14" />
-                    <Label Grid.Row="1" Grid.Column="1"
-                           Text="{Binding SparePercent, StringFormat='Spare%: {0:P1}'}"
-                           HorizontalOptions="Center" TextColor="Black" FontSize="14" />
-
-                    <Label Grid.Row="2" Grid.Column="0"
-                           Text="{Binding OpenPercent, StringFormat='Open%: {0:P1}'}"
-                           HorizontalOptions="Center" TextColor="Black" FontSize="14" />
-                    <Label Grid.Row="2" Grid.Column="1"
-                           Text="{Binding SplitPercent, StringFormat='Split%: {0:P1}'}"
-                           HorizontalOptions="Center" TextColor="Black" FontSize="14" />
-
-                    <Label Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2"
-                           Text="{Binding WashoutPercent, StringFormat='Washout%: {0:P1}'}"
-                           HorizontalOptions="Center" TextColor="Black" FontSize="14" />
-                </Grid>
-            </VerticalStackLayout>
-
-            <Button Text="Close"
-                    Clicked="OnCloseClicked"
-                    Margin="0,10,0,0"
-                    HorizontalOptions="Center"
-                    WidthRequest="120" />
-
-        </VerticalStackLayout>
+        </ScrollView>
     </Border>
 </toolkit:Popup>

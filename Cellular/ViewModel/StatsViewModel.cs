@@ -142,7 +142,9 @@ namespace Cellular.ViewModel
         public double StrikePercent { get; set; }
         public double SparePercent { get; set; }
         public double OpenPercent { get; set; }
+        public int SplitCount { get; set; }
         public double SplitPercent { get; set; }
+        public int washoutCount { get; set; }
         public double WashoutPercent { get; set; }
         public double GameAverage { get; set; }
 
@@ -154,17 +156,28 @@ namespace Cellular.ViewModel
         // Strike-type stats
         public int TotalStrikes { get; set; }
         public double StrikesPerGame { get; set; }
-        public double CarryPercent { get; set; }    // 
-        public double PocketPercent { get; set; }   // 
+        public double TotalCarryPercent { get; set; }
+        public double TruePocketCarryPercent { get; set; }
+        public double HighPocketCarryPercent { get; set; }
+        public double LightPocketCarryPercent { get; set; }
+        public double CarryPercent { get; set; }
+        public double BNLDPercent { get; set; }
+        public int TotalCarryCount { get; set; }
+        public double HighShotPercent { get; set; }
+        public double LightShotPercent { get; set; }
+
+        public double PocketPercent { get; set; }
         public double CountAverage { get; set; }    // avg pins knocked down on first ball
         public int StrikeAttempts { get; set; }     // total frames attempted including fill balls (up to 12)
 
         // Pocket position counts (first-ball shots, all frames)
-        public int PocketCount { get; set; }        // position == "pocket" exactly
+        public int TruePocketCount { get; set; }        // position == "pocket" exactly
         public int HighPocketCount { get; set; }    // position == "high pocket" exactly
         public int LightPocketCount { get; set; }   // position == "light pocket" exactly
         public int TotalPocketCount { get; set; }   // pocket + high pocket + light pocket
         public int BNLDCount { get; set; }          // position contains "BNLD"
+        public int HighShots {  get; set; }         // position == "high"
+        public int LightShots { get; set; }          // position == "light"
 
         // Spare-type stats
         public double SpareConversionRate { get; set; }
@@ -595,7 +608,7 @@ namespace Cellular.ViewModel
             }
 
             var ballsFromDb = await _ballRepo.GetBallsByUserIdAsync(UserId);
-            foreach (var b in ballsFromDb.OrderBy(b => b.Name))
+            foreach (var b in ballsFromDb.Where(e => e.Enabled).OrderBy(b => b.Name))
                 Balls.Add(b);
         }
 
@@ -881,21 +894,32 @@ namespace Cellular.ViewModel
                             if (SelectedFrameInt > 0 && (frame.FrameNumber ?? -1) != SelectedFrameInt)
                                 continue;
 
-                            BowlingFrames.Add(frame);
-
-                            // load shots for this frame and apply ball and other filters
+                            // Load all shots for this frame first so we can inspect Shot1's ball.
                             var shotIds = await _frameRepo.GetShotIdsByFrameIdAsync(frame.FrameId);
+                            var frameShots = new List<ViewModel.Shot>();
                             foreach (var sid in shotIds)
                             {
                                 var shot = await _shotRepo.GetShotById(sid);
-                                if (shot == null) continue;
-
-                                if (SelectedBallId != -1 && (shot.Ball ?? -1) != SelectedBallId)
-                                    continue;
-
-                                // stat type or event filters could be applied here as needed
-                                Shots.Add(shot);
+                                if (shot != null) frameShots.Add(shot);
                             }
+
+                            // Ball filter: skip frames where the FIRST ball was not thrown with
+                            // the selected ball.  Filtering at the shot level (as before) caused
+                            // denominator/numerator mismatches in Pocket% and Carry% because
+                            // BowlingFrames would contain frames thrown with other balls while
+                            // Shots only had the filtered-ball entries.
+                            if (SelectedBallId != -1)
+                            {
+                                var shot1 = frame.Shot1.HasValue
+                                    ? frameShots.FirstOrDefault(s => s.ShotId == frame.Shot1.Value)
+                                    : null;
+                                if (shot1 == null || (shot1.Ball ?? -1) != SelectedBallId)
+                                    continue;
+                            }
+
+                            BowlingFrames.Add(frame);
+                            foreach (var shot in frameShots)
+                                Shots.Add(shot);
                         }
                     }
                 }
@@ -945,8 +969,6 @@ namespace Cellular.ViewModel
                 StrikePercent = CalculateStrikePercentage(BowlingFrames);
                 SparePercent = CalculateSparePercentage(BowlingFrames);
                 OpenPercent = CalculateOpenPercentage(BowlingFrames);
-                SplitPercent = CalculateSplitPercentage(Shots);
-                WashoutPercent = CalculateWashoutPercentage(Shots);
                 GameAverage = CalculateScoreAverage(Games);
 
                 // Game-type stats — unwrap nullable Score and ignore unscored (0 / null) games
@@ -969,7 +991,7 @@ namespace Cellular.ViewModel
                                     .ToDictionary(g => g.Key, g => g.First());
 
                 // Position counts — first-ball shots across all frames (including fill balls)
-                PocketCount = BowlingFrames.Count(f =>
+                TruePocketCount = BowlingFrames.Count(f =>
                     f.Shot1.HasValue &&
                     shotById.TryGetValue(f.Shot1.Value, out var s1) &&
                     string.Equals(s1.Position, "pocket", StringComparison.OrdinalIgnoreCase));
@@ -984,23 +1006,62 @@ namespace Cellular.ViewModel
                     shotById.TryGetValue(f.Shot1.Value, out var s1) &&
                     string.Equals(s1.Position, "l-pocket", StringComparison.OrdinalIgnoreCase));
 
-                TotalPocketCount = PocketCount + HighPocketCount + LightPocketCount;
-
-                BNLDCount = BowlingFrames.Count(f =>
-                    // 1. Ensure Shot 1 exists
+                HighShots = BowlingFrames.Count(f =>
                     f.Shot1.HasValue &&
                     shotById.TryGetValue(f.Shot1.Value, out var s1) &&
-                    // 2. It must be a Strike
+                    string.Equals(s1.Position, "high", StringComparison.OrdinalIgnoreCase));
+
+                LightShots = BowlingFrames.Count(f =>
+                    f.Shot1.HasValue &&
+                    shotById.TryGetValue(f.Shot1.Value, out var s1) &&
+                    string.Equals(s1.Position, "light", StringComparison.OrdinalIgnoreCase));
+
+                TotalPocketCount = TruePocketCount + HighPocketCount + LightPocketCount;
+
+                BNLDCount = BowlingFrames.Count(f =>
+                    f.Shot1.HasValue &&
+                    shotById.TryGetValue(f.Shot1.Value, out var s1) &&
                     s1.Count == 10 &&
-                    // 3. It must NOT be a pocket hit
-                    // (This excludes "pocket", "h-pocket", and "l-pocket")
                     s1.Position != null &&
                     !s1.Position.Contains("pocket", StringComparison.OrdinalIgnoreCase));
 
-                CountAverage = CalculateCountAverage(Shots);
+                // Per-position strike counts (frames where first ball was a strike from that entry point)
+                int truePocketStrikes = BowlingFrames.Count(f =>
+                    f.Result == "Strike" &&
+                    f.Shot1.HasValue &&
+                    shotById.TryGetValue(f.Shot1.Value, out var s1tp) &&
+                    string.Equals(s1tp.Position, "pocket", StringComparison.OrdinalIgnoreCase));
+                int highPocketStrikes = BowlingFrames.Count(f =>
+                    f.Result == "Strike" &&
+                    f.Shot1.HasValue &&
+                    shotById.TryGetValue(f.Shot1.Value, out var s1hp) &&
+                    string.Equals(s1hp.Position, "h-pocket", StringComparison.OrdinalIgnoreCase));
+                int lightPocketStrikes = BowlingFrames.Count(f =>
+                    f.Result == "Strike" &&
+                    f.Shot1.HasValue &&
+                    shotById.TryGetValue(f.Shot1.Value, out var s1lp) &&
+                    string.Equals(s1lp.Position, "l-pocket", StringComparison.OrdinalIgnoreCase));
 
-                PocketPercent = (double)TotalPocketCount / StrikeAttempts;
-                CarryPercent = (double)(TotalStrikes - BNLDCount) / TotalPocketCount;
+                TotalCarryCount = TotalStrikes - BNLDCount;
+                TruePocketCarryPercent = TruePocketCount > 0 ? (double)truePocketStrikes / TruePocketCount : 0;
+                HighPocketCarryPercent = HighPocketCount > 0 ? (double)highPocketStrikes / HighPocketCount : 0;
+                LightPocketCarryPercent = LightPocketCount > 0 ? (double)lightPocketStrikes / LightPocketCount : 0;
+                HighShotPercent = StrikeAttempts > 0 ? (double)HighShots / StrikeAttempts : 0;
+                LightShotPercent = StrikeAttempts > 0 ? (double)LightShots / StrikeAttempts : 0;
+                BNLDPercent = StrikeAttempts > 0 ? (double)BNLDCount / StrikeAttempts : 0;
+                PocketPercent = StrikeAttempts > 0 ? (double)TotalPocketCount / StrikeAttempts : 0;
+                CarryPercent = TotalPocketCount > 0 ? (double)TotalCarryCount / TotalPocketCount : 0;
+
+                // Split / washout raw counts and frame-based percentages
+                const int SplitMask   = 4096;  // bit 12
+                const int WashoutMask = 8192;  // bit 13
+                var firstBallShots = Shots.Where(s => s.ShotNumber == 1).ToList();
+                SplitCount   = firstBallShots.Count(s => (s.LeaveType & SplitMask)   != 0);
+                washoutCount = firstBallShots.Count(s => (s.LeaveType & WashoutMask) != 0);
+                SplitPercent   = StrikeAttempts > 0 ? (double)SplitCount   / StrikeAttempts : 0;
+                WashoutPercent = StrikeAttempts > 0 ? (double)washoutCount / StrikeAttempts : 0;
+
+                CountAverage = CalculateCountAverage(Shots);
 
                 Debug.WriteLine($"Pocket: {PocketPercent}, Carry: {CarryPercent}");
 
@@ -1024,7 +1085,7 @@ namespace Cellular.ViewModel
                 OnPropertyChanged(nameof(TotalStrikes));
                 OnPropertyChanged(nameof(StrikesPerGame));
                 OnPropertyChanged(nameof(StrikeAttempts));
-                OnPropertyChanged(nameof(PocketCount));
+                OnPropertyChanged(nameof(TruePocketCount));
                 OnPropertyChanged(nameof(HighPocketCount));
                 OnPropertyChanged(nameof(LightPocketCount));
                 OnPropertyChanged(nameof(TotalPocketCount));
@@ -1032,6 +1093,15 @@ namespace Cellular.ViewModel
                 OnPropertyChanged(nameof(CarryPercent));
                 OnPropertyChanged(nameof(PocketPercent));
                 OnPropertyChanged(nameof(CountAverage));
+                OnPropertyChanged(nameof(TotalCarryCount));
+                OnPropertyChanged(nameof(TruePocketCarryPercent));
+                OnPropertyChanged(nameof(HighPocketCarryPercent));
+                OnPropertyChanged(nameof(LightPocketCarryPercent));
+                OnPropertyChanged(nameof(BNLDPercent));
+                OnPropertyChanged(nameof(HighShotPercent));
+                OnPropertyChanged(nameof(LightShotPercent));
+                OnPropertyChanged(nameof(SplitCount));
+                OnPropertyChanged(nameof(washoutCount));
                 OnPropertyChanged(nameof(TotalSpares));
                 OnPropertyChanged(nameof(TotalOpens));
                 OnPropertyChanged(nameof(SpareConversionRate));
