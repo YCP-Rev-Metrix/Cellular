@@ -572,7 +572,7 @@ namespace Cellular.ViewModel
             for (int i = 1; i <= 32; i++) Lanes.Add(i.ToString());
 
             Frames.Clear();
-            for (int i = 1; i <= 10; i++) Frames.Add(i.ToString());
+            for (int i = 1; i <= 12; i++) Frames.Add(i.ToString());
             Frames.Add("All Frames");
 
             GamePositions.Clear();
@@ -663,7 +663,7 @@ namespace Cellular.ViewModel
             }
 
             var ballsFromDb = await _ballRepo.GetBallsByUserIdAsync(UserId);
-            foreach (var b in ballsFromDb.Where(e => e.Enabled).OrderBy(b => b.Name))
+            foreach (var b in ballsFromDb.OrderBy(b => b.Name))
                 Balls.Add(b);
         }
 
