@@ -11,6 +11,7 @@ using Cellular.Services;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Maui.ApplicationModel;
 using Cellular.Data;
+using Cellular.ViewModel;
 using Microsoft.Maui.Storage;
 #if ANDROID
 using Android;
@@ -21,12 +22,14 @@ using AndroidX.Core.App;
 
 namespace Cellular
 {
-    public partial class Bluetooth : ContentPage
+    public partial class SmartDot : ContentPage
     {
         private readonly IBluetoothLE _ble = CrossBluetoothLE.Current;
         private readonly IAdapter _adapter = CrossBluetoothLE.Current.Adapter;
         private IMetaWearService _metaWearService; // Not readonly so we can update to singleton if needed
         private readonly UserRepository _userRepository;
+        private readonly SmartDotDeviceRepository _deviceRepository;
+        private SmartDotDevice? _currentDevice;
         
         private ObservableCollection<BluetoothDevice> _devices;
         private BluetoothDevice? _selectedDevice;
@@ -97,7 +100,7 @@ namespace Cellular
         public bool CanStartMagnetometer => IsConnected;
         public bool CanStartLightSensor => IsConnected;
 
-        public Bluetooth()
+        public SmartDot()
         {
             InitializeComponent();
             
@@ -108,8 +111,10 @@ namespace Cellular
                 ?? Microsoft.Maui.Controls.Application.Current?.Handler?.MauiContext?.Services?.GetService<IMetaWearService>()
                 ?? new MetaWearBleService(); // Last resort - but this should not happen with proper DI
             
-            // Initialize UserRepository
-            _userRepository = new UserRepository(new CellularDatabase().GetConnection());
+            // Initialize repositories
+            var dbConn = new CellularDatabase().GetConnection();
+            _userRepository = new UserRepository(dbConn);
+            _deviceRepository = new SmartDotDeviceRepository(dbConn);
             
             Devices = new ObservableCollection<BluetoothDevice>();
             
@@ -190,6 +195,13 @@ namespace Cellular
             LightThresholdEntry.Text = SensorBufferManager.LightSensorHighThreshold.ToString("0");
             LightThresholdStatusLabel.Text = $"Current threshold: {SensorBufferManager.LightSensorHighThreshold:0}";
 
+            // Populate the record duration entry with the current saved value
+            RecordDurationEntry.Text = SensorBufferManager.ContinuousSaveDurationSeconds.ToString("0.##");
+            RecordDurationStatusLabel.Text = $"Current duration: {SensorBufferManager.ContinuousSaveDurationSeconds:0.##}s";
+
+            // Populate sensor configuration pickers
+            InitSensorConfigPickers();
+
             // Try to auto-connect to saved SmartDot MAC if user is logged in (only once per page instance)
             if (!_hasAttemptedAutoConnect && !IsConnected)
             {
@@ -198,18 +210,205 @@ namespace Cellular
             }
         }
 
-        private void OnSaveLightThresholdClicked(object sender, EventArgs e)
+        // ── Picker item lists (index → display string / value) ────────────────────
+        private static readonly string[] AccelScaleLabels = { "±2 g", "±4 g", "±8 g", "±16 g" };
+        private static readonly float[]  AccelScaleValues = { 2f, 4f, 8f, 16f };
+
+        private static readonly string[] AccelFreqLabels = { "0.78 Hz", "1.56 Hz", "3.125 Hz", "6.25 Hz", "12.5 Hz", "25 Hz", "50 Hz", "100 Hz", "200 Hz", "400 Hz", "800 Hz", "1600 Hz" };
+        private static readonly float[]  AccelFreqValues = { 0.78f, 1.56f, 3.125f, 6.25f, 12.5f, 25f, 50f, 100f, 200f, 400f, 800f, 1600f };
+
+        private static readonly string[] LightGainLabels = { "1x", "2x", "4x", "8x", "48x", "96x" };
+        private static readonly int[]    LightGainValues = { 0, 1, 2, 3, 6, 7 };
+
+        private static readonly string[] LightIntegTimeLabels = { "100 ms", "50 ms", "200 ms", "400 ms", "150 ms", "250 ms", "300 ms", "350 ms" };
+        private static readonly int[]    LightIntegTimeValues = { 0, 1, 2, 3, 4, 5, 6, 7 };
+
+        private static readonly string[] LightSamplingRateLabels = { "50 ms", "100 ms", "200 ms", "500 ms", "1000 ms", "2000 ms" };
+        private static readonly int[]    LightSamplingRateValues = { 0, 1, 2, 3, 4, 5 };
+
+        private static readonly string[] BaroOversamplingLabels = { "Ultra Low Power", "Low Power", "Standard", "High", "Ultra High" };
+        private static readonly string[] BaroAveragingLabels    = { "Off", "2", "4", "8", "16" };
+        private static readonly string[] BaroStandbyTimeLabels  = { "0.5 ms", "62.5 ms", "125 ms", "250 ms", "500 ms", "1000 ms", "2000 ms", "4000 ms" };
+
+        private static readonly string[] GyroFreqLabels = { "25 Hz", "50 Hz", "100 Hz", "200 Hz", "400 Hz", "800 Hz", "1600 Hz", "3200 Hz" };
+        private static readonly float[]  GyroFreqValues = { 25f, 50f, 100f, 200f, 400f, 800f, 1600f, 3200f };
+
+        private static readonly string[] GyroRangeLabels = { "±125 °/s", "±250 °/s", "±500 °/s", "±1000 °/s", "±2000 °/s" };
+        private static readonly float[]  GyroRangeValues = { 125f, 250f, 500f, 1000f, 2000f };
+        // ──────────────────────────────────────────────────────────────────────────
+
+        private static int Clamp(int v, int min, int max) => Math.Max(min, Math.Min(max, v));
+
+        private void InitSensorConfigPickers()
+        {
+            // Accelerometer
+            AccelScalePicker.ItemsSource = AccelScaleLabels;
+            AccelScalePicker.SelectedIndex = Clamp(ClosestIndex(AccelScaleValues, SensorBufferManager.AccelRange), 0, AccelScaleValues.Length - 1);
+
+            AccelFreqPicker.ItemsSource = AccelFreqLabels;
+            AccelFreqPicker.SelectedIndex = ClosestIndex(AccelFreqValues, SensorBufferManager.AccelSampleRate);
+
+            // Ambient Light
+            LightGainPicker.ItemsSource = LightGainLabels;
+            int gainIdx = Array.IndexOf(LightGainValues, SensorBufferManager.LightGain);
+            LightGainPicker.SelectedIndex = Clamp(gainIdx < 0 ? 0 : gainIdx, 0, LightGainValues.Length - 1);
+
+            LightIntegTimePicker.ItemsSource = LightIntegTimeLabels;
+            int integIdx = Array.IndexOf(LightIntegTimeValues, SensorBufferManager.LightIntegrationTime);
+            LightIntegTimePicker.SelectedIndex = Clamp(integIdx < 0 ? 0 : integIdx, 0, LightIntegTimeValues.Length - 1);
+
+            LightSamplingRatePicker.ItemsSource = LightSamplingRateLabels;
+            int rateIdx = Array.IndexOf(LightSamplingRateValues, SensorBufferManager.LightMeasurementRate);
+            LightSamplingRatePicker.SelectedIndex = Clamp(rateIdx < 0 ? 1 : rateIdx, 0, LightSamplingRateValues.Length - 1);
+
+            // Barometer
+            BaroOversamplingPicker.ItemsSource = BaroOversamplingLabels;
+            BaroOversamplingPicker.SelectedIndex = Clamp(SensorBufferManager.BaroOversampling, 0, BaroOversamplingLabels.Length - 1);
+
+            BaroAveragingPicker.ItemsSource = BaroAveragingLabels;
+            BaroAveragingPicker.SelectedIndex = Clamp(SensorBufferManager.BaroIirFilter, 0, BaroAveragingLabels.Length - 1);
+
+            BaroStandbyTimePicker.ItemsSource = BaroStandbyTimeLabels;
+            BaroStandbyTimePicker.SelectedIndex = Clamp(SensorBufferManager.BaroStandbyTime, 0, BaroStandbyTimeLabels.Length - 1);
+
+            // Gyroscope
+            GyroFreqPicker.ItemsSource = GyroFreqLabels;
+            GyroFreqPicker.SelectedIndex = ClosestIndex(GyroFreqValues, SensorBufferManager.GyroSampleRate);
+
+            GyroRangePicker.ItemsSource = GyroRangeLabels;
+            GyroRangePicker.SelectedIndex = ClosestIndex(GyroRangeValues, SensorBufferManager.GyroRange);
+
+            // Magnetometer — display current frequency read-only
+            MagFrequencyLabel.Text = $"Frequency: {SensorBufferManager.MagSampleRate:0} Hz";
+        }
+
+        private static int ClosestIndex(float[] values, float target)
+        {
+            int best = 0;
+            float bestDist = Math.Abs(values[0] - target);
+            for (int i = 1; i < values.Length; i++)
+            {
+                float dist = Math.Abs(values[i] - target);
+                if (dist < bestDist) { bestDist = dist; best = i; }
+            }
+            return best;
+        }
+
+        private async void OnResetDeviceClicked(object sender, EventArgs e)
+        {
+            bool confirm = await DisplayAlertAsync("Reset Device",
+                "This will reset the SmartDot device. Are you sure?", "Reset", "Cancel");
+            if (!confirm) return;
+
+            try
+            {
+                await _metaWearService.ResetAsync();
+                await DisplayAlertAsync("Reset", "Device reset command sent.", "OK");
+            }
+            catch (Exception ex)
+            {
+                await DisplayAlertAsync("Error", $"Failed to reset device: {ex.Message}", "OK");
+            }
+        }
+
+        private async void OnSleepModeClicked(object sender, EventArgs e)
+        {
+            bool confirm = await DisplayAlertAsync("Sleep Mode",
+                "Put the SmartDot into deep sleep? It will disconnect and stop advertising to save battery.", "Sleep", "Cancel");
+            if (!confirm) return;
+
+            try
+            {
+                await _metaWearService.SleepAsync();
+
+                // Give the device a moment to process the sleep command, then disconnect
+                await Task.Delay(500);
+                await _metaWearService.StopAccelerometerAsync();
+                await _metaWearService.StopGyroscopeAsync();
+                await _metaWearService.StopMagnetometerAsync();
+                await _metaWearService.StopLightSensorAsync();
+                await _metaWearService.DisconnectAsync();
+
+                IsConnected = false;
+                StatusLabel.Text = "SmartDot is sleeping";
+                ClearDeviceInfo();
+                AccelerometerLabel.Text = "";
+                GyroscopeLabel.Text = "";
+                MagnetometerLabel.Text = "";
+                LightSensorLabel.Text = "";
+
+                await UpdateIsConnectedStatusAsync(false);
+                await DisplayAlertAsync("Sleep", "SmartDot is now in deep sleep mode.", "OK");
+            }
+            catch (Exception ex)
+            {
+                await DisplayAlertAsync("Error", $"Failed to send sleep command: {ex.Message}", "OK");
+            }
+        }
+
+        private async void OnSaveSensorConfigClicked(object sender, EventArgs e)
+        {
+            // Accelerometer
+            if (AccelScalePicker.SelectedIndex >= 0)
+                SensorBufferManager.AccelRange = AccelScaleValues[AccelScalePicker.SelectedIndex];
+            if (AccelFreqPicker.SelectedIndex >= 0)
+                SensorBufferManager.AccelSampleRate = AccelFreqValues[AccelFreqPicker.SelectedIndex];
+
+            // Ambient Light
+            if (LightGainPicker.SelectedIndex >= 0)
+                SensorBufferManager.LightGain = LightGainValues[LightGainPicker.SelectedIndex];
+            if (LightIntegTimePicker.SelectedIndex >= 0)
+                SensorBufferManager.LightIntegrationTime = LightIntegTimeValues[LightIntegTimePicker.SelectedIndex];
+            if (LightSamplingRatePicker.SelectedIndex >= 0)
+                SensorBufferManager.LightMeasurementRate = LightSamplingRateValues[LightSamplingRatePicker.SelectedIndex];
+
+            // Barometer
+            if (BaroOversamplingPicker.SelectedIndex >= 0)
+                SensorBufferManager.BaroOversampling = BaroOversamplingPicker.SelectedIndex;
+            if (BaroAveragingPicker.SelectedIndex >= 0)
+                SensorBufferManager.BaroIirFilter = BaroAveragingPicker.SelectedIndex;
+            if (BaroStandbyTimePicker.SelectedIndex >= 0)
+                SensorBufferManager.BaroStandbyTime = BaroStandbyTimePicker.SelectedIndex;
+
+            // Gyroscope
+            if (GyroFreqPicker.SelectedIndex >= 0)
+                SensorBufferManager.GyroSampleRate = GyroFreqValues[GyroFreqPicker.SelectedIndex];
+            if (GyroRangePicker.SelectedIndex >= 0)
+                SensorBufferManager.GyroRange = GyroRangeValues[GyroRangePicker.SelectedIndex];
+
+            await SaveCurrentDeviceSettingsAsync();
+            await DisplayAlertAsync("Saved", "Sensor configuration saved. Changes take effect on the next recording.", "OK");
+        }
+
+        private async void OnSaveLightThresholdClicked(object sender, EventArgs e)
         {
             if (float.TryParse(LightThresholdEntry.Text, out float newThreshold) && newThreshold > 0)
             {
                 SensorBufferManager.LightSensorHighThreshold = newThreshold;
                 LightThresholdStatusLabel.Text = $"Saved! Current threshold: {newThreshold:0}";
                 LightThresholdStatusLabel.TextColor = Colors.Green;
+                await SaveCurrentDeviceSettingsAsync();
             }
             else
             {
                 LightThresholdStatusLabel.Text = "Invalid value. Please enter a positive number.";
                 LightThresholdStatusLabel.TextColor = Colors.Red;
+            }
+        }
+
+        private async void OnSaveRecordDurationClicked(object sender, EventArgs e)
+        {
+            if (double.TryParse(RecordDurationEntry.Text, out double newDuration) && newDuration > 0)
+            {
+                SensorBufferManager.ContinuousSaveDurationSeconds = newDuration;
+                RecordDurationStatusLabel.Text = $"Saved! Current duration: {newDuration:0.##}s";
+                RecordDurationStatusLabel.TextColor = Colors.Green;
+                await SaveCurrentDeviceSettingsAsync();
+            }
+            else
+            {
+                RecordDurationStatusLabel.Text = "Invalid value. Please enter a positive number.";
+                RecordDurationStatusLabel.TextColor = Colors.Red;
             }
         }
 
@@ -222,10 +421,14 @@ namespace Cellular
                 // Already connected - update UI state
                 IsConnected = true;
                 StatusLabel.Text = $"Already connected to {_metaWearService.MacAddress}";
-                
+
                 // Update IsConnected status in database
                 await UpdateIsConnectedStatusAsync(true);
-                
+
+                // Load or create device profile
+                if (!string.IsNullOrEmpty(_metaWearService.MacAddress))
+                    await LoadOrCreateDeviceProfileAsync(_metaWearService.MacAddress);
+
                 // Try to get device info
                 try
                 {
@@ -235,7 +438,7 @@ namespace Cellular
                 catch (Exception ex)
                 {
                     System.Diagnostics.Debug.WriteLine($"Error getting device info: {ex.Message}");
-                    ClearDeviceInfo();
+                    ShowDeviceInfo(new Services.DeviceInfo());
                 }
                 return;
             }
@@ -297,10 +500,13 @@ namespace Cellular
                     {
                         IsConnected = true;
                         StatusLabel.Text = $"Auto-connected to {targetDevice.Name}";
-                        
+
                         // Update IsConnected status in database
                         await UpdateIsConnectedStatusAsync(true);
-                        
+
+                        // Load or create device profile
+                        await LoadOrCreateDeviceProfileAsync(targetDevice.Id);
+
                         // Get device info
                         try
                         {
@@ -340,8 +546,8 @@ namespace Cellular
                 return;
 
             // Filter for MetaWear devices (MMS and MMC)
-            if (string.IsNullOrEmpty(e.Device.Name) || 
-                (!e.Device.Name.Contains("MetaWear", StringComparison.OrdinalIgnoreCase) && 
+            if (string.IsNullOrEmpty(e.Device.Name) ||
+                (!e.Device.Name.Contains("MetaWear", StringComparison.OrdinalIgnoreCase) &&
                  !e.Device.Name.Contains("MMS", StringComparison.OrdinalIgnoreCase) &&
                  !e.Device.Name.Contains("MMC", StringComparison.OrdinalIgnoreCase) &&
                  !e.Device.Name.Contains("MetaMotion", StringComparison.OrdinalIgnoreCase)))
@@ -349,17 +555,25 @@ namespace Cellular
                 return;
             }
 
+            string deviceId = e.Device.Id.ToString();
             MainThread.BeginInvokeOnMainThread(() =>
             {
-                var existingDevice = Devices.FirstOrDefault(d => d.Id == e.Device.Id.ToString());
+                var existingDevice = Devices.FirstOrDefault(d => d.Id == deviceId);
                 if (existingDevice == null)
                 {
-                    Devices.Add(new BluetoothDevice
+                    var entry = new BluetoothDevice
                     {
-                        Id = e.Device.Id.ToString(),
+                        Id = deviceId,
                         Name = e.Device.Name ?? "Unknown",
                         Rssi = e.Device.Rssi,
                         Device = e.Device
+                    };
+                    Devices.Add(entry);
+                    _ = Task.Run(async () =>
+                    {
+                        var saved = await _deviceRepository.GetByMacAsync(deviceId);
+                        if (saved != null && !string.IsNullOrEmpty(saved.DeviceName))
+                            MainThread.BeginInvokeOnMainThread(() => entry.SavedName = saved.DeviceName);
                     });
                 }
                 else
@@ -645,7 +859,7 @@ namespace Cellular
                     var locationStatus = await Permissions.RequestAsync<Permissions.LocationWhenInUse>();
                     if (locationStatus != PermissionStatus.Granted)
                     {
-                        await DisplayAlert("Permission Required", 
+                        await DisplayAlertAsync("Permission Required", 
                             "Location permission is required to scan for Bluetooth devices. Please grant the permission in your device settings.", 
                             "OK");
                         return;
@@ -655,7 +869,7 @@ namespace Cellular
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Permission request error: {ex.Message}");
-                await DisplayAlert("Permission Error", 
+                await DisplayAlertAsync("Permission Error", 
                     $"Unable to request permissions: {ex.Message}. Please ensure Bluetooth permissions are granted in device settings.", 
                     "OK");
                 return;
@@ -729,8 +943,8 @@ namespace Cellular
                 return;
 
             // Filter for MetaWear devices (MMS and MMC)
-            if (string.IsNullOrEmpty(e.Device.Name) || 
-                (!e.Device.Name.Contains("MetaWear", StringComparison.OrdinalIgnoreCase) && 
+            if (string.IsNullOrEmpty(e.Device.Name) ||
+                (!e.Device.Name.Contains("MetaWear", StringComparison.OrdinalIgnoreCase) &&
                  !e.Device.Name.Contains("MMS", StringComparison.OrdinalIgnoreCase) &&
                  !e.Device.Name.Contains("MMC", StringComparison.OrdinalIgnoreCase) &&
                  !e.Device.Name.Contains("MetaMotion", StringComparison.OrdinalIgnoreCase)))
@@ -738,23 +952,32 @@ namespace Cellular
                 return;
             }
 
+            string deviceId = e.Device.Id.ToString();
             MainThread.BeginInvokeOnMainThread(() =>
             {
-                var existingDevice = Devices.FirstOrDefault(d => d.Id == e.Device.Id.ToString());
+                var existingDevice = Devices.FirstOrDefault(d => d.Id == deviceId);
                 if (existingDevice == null)
                 {
-                    Devices.Add(new BluetoothDevice
+                    var entry = new BluetoothDevice
                     {
-                        Id = e.Device.Id.ToString(),
+                        Id = deviceId,
                         Name = e.Device.Name ?? "Unknown",
                         Rssi = e.Device.Rssi,
                         Device = e.Device
+                    };
+                    Devices.Add(entry);
+                    // Async look-up: replace name with saved friendly name if one exists
+                    _ = Task.Run(async () =>
+                    {
+                        var saved = await _deviceRepository.GetByMacAsync(deviceId);
+                        if (saved != null && !string.IsNullOrEmpty(saved.DeviceName))
+                            MainThread.BeginInvokeOnMainThread(() => entry.SavedName = saved.DeviceName);
                     });
                 }
                 else
                 {
                     existingDevice.Rssi = e.Device.Rssi;
-                    existingDevice.Device = e.Device; // Update device object
+                    existingDevice.Device = e.Device;
                 }
             });
         }
@@ -796,16 +1019,19 @@ namespace Cellular
                     {
                         await StopScanningAsync();
                     }
-                    
+
                     IsConnected = true;
                     StatusLabel.Text = $"Connected to {SelectedDevice.Name}";
-                    
+
                     // Save the MAC address to user's profile
                     await SaveSmartDotMacAsync(SelectedDevice.Id);
-                    
+
                     // Update IsConnected status in database
                     await UpdateIsConnectedStatusAsync(true);
-                    
+
+                    // Load or create device profile (prompts for name if new device)
+                    await LoadOrCreateDeviceProfileAsync(SelectedDevice.Id);
+
                     // Get device info
                     try
                     {
@@ -815,7 +1041,7 @@ namespace Cellular
                     catch (Exception ex)
                     {
                         System.Diagnostics.Debug.WriteLine($"Error getting device info: {ex.Message}");
-                        ClearDeviceInfo();
+                        ShowDeviceInfo(new Services.DeviceInfo());
                     }
                 }
                 else
@@ -1046,6 +1272,8 @@ namespace Cellular
         private void ShowDeviceInfo(Services.DeviceInfo info)
         {
             DeviceInfoFrame.IsVisible = true;
+            DeviceControlsSection.IsVisible = true;
+            SensorConfigSection.IsVisible = true;
             DeviceModelLabel.Text = info.Model ?? "-";
             DeviceSerialLabel.Text = info.SerialNumber ?? "-";
             DeviceHardwareLabel.Text = info.HardwareVersion ?? "-";
@@ -1057,12 +1285,100 @@ namespace Cellular
         private void ClearDeviceInfo()
         {
             DeviceInfoFrame.IsVisible = false;
+            DeviceControlsSection.IsVisible = false;
+            SensorConfigSection.IsVisible = false;
             DeviceModelLabel.Text = "-";
             DeviceSerialLabel.Text = "-";
             DeviceHardwareLabel.Text = "-";
             DeviceBatteryLabel.Text = "-";
             DeviceFirmwareLabel.Text = "-";
             DeviceFirmwareStatusLabel.Text = "-";
+        }
+
+        /// <summary>
+        /// Looks up the device by MAC. If new, prompts the user for a name and creates a default
+        /// profile. Then loads all saved settings into SensorBufferManager and refreshes pickers.
+        /// </summary>
+        private async Task LoadOrCreateDeviceProfileAsync(string mac)
+        {
+            var device = await _deviceRepository.GetByMacAsync(mac);
+
+            if (device == null)
+            {
+                // New device — ask the user for a friendly name
+                string name = await DisplayPromptAsync(
+                    "New SmartDot",
+                    "Give this SmartDot a name:",
+                    accept: "Save",
+                    cancel: "Skip",
+                    placeholder: "e.g. My MMS",
+                    maxLength: 40);
+
+                device = new SmartDotDevice
+                {
+                    MacAddress = mac,
+                    DeviceName = string.IsNullOrWhiteSpace(name) ? mac : name.Trim(),
+                    LastConnected = DateTime.Now
+                    // All other properties stay at their model defaults
+                };
+
+                await _deviceRepository.AddAsync(device);
+            }
+            else
+            {
+                device.LastConnected = DateTime.Now;
+                await _deviceRepository.UpdateAsync(device);
+            }
+
+            _currentDevice = device;
+
+            // Push saved settings into SensorBufferManager so they take effect immediately
+            SensorBufferManager.LightSensorHighThreshold      = device.LightSensorHighThreshold;
+            SensorBufferManager.ContinuousSaveDurationSeconds = device.ContinuousSaveDurationSeconds;
+            SensorBufferManager.LightSampleRate               = device.LightSampleRate;
+            SensorBufferManager.LightGain                     = device.LightGain;
+            SensorBufferManager.LightIntegrationTime          = device.LightIntegrationTime;
+            SensorBufferManager.LightMeasurementRate          = device.LightMeasurementRate;
+            SensorBufferManager.AccelSampleRate               = device.AccelSampleRate;
+            SensorBufferManager.AccelRange                    = device.AccelRange;
+            SensorBufferManager.GyroSampleRate                = device.GyroSampleRate;
+            SensorBufferManager.GyroRange                     = device.GyroRange;
+            SensorBufferManager.MagSampleRate                 = device.MagSampleRate;
+            SensorBufferManager.BaroOversampling              = device.BaroOversampling;
+            SensorBufferManager.BaroIirFilter                 = device.BaroIirFilter;
+            SensorBufferManager.BaroStandbyTime               = device.BaroStandbyTime;
+
+            // Refresh UI
+            LightThresholdEntry.Text        = device.LightSensorHighThreshold.ToString("0");
+            LightThresholdStatusLabel.Text  = $"Current threshold: {device.LightSensorHighThreshold:0}";
+            RecordDurationEntry.Text        = device.ContinuousSaveDurationSeconds.ToString("0.##");
+            RecordDurationStatusLabel.Text  = $"Current duration: {device.ContinuousSaveDurationSeconds:0.##}s";
+            InitSensorConfigPickers();
+        }
+
+        /// <summary>
+        /// Copies current SensorBufferManager/UI settings back into _currentDevice and persists.
+        /// </summary>
+        private async Task SaveCurrentDeviceSettingsAsync()
+        {
+            if (_currentDevice == null) return;
+
+            _currentDevice.LightSensorHighThreshold      = SensorBufferManager.LightSensorHighThreshold;
+            _currentDevice.ContinuousSaveDurationSeconds = SensorBufferManager.ContinuousSaveDurationSeconds;
+            _currentDevice.LightSampleRate               = SensorBufferManager.LightSampleRate;
+            _currentDevice.LightGain                     = SensorBufferManager.LightGain;
+            _currentDevice.LightIntegrationTime          = SensorBufferManager.LightIntegrationTime;
+            _currentDevice.LightMeasurementRate          = SensorBufferManager.LightMeasurementRate;
+            _currentDevice.AccelSampleRate               = SensorBufferManager.AccelSampleRate;
+            _currentDevice.AccelRange                    = SensorBufferManager.AccelRange;
+            _currentDevice.GyroSampleRate                = SensorBufferManager.GyroSampleRate;
+            _currentDevice.GyroRange                     = SensorBufferManager.GyroRange;
+            _currentDevice.MagSampleRate                 = SensorBufferManager.MagSampleRate;
+            _currentDevice.BaroOversampling              = SensorBufferManager.BaroOversampling;
+            _currentDevice.BaroIirFilter                 = SensorBufferManager.BaroIirFilter;
+            _currentDevice.BaroStandbyTime               = SensorBufferManager.BaroStandbyTime;
+
+            await _deviceRepository.UpdateAsync(_currentDevice);
         }
 
         /// <summary>
@@ -1108,12 +1424,26 @@ namespace Cellular
         }
     }
 
-    public class BluetoothDevice
+    public class BluetoothDevice : System.ComponentModel.INotifyPropertyChanged
     {
+        public event System.ComponentModel.PropertyChangedEventHandler? PropertyChanged;
+        private void OnPropertyChanged(string name) =>
+            PropertyChanged?.Invoke(this, new System.ComponentModel.PropertyChangedEventArgs(name));
+
         public string Id { get; set; } = string.Empty;
         public string Name { get; set; } = string.Empty;
         public int Rssi { get; set; }
         public IDevice? Device { get; set; }
+
+        private string? _savedName;
+        public string? SavedName
+        {
+            get => _savedName;
+            set { _savedName = value; OnPropertyChanged(nameof(SavedName)); OnPropertyChanged(nameof(DisplayName)); }
+        }
+
+        /// <summary>Returns the user's saved name for this device, falling back to the BLE name.</summary>
+        public string DisplayName => !string.IsNullOrEmpty(_savedName) ? _savedName : Name;
     }
 
     public class SensorDataPoint

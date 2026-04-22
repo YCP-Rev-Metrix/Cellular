@@ -52,6 +52,7 @@ namespace Cellular
         private SensorBufferManager? _sensorBufferManager;
         private IMetaWearService _metaWearService; // Not readonly so we can update to singleton if needed
         private readonly UserRepository _userRepository;
+        private readonly SmartDotDeviceRepository _deviceRepository;
         private readonly IBluetoothLE _ble = CrossBluetoothLE.Current;
         private readonly IAdapter _adapter = CrossBluetoothLE.Current.Adapter;
         private IWatchBleService _watchBleService;
@@ -109,7 +110,9 @@ namespace Cellular
                 ?? new MetaWearBleService(); // Last resort - but this should not happen with proper DI
 
             // Initialize UserRepository
-            _userRepository = new UserRepository(new CellularDatabase().GetConnection());
+            var dbConn = new CellularDatabase().GetConnection();
+            _userRepository = new UserRepository(dbConn);
+            _deviceRepository = new SmartDotDeviceRepository(dbConn);
 
             // Subscribe to connection/disconnection events
             _metaWearService.DeviceDisconnected -= OnDeviceDisconnected; // Remove first to avoid duplicates
@@ -240,7 +243,7 @@ namespace Cellular
                 }
                 catch (Exception ex)
                 {
-                    await DisplayAlert("Error", $"Failed to start recording: {ex.Message}", "OK");
+                    await DisplayAlertAsync("Error", $"Failed to start recording: {ex.Message}", "OK");
 
                     // Reset button state
                     isRecording = false;
@@ -288,7 +291,7 @@ namespace Cellular
                 }
                 catch (Exception ex)
                 {
-                    await DisplayAlert("Error", $"Failed to stop recording: {ex.Message}", "OK");
+                    await DisplayAlertAsync("Error", $"Failed to stop recording: {ex.Message}", "OK");
                 }
             }
         }
@@ -321,7 +324,7 @@ namespace Cellular
             }
             catch (Exception ex)
             {
-                await DisplayAlert("Error", $"Failed to stop/upload video: {ex.Message}", "OK");
+                await DisplayAlertAsync("Error", $"Failed to stop/upload video: {ex.Message}", "OK");
             }
         }
 
@@ -361,7 +364,7 @@ namespace Cellular
                     }
                     catch (Exception ex)
                     {
-                        await DisplayAlert("Save Video", $"Video will upload to cloud but could not save to phone: {ex.Message}", "OK");
+                        await DisplayAlertAsync("Save Video", $"Video will upload to cloud but could not save to phone: {ex.Message}", "OK");
                         break;
                     }
                 }
@@ -373,7 +376,7 @@ namespace Cellular
                 string? token = await uploadService.GetTokenAsync(RevMetrixApiUsername, RevMetrixApiPassword);
                 if (string.IsNullOrEmpty(token))
                 {
-                    await DisplayAlert("Upload Error", "Could not get API token.", "OK");
+                    await DisplayAlertAsync("Upload Error", "Could not get API token.", "OK");
                     return;
                 }
                 string videoKey = await uploadService.UploadFileAsync(token, videoPath, "videos", "video/mp4");
@@ -386,7 +389,7 @@ namespace Cellular
                     }
                     catch (Exception logEx)
                     {
-                        await DisplayAlert("Log Upload", $"Video uploaded successfully. Log failed to upload: {logEx.Message}", "OK");
+                        await DisplayAlertAsync("Log Upload", $"Video uploaded successfully. Log failed to upload: {logEx.Message}", "OK");
                     }
                 }
                 try { File.Delete(videoPath); } catch { /* ignore */ }
@@ -398,11 +401,11 @@ namespace Cellular
                     : $"Video uploaded.\nKey: {videoKey}";
                 if (!string.IsNullOrEmpty(savedVideoPath))
                     msg += $"\n\nVideo saved to phone:\n{savedVideoPath}";
-                await DisplayAlert("Upload Complete", msg, "OK");
+                await DisplayAlertAsync("Upload Complete", msg, "OK");
             }
             catch (Exception ex)
             {
-                await DisplayAlert("Upload Failed", ex.Message, "OK");
+                await DisplayAlertAsync("Upload Failed", ex.Message, "OK");
             }
         }
 
@@ -449,7 +452,7 @@ namespace Cellular
             // Show error notification on main thread
             MainThread.BeginInvokeOnMainThread(async () =>
             {
-                await DisplayAlert("Error", $"Failed to save sensor data: {errorMessage}", "OK");
+                await DisplayAlertAsync("Error", $"Failed to save sensor data: {errorMessage}", "OK");
             });
         }
 
@@ -458,7 +461,7 @@ namespace Cellular
             // Show notification when 4-second collection starts
             MainThread.BeginInvokeOnMainThread(async () =>
             {
-                await DisplayAlert("Recording Started",
+                await DisplayAlertAsync("Recording Started",
                     $"4-second sensor data collection has started!\n\n" +
                     $"Data is being collected now. You will be prompted to save when collection completes.",
                     "OK");
@@ -476,7 +479,7 @@ namespace Cellular
 
                 if (!File.Exists(e.FilePath))
                 {
-                    await DisplayAlert("Error", $"Sensor data temp file not found at:\n{e.FilePath}", "OK");
+                    await DisplayAlertAsync("Error", $"Sensor data temp file not found at:\n{e.FilePath}", "OK");
                     await StopVideoAndUploadVideoOnlyAsync();
                     return;
                 }
@@ -524,18 +527,18 @@ namespace Cellular
 
                     if (saveResult.IsSuccessful && logBytesForUpload != null)
                     {
-                        await DisplayAlert("Success",
+                        await DisplayAlertAsync("Success",
                             $"Sensor data saved.\nData Points: {e.DataPointCount}\n\nVideo and log have been uploaded to RevMetrix.",
                             "OK");
                     }
                     else if (!saveResult.IsSuccessful)
                     {
-                        await DisplayAlert("Error", $"Failed to save sensor data: {saveResult.Exception?.Message ?? "Unknown error"}", "OK");
+                        await DisplayAlertAsync("Error", $"Failed to save sensor data: {saveResult.Exception?.Message ?? "Unknown error"}", "OK");
                     }
                 }
                 catch (Exception ex)
                 {
-                    await DisplayAlert("Error", $"Error preparing to save sensor data: {ex.Message}", "OK");
+                    await DisplayAlertAsync("Error", $"Error preparing to save sensor data: {ex.Message}", "OK");
                     if (isRecording)
                         await StopVideoAndUploadVideoOnlyAsync();
                 }
@@ -559,7 +562,7 @@ namespace Cellular
         {
             if (string.IsNullOrEmpty(_lastVideoKey))
             {
-                await DisplayAlert("Ciclopes", "No uploaded video found. Record and upload a video first.", "OK");
+                await DisplayAlertAsync("Ciclopes", "No uploaded video found. Record and upload a video first.", "OK");
                 return;
             }
 
@@ -581,7 +584,7 @@ namespace Cellular
 
                 if (laneBallsResponse is null)
                 {
-                    await DisplayAlert("Ciclopes", "No lane/balls data returned.", "OK");
+                    await DisplayAlertAsync("Ciclopes", "No lane/balls data returned.", "OK");
                     return;
                 }
 
@@ -590,7 +593,7 @@ namespace Cellular
             }
             catch (Exception ex)
             {
-                await DisplayAlert("Ciclopes Request Failed", ex.Message, "OK");
+                await DisplayAlertAsync("Ciclopes Request Failed", ex.Message, "OK");
             }
             finally
             {
@@ -655,14 +658,20 @@ namespace Cellular
                 {
                     string? savedMac = await _userRepository.GetSmartDotMacAsync(userId);
                     if (!string.IsNullOrEmpty(savedMac))
-                    {
                         macAddress = savedMac;
-                    }
                 }
             }
 
+            // Look up friendly name from device profile
+            string? deviceName = null;
+            if (!string.IsNullOrEmpty(macAddress) && macAddress != "Unknown")
+            {
+                var deviceProfile = await _deviceRepository.GetByMacAsync(macAddress);
+                deviceName = deviceProfile?.DeviceName;
+            }
+
             // Show popup with connection info
-            var popup = new Cellular.Views.MmsConnectionPopup(macAddress, isConnected);
+            var popup = new Cellular.Views.MmsConnectionPopup(macAddress, isConnected, deviceName);
 
             // Ensure Completion is set if the popup is closed by other means
             popup.Closed += (s, args) =>
@@ -719,11 +728,11 @@ namespace Cellular
                 UpdateConnectionStatusIcon();
                 await UpdateRecordButtonStateAsync();
 
-                await DisplayAlert("Disconnected", "Successfully disconnected from SmartDot device.", "OK");
+                await DisplayAlertAsync("Disconnected", "Successfully disconnected from SmartDot device.", "OK");
             }
             catch (Exception ex)
             {
-                await DisplayAlert("Error", $"Failed to disconnect: {ex.Message}", "OK");
+                await DisplayAlertAsync("Error", $"Failed to disconnect: {ex.Message}", "OK");
             }
         }
 
@@ -735,7 +744,7 @@ namespace Cellular
                 await UpdateIsConnectedStatusAsync(true);
                 UpdateConnectionStatusIcon();
                 await UpdateRecordButtonStateAsync();
-                await DisplayAlert("Connected", "Already connected to your SmartDot device.", "OK");
+                await DisplayAlertAsync("Connected", "Already connected to your SmartDot device.", "OK");
                 return;
             }
 
@@ -743,7 +752,7 @@ namespace Cellular
             int userId = Preferences.Get("UserId", -1);
             if (userId == -1)
             {
-                await DisplayAlert("Not Logged In", "Please log in to use auto-connect feature.", "OK");
+                await DisplayAlertAsync("Not Logged In", "Please log in to use auto-connect feature.", "OK");
                 return;
             }
 
@@ -754,7 +763,7 @@ namespace Cellular
 
                 if (string.IsNullOrEmpty(savedMac))
                 {
-                    await DisplayAlert("No Saved Device",
+                    await DisplayAlertAsync("No Saved Device",
                         "No SmartDot device is saved for your account. Please connect to a device from the Bluetooth page first.",
                         "OK");
                     return;
@@ -772,7 +781,7 @@ namespace Cellular
                 // Check if Bluetooth is on
                 if (!_ble.IsOn)
                 {
-                    await DisplayAlert("Bluetooth Off", "Please enable Bluetooth to connect to your SmartDot.", "OK");
+                    await DisplayAlertAsync("Bluetooth Off", "Please enable Bluetooth to connect to your SmartDot.", "OK");
                     UpdateConnectionStatusIcon();
                     return;
                 }
@@ -826,12 +835,12 @@ namespace Cellular
 
                         UpdateConnectionStatusIcon();
                         await UpdateRecordButtonStateAsync();
-                        await DisplayAlert("Connected", $"Successfully connected to your SmartDot device.", "OK");
+                        await DisplayAlertAsync("Connected", $"Successfully connected to your SmartDot device.", "OK");
                     }
                     else
                     {
                         UpdateConnectionStatusIcon();
-                        await DisplayAlert("Connection Failed",
+                        await DisplayAlertAsync("Connection Failed",
                             "Found your device but failed to connect. Please try again or connect from the Bluetooth page.",
                             "OK");
                     }
@@ -857,12 +866,12 @@ namespace Cellular
                             await UpdateIsConnectedStatusAsync(true);
                             UpdateConnectionStatusIcon();
                             await UpdateRecordButtonStateAsync();
-                            await DisplayAlert("Connected", "Successfully connected to your SmartDot device.", "OK");
+                            await DisplayAlertAsync("Connected", "Successfully connected to your SmartDot device.", "OK");
                         }
                         else
                         {
                             UpdateConnectionStatusIcon();
-                            await DisplayAlert("Connection Failed",
+                            await DisplayAlertAsync("Connection Failed",
                                 "Found your device (already paired) but failed to connect. Please try again or connect from the Bluetooth page.",
                                 "OK");
                         }
@@ -870,7 +879,7 @@ namespace Cellular
                     else
                     {
                         UpdateConnectionStatusIcon();
-                        await DisplayAlert("Device Not Found",
+                        await DisplayAlertAsync("Device Not Found",
                             "Could not find your saved SmartDot device. Please make sure:\n\n" +
                             "• The device is powered on\n" +
                             "• Bluetooth is enabled\n" +
@@ -883,7 +892,7 @@ namespace Cellular
             catch (Exception ex)
             {
                 UpdateConnectionStatusIcon();
-                await DisplayAlert("Error", $"Failed to auto-connect: {ex.Message}", "OK");
+                await DisplayAlertAsync("Error", $"Failed to auto-connect: {ex.Message}", "OK");
             }
         }
 

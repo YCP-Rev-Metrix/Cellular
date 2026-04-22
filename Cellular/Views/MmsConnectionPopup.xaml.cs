@@ -8,13 +8,20 @@ namespace Cellular.Views
     {
         public TaskCompletionSource<bool?> Completion { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
-        public MmsConnectionPopup(string macAddress, bool isConnected)
+        public MmsConnectionPopup(string macAddress, bool isConnected, string? deviceName = null)
         {
             InitializeComponent();
 
+            // Show saved friendly name if available
+            if (!string.IsNullOrWhiteSpace(deviceName))
+            {
+                DeviceNameLabel.Text = deviceName;
+                DeviceNameLabel.IsVisible = true;
+            }
+
             if (isConnected && !string.IsNullOrEmpty(macAddress))
             {
-                MacAddressLabel.Text = $"MAC Address: {macAddress}";
+                MacAddressLabel.Text = $"MAC: {macAddress}";
                 StatusLabel.Text = "Status: Connected";
                 StatusLabel.TextColor = Colors.Green;
                 ConnectButton.IsVisible = false;
@@ -22,15 +29,9 @@ namespace Cellular.Views
             }
             else
             {
-                // Show saved MAC address if available, otherwise show "Not Connected"
-                if (!string.IsNullOrEmpty(macAddress) && macAddress != "Unknown")
-                {
-                    MacAddressLabel.Text = $"MAC Address: {macAddress}";
-                }
-                else
-                {
-                    MacAddressLabel.Text = "MAC Address: Not Connected";
-                }
+                MacAddressLabel.Text = !string.IsNullOrEmpty(macAddress) && macAddress != "Unknown"
+                    ? $"MAC: {macAddress}"
+                    : "MAC Address: Not Connected";
                 StatusLabel.Text = "Status: Disconnected";
                 StatusLabel.TextColor = Colors.Red;
                 ConnectButton.IsVisible = true;

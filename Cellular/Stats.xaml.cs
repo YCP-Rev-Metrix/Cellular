@@ -8,6 +8,7 @@ namespace Cellular
     public partial class Stats : ContentPage
     {
         private readonly StatsViewModel _viewModel;
+        private bool _hasLoaded = false;
 
         public Stats()
         {
@@ -22,11 +23,25 @@ namespace Cellular
         protected override async void OnAppearing()
         {
             base.OnAppearing();
-            await _viewModel.LoadAsync();
+
+            // Only run the initial data load once per page instance.
+            // Subsequent appearances (e.g. popup dismissed) must not clear
+            // the collections — that would wipe all the user's selections.
+            if (!_hasLoaded)
+            {
+                _hasLoaded = true;
+                await _viewModel.LoadAsync();
+            }
         }
 
         private async void OnLoadStatsClicked(object sender, EventArgs e)
         {
+            if (string.IsNullOrEmpty(_viewModel.SelectedStatType))
+            {
+                await DisplayAlertAsync("Stat Type Required", "Please select a Stat Type before loading.", "OK");
+                return;
+            }
+
             _viewModel.IsLoading = true;
             try
             {

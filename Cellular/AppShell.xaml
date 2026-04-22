@@ -43,7 +43,7 @@
     <ShellContent
         x:Name="bluetooth"
         Title="SmartDot"
-        ContentTemplate="{DataTemplate local:Bluetooth}"
+        ContentTemplate="{DataTemplate local:SmartDot}"
         Route="bluetooth"
         IsVisible="False"/>
 
