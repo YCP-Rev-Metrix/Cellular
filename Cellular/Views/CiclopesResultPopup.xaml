@@ -5,7 +5,6 @@
                xmlns:views="clr-namespace:Cellular.Views"
                x:Class="Cellular.Views.CiclopesResultPopup"
                CanBeDismissedByTappingOutsideOfPopup="True"
-               Color="Transparent"
                BackgroundColor="Transparent">
     <!-- ContentView wrapper is required because CommunityToolkit.Maui Popup
          measures its content with infinite available space, so WidthRequest

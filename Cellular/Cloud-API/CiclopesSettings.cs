@@ -7,12 +7,31 @@ namespace Cellular.Cloud_API;
 public static class CiclopesSettings
 {
     private const string ApiBaseOverrideKey = "CICLOPES_API_BASE_OVERRIDE";
+    private const string ApiBaseBaselineKey = "CICLOPES_API_BASE_BASELINE";
 
     private static readonly Lazy<Dictionary<string, string>> _settings = new(LoadSettings);
-    private static string? _apiBaseOverride = Preferences.Default.Get<string?>(ApiBaseOverrideKey, null);
+    private static string? _apiBaseOverride = LoadOverride();
 
     public static string? ApiBase => NormalizeBaseUrl(
         !string.IsNullOrWhiteSpace(_apiBaseOverride) ? _apiBaseOverride : Get("CICLOPES_API_BASE"));
+
+    private static string? LoadOverride()
+    {
+        // If settings.json's baked-in URL has changed since the override was saved,
+        // discard the stale override so a rebuild actually picks up the new URL.
+        var embedded = _settings.Value.TryGetValue("CICLOPES_API_BASE", out var v) ? v?.Trim() : null;
+        var baseline = Preferences.Default.Get<string?>(ApiBaseBaselineKey, null);
+        if (!string.Equals(embedded, baseline, StringComparison.Ordinal))
+        {
+            Preferences.Default.Remove(ApiBaseOverrideKey);
+            if (string.IsNullOrWhiteSpace(embedded))
+                Preferences.Default.Remove(ApiBaseBaselineKey);
+            else
+                Preferences.Default.Set(ApiBaseBaselineKey, embedded);
+            return null;
+        }
+        return Preferences.Default.Get<string?>(ApiBaseOverrideKey, null);
+    }
 
     public static void SetApiBaseOverride(string? value)
     {
