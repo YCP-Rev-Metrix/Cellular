@@ -26,6 +26,9 @@ namespace Cellular
         private IWatchBleService? _watchBleService;
 
         private bool _hasAppeared = false;
+        // Set while a popup is open so that OnAppearing (which fires on popup dismiss
+        // on some platforms) does not trigger a spurious CheckIfFramesExistForGame reload.
+        private bool _isShowingPopup = false;
         public ShotPage()
         {
             InitializeComponent();
@@ -50,10 +53,12 @@ namespace Cellular
                 Debug.WriteLine("Hand: " + viewModel.Hand);
                 Debug.WriteLine("Date: " + viewModel.CurrentDate);
             }
-            else
+            else if (!_isShowingPopup)
             {
                 // Reload game data from database when returning to ShotPage
-                // This ensures any shots recorded from the watch are displayed
+                // This ensures any shots recorded from the watch are displayed.
+                // Skip when _isShowingPopup is true: closing a popup can fire OnAppearing
+                // on some platforms, and we don't want a spurious frame reload in that case.
                 Debug.WriteLine("ShotPage re-appeared. Reloading game data from database.");
                 _ = CheckIfFramesExistForGame();
             }
@@ -323,6 +328,7 @@ namespace Cellular
 
         private async void OnShotPopupClicked(Object sender, EventArgs e)
         {
+            _isShowingPopup = true;
             try
             {
                 await viewModel.LoadLanes();
@@ -344,6 +350,10 @@ namespace Cellular
             catch (System.Exception ex)
             {
                 Debug.WriteLine($"Error showing popup: {ex.Message}");
+            }
+            finally
+            {
+                _isShowingPopup = false;
             }
         }
 
