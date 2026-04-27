@@ -663,7 +663,7 @@ namespace Cellular.ViewModel
             }
 
             var ballsFromDb = await _ballRepo.GetBallsByUserIdAsync(UserId);
-            foreach (var b in ballsFromDb.OrderBy(b => b.Name))
+            foreach (var b in ballsFromDb.Where(b => b.Enabled).OrderBy(b => b.Name))
                 Balls.Add(b);
         }
 
@@ -810,6 +810,13 @@ namespace Cellular.ViewModel
             if (_isLoadingFilteredData) return;
             _isLoadingFilteredData = true;
 
+            // ── FILTER DIAGNOSTIC ──────────────────────────────────────────────────────
+            Debug.WriteLine($"[Filter] EventId={SelectedEventId}  SessionId={SelectedSessionId}" +
+                            $"  BallId={SelectedBallId}  GamePos={_selectedGamePositionInt}" +
+                            $"  LaneInt={_selectedLaneInt}  FrameInt={_selectedFrameInt}" +
+                            $"  EstabId={SelectedEstablishmentId}");
+            // ──────────────────────────────────────────────────────────────────────────
+
             // Track how many sessions we considered for this load so we can log it later
             int sessionsConsideredCount = 0;
 
@@ -918,7 +925,9 @@ namespace Cellular.ViewModel
 
                 foreach (var session in sessionsToConsider)
                 {
-                    // Get games for session, applying game-position filter (1–4) if set
+                    // Get games for session, applying game-position filter (1–4) if set.
+                    // Frame-number and ball filters are applied inside the game loop after
+                    // all shots are loaded, so we always fetch the full game list here.
                     List<Game> gamesForSession;
                     if (_selectedGamePositionInt > 0)
                     {
@@ -926,10 +935,6 @@ namespace Cellular.ViewModel
                         var all = await _gameRepo.GetGamesListBySessionAsync(session.SessionId, UserId);
                         var match = all.FirstOrDefault(g => g.GameNumber == _selectedGamePositionInt);
                         gamesForSession = match != null ? new List<Game> { match } : new List<Game>();
-                    }
-                    else if (SelectedFrameInt > 0)
-                    {
-                        gamesForSession = await _gameRepo.GetGamesBySessionAndFrameNumberAsync(session.SessionId, SelectedFrameInt);
                     }
                     else
                     {
@@ -941,7 +946,54 @@ namespace Cellular.ViewModel
                         if (!GameMatchesLaneFilter(game, SelectedLaneInt))
                             continue;
 
-                        // Add game to viewmodel (only valid games after lane/frame filters)
+                        // ── Step 1: load ALL frames + shots for this game ─────────────────
+                        // We need the full picture before applying any sub-game filters so
+                        // the ball scan (Step 2) can see every shot regardless of frame number.
+                        var frameIds = await _frameRepo.GetFrameIdsByGameIdAsync(game.GameId);
+                        var allFrameData = new List<(BowlingFrame frame, List<Shot> shots)>();
+
+                        foreach (var fid in frameIds)
+                        {
+                            var frame = await _frameRepo.GetFrameById(fid);
+                            if (frame == null) continue;
+
+                            var shotIds = await _frameRepo.GetShotIdsByFrameIdAsync(frame.FrameId);
+                            var frameShots = new List<Shot>();
+                            foreach (var sid in shotIds)
+                            {
+                                var shot = await _shotRepo.GetShotById(sid);
+                                if (shot != null) frameShots.Add(shot);
+                            }
+
+                            allFrameData.Add((frame, frameShots));
+                        }
+
+                        // ── Step 2: ball gate — game-level ───────────────────────────────
+                        // Include the game only if the selected ball appears in at least one
+                        // shot anywhere in the game.  Scanning ALL frames (not just the
+                        // frame-filtered subset) ensures the ball used in frame 3 still
+                        // qualifies the game even when you are viewing frame 5 data.
+                        if (SelectedBallId != -1)
+                        {
+                            bool ballFoundInGame = allFrameData
+                                .Any(pair => pair.shots.Any(s => (s.Ball ?? -1) == SelectedBallId));
+
+                            Debug.WriteLine($"[GameResult] GameId={game.GameId} Sess={session.SessionId}" +
+                                            $"  ballFound={ballFoundInGame}  SelectedBallId={SelectedBallId}" +
+                                            $"  totalFrames={allFrameData.Count}");
+
+                            if (!ballFoundInGame)
+                                continue;
+                        }
+
+                        // ── Step 3: frame-number filter — stats scope ────────────────────
+                        // After the game passes the ball gate, narrow the frames that feed
+                        // into BowlingFrames/Shots to only the selected frame number (if any).
+                        var candidateFrames = SelectedFrameInt > 0
+                            ? allFrameData.Where(pair => (pair.frame.FrameNumber ?? -1) == SelectedFrameInt).ToList()
+                            : allFrameData;
+
+                        // ── Step 4: register game + its qualifying frames/shots ───────────
                         if (!Games.Any(g => g.GameId == game.GameId))
                         {
                             var nickName = Events.FirstOrDefault(e => e.EventId == session.EventId)?.NickName
@@ -950,39 +1002,8 @@ namespace Cellular.ViewModel
                             Games.Add(game);
                         }
 
-                        // load frames for game
-                        var frameIds = await _frameRepo.GetFrameIdsByGameIdAsync(game.GameId);
-                        foreach (var fid in frameIds)
+                        foreach (var (frame, frameShots) in candidateFrames)
                         {
-                            var frame = await _frameRepo.GetFrameById(fid);
-                            if (frame == null) continue;
-
-                            if (SelectedFrameInt > 0 && (frame.FrameNumber ?? -1) != SelectedFrameInt)
-                                continue;
-
-                            // Load all shots for this frame first so we can inspect Shot1's ball.
-                            var shotIds = await _frameRepo.GetShotIdsByFrameIdAsync(frame.FrameId);
-                            var frameShots = new List<ViewModel.Shot>();
-                            foreach (var sid in shotIds)
-                            {
-                                var shot = await _shotRepo.GetShotById(sid);
-                                if (shot != null) frameShots.Add(shot);
-                            }
-
-                            // Ball filter: skip frames where the FIRST ball was not thrown with
-                            // the selected ball.  Filtering at the shot level (as before) caused
-                            // denominator/numerator mismatches in Pocket% and Carry% because
-                            // BowlingFrames would contain frames thrown with other balls while
-                            // Shots only had the filtered-ball entries.
-                            if (SelectedBallId != -1)
-                            {
-                                var shot1 = frame.Shot1.HasValue
-                                    ? frameShots.FirstOrDefault(s => s.ShotId == frame.Shot1.Value)
-                                    : null;
-                                if (shot1 == null || (shot1.Ball ?? -1) != SelectedBallId)
-                                    continue;
-                            }
-
                             BowlingFrames.Add(frame);
                             foreach (var shot in frameShots)
                                 Shots.Add(shot);
@@ -1037,14 +1058,17 @@ namespace Cellular.ViewModel
                 OpenPercent = CalculateOpenPercentage(BowlingFrames);
                 GameAverage = CalculateScoreAverage(Games);
 
-                // Game-type stats — unwrap nullable Score and ignore unscored (0 / null) games
+                // Game-type stats
+                // GamesPlayed = total games returned by the query (what the filter summary shows).
+                // Scored games (Score > 0) are used for average / high / low so incomplete
+                // or unscored games don't skew those numbers.
+                GamesPlayed = Games.Count;
                 var scores = Games
                     .Where(g => g.Score.HasValue && g.Score.Value > 0)
                     .Select(g => g.Score.Value)
-                    .ToList(); // List<int>
-                GamesPlayed = scores.Count;
-                HighGame    = scores.Any() ? scores.Max() : 0;
-                LowGame     = scores.Any() ? scores.Min() : 0;
+                    .ToList();
+                HighGame = scores.Any() ? scores.Max() : 0;
+                LowGame  = scores.Any() ? scores.Min() : 0;
 
                 // Strike-type stats
                 TotalStrikes   = BowlingFrames.Count(f => f.Result == "Strike");

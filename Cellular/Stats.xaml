@@ -13,9 +13,11 @@
             Padding="30,0"
             Spacing="20">
 
-            <Image Source="logo.png" HeightRequest="185" Aspect="AspectFit" />
+                <Image Source="logo.png" HeightRequest="185" Aspect="AspectFit" />
 
-            <!-- Two columns of 4 pickers -->
+                <Label Text="Stats" FontSize="30" FontAttributes="Bold" HorizontalTextAlignment="Center"/>
+
+                <!-- Two columns of 4 pickers -->
             <Grid HorizontalOptions="Center" ColumnSpacing="20" RowSpacing="10">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto" />
