@@ -38,6 +38,12 @@ namespace Cellular
         private bool _isNavigatingToGraphPage = false;
         private bool _isAutoConnecting = false;
         private bool _hasAttemptedAutoConnect = false;
+
+        // Live chart drawables — updated from sensor handlers on the main thread
+        private SensorChartDrawable _liveAccelDrawable = null!;
+        private SensorChartDrawable _liveGyroDrawable = null!;
+        private SensorChartDrawable _liveMagDrawable = null!;
+        private LightSensorChartDrawable _liveLightDrawable = null!;
         
         // Sensor data storage for graphing
         public List<SensorDataPoint> AccelerometerData { get; private set; } = new();
@@ -103,7 +109,16 @@ namespace Cellular
         public SmartDot()
         {
             InitializeComponent();
-            
+
+            _liveAccelDrawable = new SensorChartDrawable(new List<SensorDataPoint>(), "Accelerometer");
+            _liveGyroDrawable  = new SensorChartDrawable(new List<SensorDataPoint>(), "Gyroscope");
+            _liveMagDrawable   = new SensorChartDrawable(new List<SensorDataPoint>(), "Magnetometer");
+            _liveLightDrawable = new LightSensorChartDrawable(new List<SensorDataPoint>());
+            LiveAccelChart.Drawable = _liveAccelDrawable;
+            LiveGyroChart.Drawable  = _liveGyroDrawable;
+            LiveMagChart.Drawable   = _liveMagDrawable;
+            LiveLightChart.Drawable = _liveLightDrawable;
+
             // Get MetaWear service from dependency injection
             // Try multiple ways to get the singleton instance
             _metaWearService = Handler?.MauiContext?.Services?.GetService<IMetaWearService>()
@@ -655,10 +670,19 @@ namespace Cellular
             }
             
             _lastAccelerometerUpdate = now;
-            
+
+            List<SensorDataPoint> accelSnap;
+            lock (AccelerometerData)
+            {
+                int count = Math.Min(300, AccelerometerData.Count);
+                accelSnap = AccelerometerData.GetRange(AccelerometerData.Count - count, count);
+            }
+
             MainThread.BeginInvokeOnMainThread(() =>
             {
                 AccelerometerLabel.Text = $"Accel: X={data.X:F2}, Y={data.Y:F2}, Z={data.Z:F2}";
+                _liveAccelDrawable.UpdateData(accelSnap);
+                LiveAccelChart.Invalidate();
             });
         }
 
@@ -697,10 +721,19 @@ namespace Cellular
             }
             
             _lastGyroscopeUpdate = now;
-            
+
+            List<SensorDataPoint> gyroSnap;
+            lock (GyroscopeData)
+            {
+                int count = Math.Min(300, GyroscopeData.Count);
+                gyroSnap = GyroscopeData.GetRange(GyroscopeData.Count - count, count);
+            }
+
             MainThread.BeginInvokeOnMainThread(() =>
             {
                 GyroscopeLabel.Text = $"Gyro: X={data.X:F2}, Y={data.Y:F2}, Z={data.Z:F2}";
+                _liveGyroDrawable.UpdateData(gyroSnap);
+                LiveGyroChart.Invalidate();
             });
         }
 
@@ -735,10 +768,15 @@ namespace Cellular
             }
             
             _lastMagnetometerUpdate = now;
-            
+
+            int magCount = Math.Min(300, MagnetometerData.Count);
+            var magSnap = MagnetometerData.GetRange(MagnetometerData.Count - magCount, magCount);
+
             MainThread.BeginInvokeOnMainThread(() =>
             {
                 MagnetometerLabel.Text = $"Mag: X={data.X:F2}µT, Y={data.Y:F2}µT, Z={data.Z:F2}µT";
+                _liveMagDrawable.UpdateData(magSnap);
+                LiveMagChart.Invalidate();
             });
         }
 
@@ -768,10 +806,15 @@ namespace Cellular
             }
             
             _lastLightSensorUpdate = now;
-            
+
+            int lightCount = Math.Min(300, LightSensorData.Count);
+            var lightSnap = LightSensorData.GetRange(LightSensorData.Count - lightCount, lightCount);
+
             MainThread.BeginInvokeOnMainThread(() =>
             {
                 LightSensorLabel.Text = $"Light: Visible={data.Visible}";
+                _liveLightDrawable.UpdateData(lightSnap);
+                LiveLightChart.Invalidate();
             });
         }
 

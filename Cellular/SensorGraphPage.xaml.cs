@@ -59,7 +59,7 @@ namespace Cellular
 
     public class SensorChartDrawable : IDrawable
     {
-        private readonly List<SensorDataPoint> _data;
+        private List<SensorDataPoint> _data;
         private readonly string _name;
 
         // Ticks on each axis
@@ -75,6 +75,8 @@ namespace Cellular
             _data = data;
             _name = name;
         }
+
+        public void UpdateData(List<SensorDataPoint> data) => _data = data;
 
         public void Draw(ICanvas canvas, RectF dirtyRect)
         {
@@ -194,7 +196,7 @@ namespace Cellular
 
     public class LightSensorChartDrawable : IDrawable
     {
-        private readonly List<SensorDataPoint> _data;
+        private List<SensorDataPoint> _data;
 
         private const int NumTicks = 5;
         private const float PadLeft = 55f;
@@ -206,6 +208,8 @@ namespace Cellular
         {
             _data = data;
         }
+
+        public void UpdateData(List<SensorDataPoint> data) => _data = data;
 
         public void Draw(ICanvas canvas, RectF dirtyRect)
         {
