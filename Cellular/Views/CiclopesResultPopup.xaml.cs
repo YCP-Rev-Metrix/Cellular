@@ -139,7 +139,7 @@ public partial class CiclopesResultPopup : Popup
         // Revisit if other form factors need to be supported.
         const double popupWidth = 340;
         const double popupHeight = 700;
-        const double laneWidth = 160;
+        const double laneWidth = 200;
 
         RootContent.WidthRequest = popupWidth;
         RootContent.HeightRequest = popupHeight;
@@ -396,8 +396,11 @@ public partial class CiclopesResultPopup : Popup
         {
             var first = pts[0];
             var last = pts[^1];
-            StatEntryX.Text = $"{first.X * MetersToInches:F1}";
-            StatExitX.Text = $"{last.X * MetersToInches:F1}";
+            // Bowling convention: "Launch" = board at the foul line (release point);
+            // "Entry" = board at the pocket / pin deck (where the ball enters the pins).
+            // Bowlers care about the entry board because it determines pocket placement.
+            StatLaunchX.Text = $"{first.X * MetersToInches:F1}";
+            StatEntryX.Text = $"{last.X * MetersToInches:F1}";
 
             StatLaunchAngle.Text = $"{ComputeLaunchAngle(pts):F1}";
             StatEntryAngle.Text = $"{ComputeEntryAngle(pts):F1}";

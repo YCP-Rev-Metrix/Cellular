@@ -41,8 +41,8 @@
                 </Grid>
 
                 <!-- Right column: hero stats + analysis, fills height -->
-                <Grid Grid.Column="1" Padding="10,8,10,8"
-                      RowDefinitions="Auto,*,10,Auto,*,10,Auto,*">
+                <Grid Grid.Column="1" Padding="6,6,6,6"
+                      RowDefinitions="Auto,*,8,Auto,*,8,Auto,*">
 
                     <!-- Section: Position -->
                     <Label Grid.Row="0" Text="POSITION"
@@ -52,9 +52,9 @@
                            CharacterSpacing="1.5"
                            Margin="2,2,0,4"/>
                     <Grid Grid.Row="1"
-                          ColumnDefinitions="*,*" ColumnSpacing="8"
-                          RowDefinitions="*,*,*" RowSpacing="8">
-                        <!-- Entry X -->
+                          ColumnDefinitions="*,*" ColumnSpacing="6"
+                          RowDefinitions="*,*,*" RowSpacing="6">
+                        <!-- Launch X (board at foul line / release) -->
                         <Border Grid.Row="0" Grid.Column="0"
                                 StrokeShape="RoundRectangle 10" StrokeThickness="0"
                                 BackgroundColor="{AppThemeBinding Light={StaticResource CardBackground}, Dark={StaticResource CardBackgroundDark}}"
@@ -64,7 +64,44 @@
                             </Border.Shadow>
                             <Grid ColumnDefinitions="4,*">
                                 <BoxView Grid.Column="0" Color="{StaticResource Primary}"/>
-                                <Grid Grid.Column="1" RowDefinitions="*,Auto" Padding="4,4,4,4">
+                                <Grid Grid.Column="1" RowDefinitions="*,Auto" Padding="3,3,3,3">
+                                    <Grid Grid.Row="0" ColumnDefinitions="Auto,Auto" ColumnSpacing="3"
+                                          HorizontalOptions="Center" VerticalOptions="Fill" Padding="2,0"
+                                          SizeChanged="OnStatBoxSizeChanged">
+                                        <Label x:Name="StatLaunchX" Text="--"
+                                               Grid.Column="0"
+                                               FontSize="11" FontAttributes="Bold"
+                                               FontAutoScalingEnabled="False"
+                                               LineBreakMode="WordWrap"
+                                               MaxLines="2"
+                                               TextColor="{AppThemeBinding Light={StaticResource Gray950}, Dark={StaticResource White}}"
+                                               HorizontalOptions="End"
+                                               HorizontalTextAlignment="End"
+                                               VerticalTextAlignment="Center"/>
+                                        <Label Grid.Column="1" Text="in" FontSize="10" FontAttributes="Bold"
+                                               FontAutoScalingEnabled="False"
+                                               TextColor="{StaticResource Gray400}"
+                                               VerticalTextAlignment="Center"/>
+                                    </Grid>
+                                    <Label Grid.Row="1" Text="LAUNCH X"
+                                           FontSize="9" FontAttributes="Bold"
+                                           CharacterSpacing="1.2"
+                                           TextColor="{AppThemeBinding Light={StaticResource Gray500}, Dark={StaticResource Gray300}}"
+                                           HorizontalTextAlignment="Center"/>
+                                </Grid>
+                            </Grid>
+                        </Border>
+                        <!-- Entry X (board at pocket / pin deck) -->
+                        <Border Grid.Row="0" Grid.Column="1"
+                                StrokeShape="RoundRectangle 10" StrokeThickness="0"
+                                BackgroundColor="{AppThemeBinding Light={StaticResource CardBackground}, Dark={StaticResource CardBackgroundDark}}"
+                                Padding="0">
+                            <Border.Shadow>
+                                <Shadow Brush="#30000000" Offset="0,2" Radius="6" Opacity="0.3"/>
+                            </Border.Shadow>
+                            <Grid ColumnDefinitions="4,*">
+                                <BoxView Grid.Column="0" Color="{StaticResource Primary}"/>
+                                <Grid Grid.Column="1" RowDefinitions="*,Auto" Padding="3,3,3,3">
                                     <Grid Grid.Row="0" ColumnDefinitions="Auto,Auto" ColumnSpacing="3"
                                           HorizontalOptions="Center" VerticalOptions="Fill" Padding="2,0"
                                           SizeChanged="OnStatBoxSizeChanged">
@@ -91,43 +128,6 @@
                                 </Grid>
                             </Grid>
                         </Border>
-                        <!-- Exit X -->
-                        <Border Grid.Row="0" Grid.Column="1"
-                                StrokeShape="RoundRectangle 10" StrokeThickness="0"
-                                BackgroundColor="{AppThemeBinding Light={StaticResource CardBackground}, Dark={StaticResource CardBackgroundDark}}"
-                                Padding="0">
-                            <Border.Shadow>
-                                <Shadow Brush="#30000000" Offset="0,2" Radius="6" Opacity="0.3"/>
-                            </Border.Shadow>
-                            <Grid ColumnDefinitions="4,*">
-                                <BoxView Grid.Column="0" Color="{StaticResource Primary}"/>
-                                <Grid Grid.Column="1" RowDefinitions="*,Auto" Padding="4,4,4,4">
-                                    <Grid Grid.Row="0" ColumnDefinitions="Auto,Auto" ColumnSpacing="3"
-                                          HorizontalOptions="Center" VerticalOptions="Fill" Padding="2,0"
-                                          SizeChanged="OnStatBoxSizeChanged">
-                                        <Label x:Name="StatExitX" Text="--"
-                                               Grid.Column="0"
-                                               FontSize="11" FontAttributes="Bold"
-                                               FontAutoScalingEnabled="False"
-                                               LineBreakMode="WordWrap"
-                                               MaxLines="2"
-                                               TextColor="{AppThemeBinding Light={StaticResource Gray950}, Dark={StaticResource White}}"
-                                               HorizontalOptions="End"
-                                               HorizontalTextAlignment="End"
-                                               VerticalTextAlignment="Center"/>
-                                        <Label Grid.Column="1" Text="in" FontSize="10" FontAttributes="Bold"
-                                               FontAutoScalingEnabled="False"
-                                               TextColor="{StaticResource Gray400}"
-                                               VerticalTextAlignment="Center"/>
-                                    </Grid>
-                                    <Label Grid.Row="1" Text="EXIT X"
-                                           FontSize="9" FontAttributes="Bold"
-                                           CharacterSpacing="1.2"
-                                           TextColor="{AppThemeBinding Light={StaticResource Gray500}, Dark={StaticResource Gray300}}"
-                                           HorizontalTextAlignment="Center"/>
-                                </Grid>
-                            </Grid>
-                        </Border>
                         <!-- Entry Angle -->
                         <Border Grid.Row="1" Grid.Column="0"
                                 StrokeShape="RoundRectangle 10" StrokeThickness="0"
@@ -138,7 +138,7 @@
                             </Border.Shadow>
                             <Grid ColumnDefinitions="4,*">
                                 <BoxView Grid.Column="0" Color="{StaticResource Primary}"/>
-                                <Grid Grid.Column="1" RowDefinitions="*,Auto" Padding="4,4,4,4">
+                                <Grid Grid.Column="1" RowDefinitions="*,Auto" Padding="3,3,3,3">
                                     <Grid Grid.Row="0" ColumnDefinitions="Auto,Auto" ColumnSpacing="2"
                                           HorizontalOptions="Center" VerticalOptions="Fill" Padding="2,0"
                                           SizeChanged="OnStatBoxSizeChanged">
@@ -175,7 +175,7 @@
                             </Border.Shadow>
                             <Grid ColumnDefinitions="4,*">
                                 <BoxView Grid.Column="0" Color="{StaticResource Primary}"/>
-                                <Grid Grid.Column="1" RowDefinitions="*,Auto" Padding="4,4,4,4">
+                                <Grid Grid.Column="1" RowDefinitions="*,Auto" Padding="3,3,3,3">
                                     <Grid Grid.Row="0" ColumnDefinitions="Auto,Auto" ColumnSpacing="3"
                                           HorizontalOptions="Center" VerticalOptions="Fill" Padding="2,0"
                                           SizeChanged="OnStatBoxSizeChanged">
@@ -194,7 +194,7 @@
                                                TextColor="{StaticResource Gray400}"
                                                VerticalTextAlignment="Center"/>
                                     </Grid>
-                                    <Label Grid.Row="1" Text="BREAKPOINT"
+                                    <Label Grid.Row="1" Text="BREAK PT"
                                            FontSize="9" FontAttributes="Bold"
                                            CharacterSpacing="1.2"
                                            TextColor="{AppThemeBinding Light={StaticResource Gray500}, Dark={StaticResource Gray300}}"
@@ -212,7 +212,7 @@
                             </Border.Shadow>
                             <Grid ColumnDefinitions="4,*">
                                 <BoxView Grid.Column="0" Color="{StaticResource Primary}"/>
-                                <Grid Grid.Column="1" RowDefinitions="*,Auto" Padding="4,4,4,4">
+                                <Grid Grid.Column="1" RowDefinitions="*,Auto" Padding="3,3,3,3">
                                     <Grid Grid.Row="0" ColumnDefinitions="Auto,Auto" ColumnSpacing="2"
                                           HorizontalOptions="Center" VerticalOptions="Fill" Padding="2,0"
                                           SizeChanged="OnStatBoxSizeChanged">
@@ -249,7 +249,7 @@
                             </Border.Shadow>
                             <Grid ColumnDefinitions="4,*">
                                 <BoxView Grid.Column="0" Color="{StaticResource Primary}"/>
-                                <Grid Grid.Column="1" RowDefinitions="*,Auto" Padding="4,4,4,4">
+                                <Grid Grid.Column="1" RowDefinitions="*,Auto" Padding="3,3,3,3">
                                     <Grid Grid.Row="0" ColumnDefinitions="Auto,Auto" ColumnSpacing="3"
                                           HorizontalOptions="Center" VerticalOptions="Fill" Padding="2,0"
                                           SizeChanged="OnStatBoxSizeChanged">
@@ -286,8 +286,8 @@
                            CharacterSpacing="1.5"
                            Margin="2,0,0,4"/>
                     <Grid Grid.Row="4"
-                          ColumnDefinitions="*,*" ColumnSpacing="8"
-                          RowDefinitions="*,*" RowSpacing="8">
+                          ColumnDefinitions="*,*" ColumnSpacing="6"
+                          RowDefinitions="*,*" RowSpacing="6">
                         <!-- Avg Speed -->
                         <Border Grid.Row="0" Grid.Column="0"
                                 StrokeShape="RoundRectangle 10" StrokeThickness="0"
@@ -298,7 +298,7 @@
                             </Border.Shadow>
                             <Grid ColumnDefinitions="4,*">
                                 <BoxView Grid.Column="0" Color="{StaticResource Secondary}"/>
-                                <Grid Grid.Column="1" RowDefinitions="*,Auto" Padding="4,4,4,4">
+                                <Grid Grid.Column="1" RowDefinitions="*,Auto" Padding="3,3,3,3">
                                     <Grid Grid.Row="0" ColumnDefinitions="Auto,Auto" ColumnSpacing="3"
                                           HorizontalOptions="Center" VerticalOptions="Fill" Padding="2,0"
                                           SizeChanged="OnStatBoxSizeChanged">
@@ -335,7 +335,7 @@
                             </Border.Shadow>
                             <Grid ColumnDefinitions="4,*">
                                 <BoxView Grid.Column="0" Color="{StaticResource Secondary}"/>
-                                <Grid Grid.Column="1" RowDefinitions="*,Auto" Padding="4,4,4,4">
+                                <Grid Grid.Column="1" RowDefinitions="*,Auto" Padding="3,3,3,3">
                                     <Grid Grid.Row="0" ColumnDefinitions="Auto,Auto" ColumnSpacing="3"
                                           HorizontalOptions="Center" VerticalOptions="Fill" Padding="2,0"
                                           SizeChanged="OnStatBoxSizeChanged">
@@ -372,7 +372,7 @@
                             </Border.Shadow>
                             <Grid ColumnDefinitions="4,*">
                                 <BoxView Grid.Column="0" Color="{StaticResource Secondary}"/>
-                                <Grid Grid.Column="1" RowDefinitions="*,Auto" Padding="4,4,4,4">
+                                <Grid Grid.Column="1" RowDefinitions="*,Auto" Padding="3,3,3,3">
                                     <Grid Grid.Row="0" ColumnDefinitions="Auto,Auto" ColumnSpacing="3"
                                           HorizontalOptions="Center" VerticalOptions="Fill" Padding="2,0"
                                           SizeChanged="OnStatBoxSizeChanged">
@@ -409,7 +409,7 @@
                             </Border.Shadow>
                             <Grid ColumnDefinitions="4,*">
                                 <BoxView Grid.Column="0" Color="{StaticResource Secondary}"/>
-                                <Grid Grid.Column="1" RowDefinitions="*,Auto" Padding="4,4,4,4">
+                                <Grid Grid.Column="1" RowDefinitions="*,Auto" Padding="3,3,3,3">
                                     <Grid Grid.Row="0" ColumnDefinitions="Auto,Auto" ColumnSpacing="3"
                                           HorizontalOptions="Center" VerticalOptions="Fill" Padding="2,0"
                                           SizeChanged="OnStatBoxSizeChanged">
