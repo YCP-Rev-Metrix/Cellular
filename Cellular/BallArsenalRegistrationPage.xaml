@@ -14,21 +14,21 @@
 
         <ScrollView Grid.Row="1">
             <StackLayout Padding="20" Spacing="5">
-                <Label TextColor="White" Text="Name" />
+                <Label Text="Name" />
                 <Entry x:Name="BallName" Placeholder="Enter name"/>
-                <Label TextColor="White" Text="MFG" />
+                <Label Text="MFG" />
                 <Entry x:Name="BallMFG" Placeholder="Enter MFG" />
-                <Label TextColor="White" Text="MFG Name" />
+                <Label Text="MFG Name" />
                 <Entry x:Name="BallMFGName" Placeholder="Enter MFG Name" />
-                <Label TextColor="White" Text="Serial Number" />
+                <Label Text="Serial Number" />
                 <Entry x:Name="SerialNumber" Placeholder="Enter Serial Number" />
-                <Label TextColor="White" Text="Weight" />
+                <Label Text="Weight" />
                 <Entry x:Name="BallWeight" Placeholder="Enter Weight" />
-                <Label TextColor="White" Text="Core" />
+                <Label Text="Core" />
                 <Entry x:Name="BallCoreType" Placeholder="Enter Core Type" />
-                <Label TextColor="White" Text="Coverstock" />
+                <Label Text="Coverstock" />
                 <Entry x:Name="Coverstock" Placeholder="Enter Coverstock" />
-                <Label TextColor="White" Text="Color" />
+                <Label Text="Color" />
                 <Picker x:Name="BallColor" Title="Select Color" TitleColor="Gray"
             SelectedIndexChanged="OnBallColorSelectedIndexChanged">
                     <Picker.Items>
@@ -51,6 +51,9 @@
                     StrokeThickness="2">
                     <Editor x:Name="Comment" Placeholder="Enter comments here" MinimumHeightRequest="100"/>
                 </Border>
+
+                <Label Text="Enabled" FontAttributes="Bold"/>
+                <CheckBox x:Name="EnabledCheckBox" IsChecked="True" HorizontalOptions="Start" />
                 <Button x:Name="RegisterBallButton" Text="Register Ball" Clicked="OnRegisterBallClicked" />
             </StackLayout>
         </ScrollView>

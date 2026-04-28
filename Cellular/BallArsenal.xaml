@@ -3,6 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
              xmlns:core="clr-namespace:CellularCore;assembly=CellularCore"
+             xmlns:vm="clr-namespace:Cellular.ViewModel"
              x:Class="Cellular.BallArsenal"
              Title="Ball Arsenal">
 
@@ -42,12 +43,20 @@
                         x:Name="BallsListView" 
                         ItemsSource="{Binding Balls}">
             <CollectionView.ItemTemplate>
-                <DataTemplate>
+                <DataTemplate x:DataType="vm:Ball">
                     <Grid Padding="10">
                         <Border BackgroundColor="LightGray" StrokeShape="RoundRectangle 10">
                             <Grid Padding="15" ColumnDefinitions="*, *">
                                 <VerticalStackLayout Grid.Column="0" Spacing="2">
-                                    <Label Text="{Binding Name}" FontAttributes="Bold" TextColor="Black" FontSize="16"/>
+                                    <Label Text="{Binding Name}" FontAttributes="Bold" TextColor="Black" FontSize="16">
+                                        <Label.Triggers>
+                                            <DataTrigger TargetType="Label"
+                                                     Binding="{Binding Enabled}"
+                                                     Value="False">
+                                                <Setter Property="TextColor" Value="Red" />
+                                            </DataTrigger>
+                                        </Label.Triggers>
+                                    </Label>
                                     <Label Text="{Binding BallMFG, StringFormat='MFG: {0}'}" TextColor="Black"/>
                                     <Label Text="{Binding BallMFGName, StringFormat='MFG Name: {0}'}" TextColor="Black"/>
                                     <Label Text="{Binding SerialNumber, Converter={StaticResource EmptyToNA}, StringFormat='Serial Number: {0}'}" TextColor="Black"/>

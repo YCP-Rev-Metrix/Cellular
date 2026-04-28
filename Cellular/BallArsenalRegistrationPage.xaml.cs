@@ -33,6 +33,7 @@ public partial class BallArsenalRegistrationPage : ContentPage
         BallCoreType.Text = _editingBall.Core;
         Coverstock.Text = _editingBall.Coverstock;
         Comment.Text = _editingBall.Comment;
+        EnabledCheckBox.IsChecked = _editingBall.Enabled;
         if (!string.IsNullOrEmpty(_editingBall.ColorString))
         {
             // If the color matches one of the picker items, select it; otherwise select Custom and fill hex
@@ -145,7 +146,8 @@ public partial class BallArsenalRegistrationPage : ContentPage
             Core = ballCore,
             Coverstock = ballCoverstock,
             Comment = comment,
-            ColorString = ballColor ?? null
+            ColorString = ballColor ?? null,
+            Enabled = EnabledCheckBox.IsChecked
         };
         if (_editingBall != null)
         {
@@ -159,6 +161,7 @@ public partial class BallArsenalRegistrationPage : ContentPage
             _editingBall.Coverstock = newBall.Coverstock;
             _editingBall.Comment = newBall.Comment;
             _editingBall.ColorString = newBall.ColorString;
+            _editingBall.Enabled = newBall.Enabled;
 
             await _BallRepository.UpdateBallAsync(_editingBall);
             await DisplayAlertAsync("Ball", "The Ball was Updated", "OK");
