@@ -115,11 +115,37 @@ public partial class CiclopesResultPopup : Popup
         _ = LoadQueryPoseDataAsync(fourDBodyQueryTask);
     }
 
+    public CiclopesResultPopup(Task<FourDBodyRunResponse?> fourDBodyTask)
+    {
+        InitializeComponent();
+        InitCommonChrome();
+        _isMultiMode = false;
+
+        ConfigurePoseOnlyMode();
+
+        _maxPoseFrameIndex = 0;
+        FrameSlider.Maximum = 0;
+        FrameSlider.Value = 0;
+
+        SetPane(1, false);
+
+        _ = LoadPoseDataAsync(fourDBodyTask);
+    }
+
     private void InitCommonChrome()
     {
-        var (popupWidth, popupHeight) = ComputePopupSize(0.85);
-        MainGrid.WidthRequest = popupWidth;
-        MainGrid.HeightRequest = popupHeight;
+        // Hardcoded for Samsung Galaxy S23 viewport (~360x780 DIPs). Tuned to
+        // fit comfortably inside that screen with margin for status/nav bars.
+        // Revisit if other form factors need to be supported.
+        const double popupWidth = 340;
+        const double popupHeight = 700;
+        const double laneWidth = 200;
+
+        RootContent.WidthRequest = popupWidth;
+        RootContent.HeightRequest = popupHeight;
+
+        if (BallPane.ColumnDefinitions.Count > 0)
+            BallPane.ColumnDefinitions[0].Width = new GridLength(laneWidth);
 
         _mainPanes = [BallPane, PosePane];
         _plotPanels = [PlotSpeedPanel, PlotAccelPanel, PlotLateralPanel];
@@ -128,6 +154,17 @@ public partial class CiclopesResultPopup : Popup
         foreach (var label in SpeedLabels)
             SpeedPicker.Items.Add(label);
         SpeedPicker.SelectedIndex = 0;
+    }
+
+    private void ConfigurePoseOnlyMode()
+    {
+        BallPane.IsVisible = false;
+        BallDot.IsVisible = false;
+        BallDot.InputTransparent = true;
+        PoseDot.Opacity = 1.0;
+        PoseDot.InputTransparent = true;
+        PoseLoadingLabel.Text = "Running pose estimation...";
+        ShotChipBar.IsVisible = false;
     }
 
     private void BuildShotChips()
@@ -292,7 +329,12 @@ public partial class CiclopesResultPopup : Popup
         return new PopupOptions
         {
             CanBeDismissedByTappingOutsideOfPopup = true,
-            Shape = new RoundRectangle { CornerRadius = new CornerRadius(14), StrokeThickness = 0 }
+            Shape = new RoundRectangle
+            {
+                CornerRadius = new CornerRadius(14),
+                StrokeThickness = 0,
+                Fill = Brush.Transparent
+            }
         };
     }
 
@@ -301,20 +343,48 @@ public partial class CiclopesResultPopup : Popup
         const double fallbackWidth = 460;
         const double fallbackHeight = 820;
 
+        // Hard ceiling so the popup doesn't blow up on large desktop windows.
+        // Beyond this size the stat cards balloon out of proportion.
+        // Mobile-first ceilings: the popup is sized as a fraction of the
+        // window/display, then clamped. The ceilings keep desktop windows
+        // sane; the floors keep tiny windows readable.
+        // Heights are intentionally conservative so the popup never exceeds
+        // the visible viewport on a phone (status bar + nav bar eat ~10%).
+        const double maxWidth = 600;
+        const double maxHeight = 780;
+        // Floors are intentionally low so the popup can collapse to whatever
+        // the viewport actually provides on tiny phones. The card font scaler
+        // in OnStatBoxSizeChanged takes care of legibility at small widths.
+        const double minWidth = 240;
+        const double minHeight = 420;
+
+        double w, h;
+
         // Window.Width/Height are already in DIPs — no density conversion needed.
         var window = Application.Current?.Windows?.FirstOrDefault();
         if (window is { Width: > 0, Height: > 0 })
-            return (window.Width * fraction, window.Height * fraction);
-
-        // Fallback: DeviceDisplay reports raw pixels, so divide by density.
-        var info = DeviceDisplay.MainDisplayInfo;
-        if (info.Width > 0 && info.Height > 0)
         {
-            var density = info.Density > 0 ? info.Density : 1;
-            return (info.Width / density * fraction, info.Height / density * fraction);
+            w = window.Width * fraction;
+            h = window.Height * fraction;
+        }
+        else
+        {
+            // Fallback: DeviceDisplay reports raw pixels, so divide by density.
+            var info = DeviceDisplay.MainDisplayInfo;
+            if (info.Width > 0 && info.Height > 0)
+            {
+                var density = info.Density > 0 ? info.Density : 1;
+                w = info.Width / density * fraction;
+                h = info.Height / density * fraction;
+            }
+            else
+            {
+                w = fallbackWidth;
+                h = fallbackHeight;
+            }
         }
 
-        return (fallbackWidth, fallbackHeight);
+        return (Math.Clamp(w, minWidth, maxWidth), Math.Clamp(h, minHeight, maxHeight));
     }
 
     private void PopulateStats(LaneBallsRunResponse response)
@@ -326,17 +396,24 @@ public partial class CiclopesResultPopup : Popup
         {
             var first = pts[0];
             var last = pts[^1];
-            StatEntryX.Text = $"{first.X * MetersToInches:F1}";
-            StatExitX.Text = $"{last.X * MetersToInches:F1}";
+            // Bowling convention: "Launch" = board at the foul line (release point);
+            // "Entry" = board at the pocket / pin deck (where the ball enters the pins).
+            // Bowlers care about the entry board because it determines pocket placement.
+            StatLaunchX.Text = $"{first.X * MetersToInches:F1}";
+            StatEntryX.Text = $"{last.X * MetersToInches:F1}";
 
+            StatLaunchAngle.Text = $"{ComputeLaunchAngle(pts):F1}";
             StatEntryAngle.Text = $"{ComputeEntryAngle(pts):F1}";
             StatBreakpoint.Text = $"{ComputeBreakpointDistance(pts) * MetersToFeet:F1}";
+            StatTotalHook.Text = $"{ComputeTotalHook(pts) * MetersToInches:F1}";
         }
 
         if (kin.Count > 0)
         {
             var avgSpeed = kin.Average(k => k.MeanSpeedMps) * MpsToMph;
-            var avgAccel = kin.Average(k => k.MeanAccelerationMps2) * Mps2ToFtps2;
+            // Sensor reports magnitude; ball is always decelerating under friction,
+            // so flip the sign for display so users see "-X.X ft/s²" not "X.X".
+            var avgAccel = -Math.Abs(kin.Average(k => k.MeanAccelerationMps2) * Mps2ToFtps2);
             var entrySpeed = kin[0].MeanSpeedMps * MpsToMph;
             var exitSpeed = kin[^1].MeanSpeedMps * MpsToMph;
 
@@ -358,7 +435,7 @@ public partial class CiclopesResultPopup : Popup
             SpeedPlotView.Drawable = new CiclopesBarPlotDrawable(speedValues, speedLabels,
                 Color.FromArgb("#355070"), Color.FromArgb("#FA8847"));
 
-            var accelValues = kin.Select(k => (float)(k.MeanAccelerationMps2 * Mps2ToFtps2)).ToArray();
+            var accelValues = kin.Select(k => -Math.Abs((float)(k.MeanAccelerationMps2 * Mps2ToFtps2))).ToArray();
             var accelLabels = kin.Select(k => $"Q{k.Quarter}").ToArray();
             AccelPlotView.Drawable = new CiclopesBarPlotDrawable(accelValues, accelLabels,
                 Color.FromArgb("#4A6D90"), Color.FromArgb("#FA8847"));
@@ -415,37 +492,63 @@ public partial class CiclopesResultPopup : Popup
     /// from the breakpoint to the pin end.
     /// </summary>
     private static double ComputeEntryAngle(IReadOnlyList<CiclopesBallPoint> pts)
+        => ComputeWindowedAngleDeg(pts, fromEnd: true);
+
+    /// <summary>
+    /// Launch angle in degrees — angle off the lane axis at release. Uses a
+    /// least-squares fit over the first window of points so the value isn't
+    /// dominated by a single noisy sample.
+    /// </summary>
+    private static double ComputeLaunchAngle(IReadOnlyList<CiclopesBallPoint> pts)
+        => ComputeWindowedAngleDeg(pts, fromEnd: false);
+
+    /// <summary>
+    /// Total hook — peak lateral deviation from the release X position, in meters.
+    /// Captures how much the ball curves regardless of where the release was.
+    /// </summary>
+    private static double ComputeTotalHook(IReadOnlyList<CiclopesBallPoint> pts)
+    {
+        if (pts.Count == 0) return 0;
+        var startX = pts[0].X;
+        var maxDev = 0.0;
+        for (var i = 1; i < pts.Count; i++)
+        {
+            var dev = Math.Abs(pts[i].X - startX);
+            if (dev > maxDev) maxDev = dev;
+        }
+        return maxDev;
+    }
+
+    /// <summary>
+    /// Fits a line X = m·Y + b through a window at the start (fromEnd=false)
+    /// or end (fromEnd=true) of the trajectory, and returns |atan(m)| in degrees.
+    /// Window is the larger of 4 samples or 15% of the trajectory.
+    /// </summary>
+    private static double ComputeWindowedAngleDeg(IReadOnlyList<CiclopesBallPoint> pts, bool fromEnd)
     {
         if (pts.Count < 2) return 0;
 
-        // Find breakpoint index
-        var breakpointIdx = 0;
-        var maxDeviation = 0.0;
-        for (var i = 0; i < pts.Count; i++)
+        var window = Math.Max(4, (int)Math.Round(pts.Count * 0.15));
+        window = Math.Min(window, pts.Count);
+
+        var startIdx = fromEnd ? pts.Count - window : 0;
+        var endIdx = fromEnd ? pts.Count : window;
+
+        double sumY = 0, sumX = 0, sumYY = 0, sumXY = 0;
+        var n = endIdx - startIdx;
+        for (var i = startIdx; i < endIdx; i++)
         {
-            var deviation = Math.Abs(pts[i].X - LaneCenterX);
-            if (deviation > maxDeviation)
-            {
-                maxDeviation = deviation;
-                breakpointIdx = i;
-            }
+            sumY += pts[i].Y;
+            sumX += pts[i].X;
+            sumYY += pts[i].Y * pts[i].Y;
+            sumXY += pts[i].Y * pts[i].X;
         }
 
-        // Use breakpoint to last point for the entry angle calculation
-        // If breakpoint is the last point, fall back to using a few trailing points
-        var fromIdx = breakpointIdx;
-        if (fromIdx >= pts.Count - 1)
-            fromIdx = Math.Max(0, pts.Count - 4);
+        var denom = n * sumYY - sumY * sumY;
+        if (Math.Abs(denom) < 1e-9) return 0;
 
-        var from = pts[fromIdx];
-        var to = pts[^1];
-
-        var deltaX = Math.Abs(to.X - from.X);
-        var deltaY = to.Y - from.Y;
-
-        if (deltaY <= 0) return 0;
-
-        return Math.Atan(deltaX / deltaY) * (180.0 / Math.PI);
+        var slope = (n * sumXY - sumY * sumX) / denom; // dX/dY
+        return Math.Atan(Math.Abs(slope)) * (180.0 / Math.PI);
     }
 
     // ── Main pane switching (Ball / Pose) with animation ──
@@ -490,6 +593,31 @@ public partial class CiclopesResultPopup : Popup
 
         BallDot.Opacity = _currentPaneIndex == 0 ? 1.0 : 0.35;
         PoseDot.Opacity = _currentPaneIndex == 1 ? 1.0 : 0.35;
+    }
+
+    /// <summary>
+    /// Scales the font size of the value/unit labels inside a stat card to a
+    /// percentage of the card's actual pixel height, so the numbers stay
+    /// readable across phone, tablet, and desktop popup widths.
+    /// </summary>
+    private void OnStatBoxSizeChanged(object? sender, EventArgs e)
+    {
+        if (sender is not Grid box || box.Height <= 0 || box.Width <= 0) return;
+
+        var valueFont = Math.Clamp(box.Height * 0.58, 12, 26);
+        var unitFont = Math.Clamp(valueFont * 0.55, 9, 14);
+
+        // Value + unit share one centered row: "-12.3 mph" ≈ 8 glyphs at ~0.58em.
+        var widthCap = box.Width / (8 * 0.58);
+        valueFont = Math.Min(valueFont, Math.Max(11, widthCap));
+        unitFont = Math.Min(unitFont, valueFont * 0.6);
+
+        foreach (var child in box.Children)
+        {
+            if (child is not Label label) continue;
+            var col = Grid.GetColumn(label);
+            label.FontSize = col == 0 ? valueFont : unitFont;
+        }
     }
 
     private void OnBallDotClicked(object? sender, TappedEventArgs e) => SetPane(0);

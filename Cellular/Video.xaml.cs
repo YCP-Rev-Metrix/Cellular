@@ -730,6 +730,8 @@ namespace Cellular
             }
 
             UseCiclopesBtn.IsEnabled = false;
+            CiclopesSpinner.IsVisible = true;
+            CiclopesSpinner.IsRunning = true;
             try
             {
                 var controller = new ApiController();
@@ -758,6 +760,8 @@ namespace Cellular
             }
             finally
             {
+                CiclopesSpinner.IsRunning = false;
+                CiclopesSpinner.IsVisible = false;
                 UpdateCiclopesButtonState();
             }
         }

@@ -92,6 +92,21 @@ namespace Cellular.ViewModel
 
         public int SelectedEventId { get; set; }
 
+        /// <summary>
+        /// Maximum games allowed per session for the current event.
+        /// 0 means no limit (event not loaded or not set).
+        /// </summary>
+        public int NumGamesPerSession { get; private set; } = 0;
+
+        /// <summary>Loads the current event and caches NumGamesPerSession.</summary>
+        public async Task LoadEventAsync()
+        {
+            if (SelectedEventId <= 0) return;
+            var ev = await _EventRepository.GetEventByIdAsync(SelectedEventId);
+            if (ev != null)
+                NumGamesPerSession = ev.NumGamesPerSession;
+        }
+
         private string _selectedEventName = string.Empty;
         public string SelectedEventName
         {

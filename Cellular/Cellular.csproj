@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
 		<TargetFrameworks>net10.0-ios;net10.0-maccatalyst;net10.0-android</TargetFrameworks>
@@ -117,8 +117,8 @@
 		<Compile Update="SessionList.xaml.cs">
 			<DependentUpon>SessionList.xaml</DependentUpon>
 		</Compile>
-		<Compile Update="SmartDot.xaml.cs">
-			<DependentUpon>SmartDot.xaml</DependentUpon>
+		<Compile Update="Bluetooth.xaml.cs">
+			<DependentUpon>Bluetooth.xaml</DependentUpon>
 		</Compile>
 		<Compile Update="SensorGraphPage.xaml.cs">
 			<DependentUpon>SensorGraphPage.xaml</DependentUpon>
@@ -194,6 +194,9 @@
 		<Compile Update="ClickerPage.xaml.cs">
 			<DependentUpon>ClickerPage.xaml</DependentUpon>
 		</Compile>
+		<Compile Update="CiclopesExperimentalVideoPage.xaml.cs">
+			<DependentUpon>CiclopesExperimentalVideoPage.xaml</DependentUpon>
+		</Compile>
 	</ItemGroup>
 
 	<ItemGroup>
@@ -219,6 +222,12 @@
 			<Generator>MSBuild:Compile</Generator>
 		</MauiXaml>
 		<MauiXaml Update="Account.xaml">
+			<Generator>MSBuild:Compile</Generator>
+		</MauiXaml>
+		<MauiXaml Update="CiclopesExperimentalVideoPage.xaml">
+			<Generator>MSBuild:Compile</Generator>
+		</MauiXaml>
+		<MauiXaml Update="Bluetooth.xaml">
 			<Generator>MSBuild:Compile</Generator>
 		</MauiXaml>
 		<MauiXaml Update="SmartDot.xaml">

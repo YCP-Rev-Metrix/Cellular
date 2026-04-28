@@ -198,6 +198,7 @@ namespace Cellular.Data
                         WeekDay = data[8].Trim(),
                         StartTime = data[9].Trim(),
                         NumGamesPerSession = int.TryParse(data[12].Trim(), out int numGames) ? numGames : 0,
+                        Enabled = true
                     };
                     var existingUser = await _database.Table<Event>().FirstOrDefaultAsync(u => u.LongName == event_.LongName);
                     if (existingUser == null)
@@ -487,7 +488,8 @@ namespace Cellular.Data
                         Weight = int.TryParse(data[11].Trim(), out int weight) ? weight : 0,
                         Core = data[5].Trim(),
                         Coverstock = data[6].Trim(),
-                        ColorString = data[7].Trim()
+                        ColorString = data[7].Trim(),
+                        Enabled = true
                     };
 
                     var existingUser = await _database.Table<Ball>().FirstOrDefaultAsync(u => u.Name == ball.Name);

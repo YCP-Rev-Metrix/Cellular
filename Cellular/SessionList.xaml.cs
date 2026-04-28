@@ -35,6 +35,7 @@ namespace Cellular
         {
             await viewModel.loadSessions();
             await viewModel.loadGames();
+            await viewModel.LoadEventAsync();
             PopulateList();
         }
 
@@ -80,9 +81,17 @@ namespace Cellular
                         sessiongames.Children.Add(gamebutton);
                     }
                 }
-                Button AddGameButton = new Button { Text = "Add Game" };
-                AddGameButton.Clicked += (sender,e) => AddGame(sender,e,session.SessionId);
-                sessiongames.Children.Add(AddGameButton);
+                // Only show "Add Game" when the session hasn't reached the event's game limit.
+                // NumGamesPerSession == 0 means the event wasn't configured — allow adding freely.
+                int gamesInSession = viewModel.Games.Count(g => g.SessionId == session.SessionId);
+                bool underLimit = viewModel.NumGamesPerSession <= 0
+                                  || gamesInSession < viewModel.NumGamesPerSession;
+                if (underLimit)
+                {
+                    Button AddGameButton = new Button { Text = "Add Game" };
+                    AddGameButton.Clicked += (sender, e) => AddGame(sender, e, session.SessionId);
+                    sessiongames.Children.Add(AddGameButton);
+                }
 
                 _sessionlist.Children.Add(sessiongames);
             }

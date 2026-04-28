@@ -2,27 +2,29 @@
 <toolkit:Popup xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
                xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
                xmlns:toolkit="clr-namespace:CommunityToolkit.Maui.Views;assembly=CommunityToolkit.Maui"
-               x:Class="Cellular.Views.EventPopup"
+               x:Class="Cellular.Views.EventEditorPopup"
                CanBeDismissedByTappingOutsideOfPopup="False"
                BackgroundColor="Gray">
 
     <ScrollView>
         <StackLayout Spacing="4" WidthRequest="290" Padding="10">
 
-            <Label Text="Add Event"
+            <Label Text="Edit Event"
                    FontSize="18"
                    TextColor="Black"
                    FontAttributes="Bold"
                    HorizontalOptions="Center" />
 
             <Label Text="Full Name" FontAttributes="Bold" TextColor="Black" />
-            <Entry Placeholder="Full Name" Text="{Binding EventName}" />
+            <Entry Placeholder="Full Name" Text="{Binding LongName}" />
 
             <Label Text="Nickname" FontAttributes="Bold" TextColor="Black" />
-            <Entry Placeholder="Nickname (optional)" Text="{Binding NickName}" />
+            <Entry Placeholder="Nickname" Text="{Binding NickName}" />
 
             <Label Text="Type" FontAttributes="Bold" TextColor="Black" />
-            <Picker Title="Select Type" SelectedItem="{Binding EventType}">
+            <Picker x:Name="TypePicker"
+                    Title="Select Type"
+                    SelectedItem="{Binding Type}">
                 <Picker.Items>
                     <x:String>Practice</x:String>
                     <x:String>League</x:String>
@@ -32,48 +34,47 @@
             </Picker>
 
             <Label Text="Location" FontAttributes="Bold" TextColor="Black" />
-            <Picker Title="Select Location"
-                    ItemsSource="{Binding Establishments}"
-                    ItemDisplayBinding="{Binding NickName}"
-                    SelectedItem="{Binding SelectedEstablishment}" />
+            <Picker x:Name="EstablishmentPicker"
+                    Title="Select Establishment"
+                    ItemDisplayBinding="{Binding NickName}" />
 
             <Label Text="Week Day" FontAttributes="Bold" TextColor="Black" />
             <Entry Placeholder="e.g. Tuesday" Text="{Binding WeekDay}" />
 
             <Label Text="Start Time" FontAttributes="Bold" TextColor="Black" />
-            <TimePicker Time="{Binding StartTime}" />
+            <TimePicker x:Name="StartTimePicker" />
 
             <Label Text="Games Per Session" FontAttributes="Bold" TextColor="Black" />
             <Grid ColumnDefinitions="Auto, *" ColumnSpacing="12" VerticalOptions="Center">
                 <Label x:Name="GamesLabel"
                        Grid.Column="0"
-                       Text="{Binding NumGamesPerSession}"
+                       Text="3"
                        VerticalOptions="Center"
                        TextColor="Black"
                        FontSize="16"
                        MinimumWidthRequest="24" />
-                <Stepper Grid.Column="1"
+                <Stepper x:Name="GamesStepper"
+                         Grid.Column="1"
                          Minimum="1" Maximum="10" Increment="1"
-                         Value="{Binding NumGamesPerSession, Mode=TwoWay}"
+                         Value="3"
+                         ValueChanged="OnGamesStepperValueChanged"
                          VerticalOptions="Center" />
             </Grid>
 
             <Label Text="Enabled" FontAttributes="Bold" TextColor="Black" />
             <CheckBox IsChecked="{Binding Enabled}" HorizontalOptions="Start" />
 
-            <Grid ColumnDefinitions="*, *" ColumnSpacing="10" Margin="0,8,0,0">
-                <Button Grid.Column="0"
-                        Text="Cancel"
-                        Command="{Binding CancelEventCommand}"
+            <StackLayout Orientation="Horizontal" HorizontalOptions="Center" Spacing="20" Margin="0,8,0,0">
+                <Button Text="Cancel"
+                        WidthRequest="110"
                         BackgroundColor="LightGray"
-                        HorizontalOptions="Fill" />
-                <Button Grid.Column="1"
-                        Text="Add Event"
-                        Command="{Binding RegisterEventCommand}"
+                        Clicked="OnCancelClicked" />
+                <Button Text="Save"
+                        WidthRequest="110"
                         BackgroundColor="DarkSlateGray"
                         TextColor="White"
-                        HorizontalOptions="Fill" />
-            </Grid>
+                        Clicked="OnSaveClicked" />
+            </StackLayout>
 
         </StackLayout>
     </ScrollView>

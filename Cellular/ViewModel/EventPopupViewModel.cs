@@ -9,19 +9,30 @@ using Microsoft.Maui.Controls;
 using Microsoft.Maui.Storage;
 
 namespace Cellular.ViewModel;
+
 public class EventPopupViewModel : INotifyPropertyChanged
 {
-    // fully qualify repository types to avoid ambiguity
     private readonly Cellular.Data.EventRepository _eventRepo;
     private readonly Cellular.Data.EstablishmentRepository _estRepo;
 
+    // ── Collections ───────────────────────────────────────────────────────
+
     public ObservableCollection<Establishment> Establishments { get; } = new();
+
+    // ── Fields that match EventEditorPopup ───────────────────────────────
 
     private string _eventName = string.Empty;
     public string EventName
     {
         get => _eventName;
         set { if (_eventName != value) { _eventName = value; OnPropertyChanged(); } }
+    }
+
+    private string _nickName = string.Empty;
+    public string NickName
+    {
+        get => _nickName;
+        set { if (_nickName != value) { _nickName = value; OnPropertyChanged(); } }
     }
 
     private string _eventType = string.Empty;
@@ -38,31 +49,55 @@ public class EventPopupViewModel : INotifyPropertyChanged
         set { if (_selectedEstablishment != value) { _selectedEstablishment = value; OnPropertyChanged(); } }
     }
 
-    public ICommand RegisterEventCommand { get; }
+    private string _weekDay = string.Empty;
+    public string WeekDay
+    {
+        get => _weekDay;
+        set { if (_weekDay != value) { _weekDay = value; OnPropertyChanged(); } }
+    }
 
+    // TimeSpan binds directly to TimePicker.Time
+    private TimeSpan _startTime = new TimeSpan(18, 0, 0); // default 6:00 PM
+    public TimeSpan StartTime
+    {
+        get => _startTime;
+        set { if (_startTime != value) { _startTime = value; OnPropertyChanged(); } }
+    }
+
+    private int _numGamesPerSession = 3;
+    public int NumGamesPerSession
+    {
+        get => _numGamesPerSession;
+        set { if (_numGamesPerSession != value) { _numGamesPerSession = value; OnPropertyChanged(); } }
+    }
+
+    private bool _enabled = true;
+    public bool Enabled
+    {
+        get => _enabled;
+        set { if (_enabled != value) { _enabled = value; OnPropertyChanged(); } }
+    }
+
+    // ── Commands ──────────────────────────────────────────────────────────
+
+    public ICommand RegisterEventCommand { get; }
     public ICommand CancelEventCommand { get; }
 
-    // UI callback: popup subscribes and shows the actual alert
+    // UI callbacks — popup code-behind subscribes to these
     public Action<string, string, string>? ShowAlert { get; set; }
-
-
-    // UI callback: popup subscribes and will call Close() when invoked
     public Action? ClosePopup { get; set; }
 
-
-    // fully qualify ctor parameter types to ensure the compiler binds to the Data types
-    public EventPopupViewModel(Cellular.Data.EventRepository eventRepo, Cellular.Data.EstablishmentRepository estRepo)
+    public EventPopupViewModel(Cellular.Data.EventRepository eventRepo,
+                               Cellular.Data.EstablishmentRepository estRepo)
     {
         _eventRepo = eventRepo ?? throw new ArgumentNullException(nameof(eventRepo));
-        _estRepo = estRepo ?? throw new ArgumentNullException(nameof(estRepo));
+        _estRepo   = estRepo   ?? throw new ArgumentNullException(nameof(estRepo));
+
         RegisterEventCommand = new Command(async () => await RegisterEventAsync());
         CancelEventCommand = new Command(() =>
         {
-            // Clear fields and close popup
-            EventName = string.Empty;
-            EventType = string.Empty;
-            SelectedEstablishment = null;
-            ClosePopup();
+            ClearFields();
+            ClosePopup?.Invoke();
         });
     }
 
@@ -89,39 +124,51 @@ public class EventPopupViewModel : INotifyPropertyChanged
 
         if (SelectedEstablishment == null)
         {
-            ShowAlert?.Invoke("Error", "Please select an establishment.", "OK");
+            ShowAlert?.Invoke("Error", "Please select a location.", "OK");
+            return;
+        }
+
+        int userId = Preferences.Get("UserId", 0);
+
+        var existing = await _eventRepo.GetEventByUserIdAndNameAsync(userId, EventName);
+        if (existing != null)
+        {
+            ShowAlert?.Invoke("Error", "An event with that name already exists.", "OK");
             return;
         }
 
         var newEvent = new Event
         {
-            UserId = Preferences.Get("UserId", 0),
-            LongName = EventName,
-            NickName = EventName,
-            Type = EventType,
-            Location = SelectedEstablishment.NickName,
-            Average = 0,
-            Stats = 0,
-            Standings = string.Empty
+            UserId     = userId,
+            LongName   = EventName,
+            NickName   = string.IsNullOrWhiteSpace(NickName) ? EventName : NickName,
+            Type       = EventType,
+            Location   = SelectedEstablishment.NickName,
+            WeekDay    = WeekDay,
+            StartTime  = DateTime.Today.Add(StartTime).ToString("h:mm tt"),
+            NumGamesPerSession = NumGamesPerSession,
+            Average    = 0,
+            Stats      = 0,
+            Standings  = string.Empty,
+            Enabled    = Enabled
         };
 
-        var existing = await _eventRepo.GetEventByUserIdAndNameAsync(Preferences.Get("UserId", 0), EventName);
-        if (existing == null)
-        {
-            await _eventRepo.AddAsync(newEvent);
-            ShowAlert?.Invoke("Event", "The Event was Added", "OK");
-            // optionally clear fields
-            EventName = string.Empty;
-            EventType = string.Empty;
-            SelectedEstablishment = null;
+        await _eventRepo.AddAsync(newEvent);
+        ShowAlert?.Invoke("Event", "Event added.", "OK");
+        ClearFields();
+        ClosePopup?.Invoke();
+    }
 
-            // request the view to close the popup
-            ClosePopup?.Invoke();
-        }
-        else
-        {
-            ShowAlert?.Invoke("Error", "An event with that name already exists.", "OK");
-        }
+    private void ClearFields()
+    {
+        EventName             = string.Empty;
+        NickName              = string.Empty;
+        EventType             = string.Empty;
+        SelectedEstablishment = null;
+        WeekDay               = string.Empty;
+        StartTime             = new TimeSpan(18, 0, 0);
+        NumGamesPerSession    = 3;
+        Enabled               = true;
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
