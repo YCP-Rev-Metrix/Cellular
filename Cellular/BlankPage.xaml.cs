@@ -135,7 +135,6 @@ namespace Cellular
             if (_isConnected && _selectedDevice != null)
             {
                 StatusLabel.Text = $"Connected to {_selectedDevice.Name}";
-                DeviceInfoLabel.Text = BlankPageStore.SavedDeviceInfo;
             }
 
             // Load default watch
@@ -173,7 +172,6 @@ namespace Cellular
             MainThread.BeginInvokeOnMainThread(() =>
             {
                 _watchJson = json;
-                WatchJsonLabel.Text = json; //for displaying json on the page ong
             });
         }
 
@@ -191,7 +189,6 @@ namespace Cellular
             {
                 IsConnected = false;
                 StatusLabel.Text = "Disconnected";
-                DeviceInfoLabel.Text = "";
                 BlankPageStore.SavedDeviceInfo = "";
             });
         }
@@ -459,7 +456,6 @@ namespace Cellular
 
                 IsConnected = false;
                 StatusLabel.Text = "Disconnected";
-                DeviceInfoLabel.Text = "";
                 BlankPageStore.SavedDeviceInfo = "";
             }
             catch (Exception ex)
@@ -505,7 +501,6 @@ namespace Cellular
             BlankPageStore.SavedDevices = Devices;
             BlankPageStore.SavedSelected = SelectedDevice;
             BlankPageStore.SavedIsConnected = IsConnected;
-            BlankPageStore.SavedDeviceInfo = DeviceInfoLabel.Text;
         }
 
         private async Task SetAsDefaultWatch(string watchName, string watchMac)
