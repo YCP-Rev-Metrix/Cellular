@@ -39,7 +39,6 @@
                                 </Border.GestureRecognizers>
                                 <VerticalStackLayout Spacing="2">
                                     <Label Text="{Binding LongName}"
-                                           TextColor="White"
                                            FontSize="15"
                                            FontAttributes="Bold">
                                         <Label.Triggers>
