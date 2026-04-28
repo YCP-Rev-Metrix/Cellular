@@ -110,39 +110,6 @@
                 IsEnabled="{Binding CanDisconnect}"
                 HorizontalOptions="Fill" />
 
-            <!-- Send JSON Button -->
-            <Button 
-                x:Name="JsonSendButton"
-                Text="Send Test JSON to Watch"
-                Clicked="OnSendToWatchClicked"
-                HorizontalOptions="Fill" />
-
-            <!-- Device Info -->
-            <Label
-                x:Name="DeviceInfoLabel"
-                Text=""
-                FontSize="14"
-                TextColor="Blue" />
-
-            <Label
-                Text="Watch JSON:"
-                FontSize="16"
-                TextColor="Grey" />
-
-            <Frame
-                BackgroundColor="#EEEEEE"
-                BorderColor="Black"
-                CornerRadius="6"
-                Padding="10">
-
-                <Label
-                    x:Name="WatchJsonLabel"
-                    Text="Waiting for JSON…"
-                    TextColor="Black"
-                    FontSize="14" />
-
-            </Frame>
-
         </VerticalStackLayout>
     </ScrollView>
 
