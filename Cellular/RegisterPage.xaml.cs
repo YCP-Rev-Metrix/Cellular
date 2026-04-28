@@ -85,7 +85,7 @@ namespace Cellular
                     Email = email,
                     LastLogin = DateTime.Now,
                     PhoneNumber = phoneNumber,
-                    Hand = null
+                    Hand = HandPicker.SelectedItem?.ToString()
                 };
 
                 // Add the new user to the database

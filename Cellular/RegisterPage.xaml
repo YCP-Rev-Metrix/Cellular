@@ -76,6 +76,13 @@
                 Keyboard="Telephone"
                 Style="{DynamicResource CommonEntryStyle}"/>
 
+            <Picker x:Name="HandPicker" Title="Select Hand">
+                <Picker.Items>
+                    <x:String>Right</x:String>
+                    <x:String>Left</x:String>
+                </Picker.Items>
+            </Picker>
+
             <Button
                 x:Name="Register"
                 Text="Register" 
