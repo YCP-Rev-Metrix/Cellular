@@ -428,6 +428,38 @@
                 HorizontalOptions="Fill"
                 Margin="0,10,0,0" />
 
+            <!-- Live Graphs -->
+            <Label
+                Text="Live Graphs"
+                FontSize="18"
+                FontAttributes="Bold"
+                Margin="0,20,0,0" />
+
+            <Label Text="Accelerometer (X=Red  Y=Green  Z=Blue)" FontSize="11" TextColor="Gray" />
+            <GraphicsView
+                x:Name="LiveAccelChart"
+                HeightRequest="200"
+                BackgroundColor="White" />
+
+            <Label Text="Gyroscope (X=Red  Y=Green  Z=Blue)" FontSize="11" TextColor="Gray" />
+            <GraphicsView
+                x:Name="LiveGyroChart"
+                HeightRequest="200"
+                BackgroundColor="White" />
+
+            <Label Text="Magnetometer µT (X=Red  Y=Green  Z=Blue)" FontSize="11" TextColor="Gray" />
+            <GraphicsView
+                x:Name="LiveMagChart"
+                HeightRequest="200"
+                BackgroundColor="White" />
+
+            <Label Text="Light Sensor (Visible)" FontSize="11" TextColor="Gray" />
+            <GraphicsView
+                x:Name="LiveLightChart"
+                HeightRequest="200"
+                BackgroundColor="White"
+                Margin="0,0,0,30" />
+
         </VerticalStackLayout>
     </ScrollView>
 
