@@ -198,6 +198,7 @@ namespace Cellular.Data
                         WeekDay = data[8].Trim(),
                         StartTime = data[9].Trim(),
                         NumGamesPerSession = int.TryParse(data[12].Trim(), out int numGames) ? numGames : 0,
+                        Enabled = true
                     };
                     var existingUser = await _database.Table<Event>().FirstOrDefaultAsync(u => u.LongName == event_.LongName);
                     if (existingUser == null)

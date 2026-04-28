@@ -1,4 +1,5 @@
-﻿using Cellular.ViewModel;
+﻿using Cellular.Data;
+using Cellular.ViewModel;
 using Cellular.Views;
 using CommunityToolkit.Maui;
 using CommunityToolkit.Maui.Extensions;
@@ -13,13 +14,16 @@ namespace Cellular
     public partial class EventList : ContentPage
     {
         private readonly SessionListViewModel viewModel;
+        private readonly EventRepository _eventRepo;
         private Dictionary<string, StackLayout> sessionGames;
+
         public EventList()
         {
             InitializeComponent();
             viewModel = new SessionListViewModel();
             BindingContext = viewModel;
             sessionGames = new Dictionary<string, StackLayout>();
+            _eventRepo = new EventRepository(new CellularDatabase().GetConnection());
             LoadDataAsync();
         }
 
@@ -41,15 +45,48 @@ namespace Cellular
             LoadDataAsync();
         }
 
-        // Handles clicks from the dynamically-created event buttons.
-        private async void OnEventButtonClicked(object sender, EventArgs e)
+        // Handles taps on the event info card — navigates to that event's sessions.
+        private async void OnEventCardTapped(object sender, TappedEventArgs e)
         {
-            if (sender is Button btn && btn.CommandParameter is Event ev)
+            if (e.Parameter is Event ev)
             {
                 Preferences.Set("EventId", ev.EventId);
-                // pass event id and name to SessionList (constructor)
-                Debug.WriteLine($"Event button clicked: {ev.EventId} - {ev.LongName}");
+                Debug.WriteLine($"Event card tapped: {ev.EventId} - {ev.LongName}");
                 await Navigation.PushAsync(new SessionList(ev.EventId, ev.NickName ?? string.Empty));
+            }
+        }
+
+        // Handles clicks on the edit (✏) button — opens the editor popup for that event.
+        private async void OnEditEventClicked(object sender, EventArgs e)
+        {
+            if (sender is not Button btn || btn.CommandParameter is not Event ev)
+                return;
+
+            try
+            {
+                var popup = new EventEditorPopup(ev);
+
+                // Guard against the popup being dismissed without a result (e.g. OS back gesture)
+                popup.Closed += (s, args) =>
+                {
+                    if (!popup.Completion.Task.IsCompleted)
+                        popup.Completion.TrySetResult(null);
+                };
+
+                this.ShowPopup(popup);
+
+                var result = await popup.Completion.Task;
+                if (result != null)
+                {
+                    await _eventRepo.UpdateAsync(result);
+                    LoadDataAsync();
+                    await DisplayAlertAsync("Event", "Event saved.", "OK");
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Error editing event: {ex.Message}");
+                await DisplayAlertAsync("Error", $"Could not save event: {ex.Message}", "OK");
             }
         }
     }
