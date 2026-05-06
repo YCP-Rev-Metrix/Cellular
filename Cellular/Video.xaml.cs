@@ -69,6 +69,7 @@ namespace Cellular
             await Permissions.RequestAsync<Permissions.Microphone>();
 
             // Ensure we have the singleton service instance (Handler is available in OnAppearing)
+            bool serviceChanged = false;
             if (Handler?.MauiContext?.Services != null)
             {
                 var serviceFromDI = Handler.MauiContext.Services.GetService<IMetaWearService>();
@@ -78,6 +79,7 @@ namespace Cellular
                     _metaWearService.DeviceDisconnected -= OnDeviceDisconnected;
                     _metaWearService.DeviceReconnected -= OnDeviceReconnected;
                     _metaWearService = serviceFromDI;
+                    serviceChanged = true;
                 }
             }
 
@@ -87,9 +89,18 @@ namespace Cellular
             _metaWearService.DeviceReconnected -= OnDeviceReconnected;
             _metaWearService.DeviceReconnected += OnDeviceReconnected;
 
-            // Recreate sensor buffer manager if it was disposed when the page last disappeared
-            if (_sensorBufferManager == null)
+            // Recreate sensor buffer manager if it was disposed OR if the service reference changed
+            // (constructor may have captured a stale pre-DI instance; rebuild so it uses the real singleton)
+            if (_sensorBufferManager == null || serviceChanged)
             {
+                if (_sensorBufferManager != null)
+                {
+                    _sensorBufferManager.DataSaved -= OnSensorDataSaved;
+                    _sensorBufferManager.SaveError -= OnSensorSaveError;
+                    _sensorBufferManager.ContinuousSaveStarted -= OnContinuousSaveStarted;
+                    _sensorBufferManager.ContinuousSaveComplete -= OnContinuousSaveComplete;
+                    _sensorBufferManager.Dispose();
+                }
                 _sensorBufferManager = new SensorBufferManager(_metaWearService);
                 _sensorBufferManager.DataSaved += OnSensorDataSaved;
                 _sensorBufferManager.SaveError += OnSensorSaveError;

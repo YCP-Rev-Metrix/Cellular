@@ -149,9 +149,10 @@ namespace Cellular.Services
         /// <param name="baseFileName">Optional base filename to use when saving (without extension)</param>
         public async Task StartBufferingAsync(string? baseFileName = null)
         {
+            System.Diagnostics.Debug.WriteLine($"[SensorBuffer] StartBufferingAsync: IsConnected={_metaWearService.IsConnected}");
             if (!_metaWearService.IsConnected)
             {
-                // Device not connected, can't buffer
+                System.Diagnostics.Debug.WriteLine("[SensorBuffer] Not connected — aborting buffering");
                 return;
             }
 
@@ -187,14 +188,14 @@ namespace Cellular.Services
                 // Always stop all sensors first to ensure a clean state between recordings
                 await _metaWearService.StopAccelerometerAsync();
                 await _metaWearService.StopGyroscopeAsync();
-                await _metaWearService.StopMagnetometerAsync();
                 await _metaWearService.StopLightSensorAsync();
                 await Task.Delay(150); // Brief settle time for BLE stack
 
-                // Start all sensors needed for buffering, using saved configuration
+                // Start all sensors needed for buffering, using saved configuration.
+                // Magnetometer is intentionally skipped here: the recording is triggered by the
+                // light sensor, and the current BMM150 command sequence crashes the MMC device.
                 await _metaWearService.StartAccelerometerAsync(AccelSampleRate, AccelRange);
                 await _metaWearService.StartGyroscopeAsync(GyroSampleRate, GyroRange);
-                await _metaWearService.StartMagnetometerAsync(MagSampleRate);
                 await _metaWearService.StartLightSensorAsync(LightSampleRate, (byte)LightGain, (byte)LightIntegrationTime, (byte)LightMeasurementRate);
 
                 lock (_bufferLock)

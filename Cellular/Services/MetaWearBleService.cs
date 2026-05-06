@@ -877,24 +877,6 @@ namespace Cellular.Services
                     await Task.Delay(100); // Small delay between stop and start
                 }
                 
-                // Stop light sensor (0x14) if it's interfering - light sensor might be sending data
-                try
-                {
-                    DebugLog($"[Accelerometer] Stopping light sensor (module 0x14) to prevent interference...");
-                    // Try stopping by disabling data route (register 0x02 or 0x04 might disable routes)
-                    byte[] stopLightSensor = new byte[] { 0x14, 0x02 }; // Module 0x14, Stop/disable routes
-                    await WriteCommandAsync(stopLightSensor);
-                    await Task.Delay(50);
-                    // Also try register 0x01 (stop)
-                    byte[] stopLightSensor2 = new byte[] { 0x14, 0x01 };
-                    await WriteCommandAsync(stopLightSensor2);
-                    await Task.Delay(50);
-                }
-                catch (Exception ex)
-                {
-                    DebugLog($"[Accelerometer] Error stopping light sensor: {ex.Message}");
-                }
-
                 // Exact phyphox accelerometer sequence:
                 // 0303xxxx  → Config on register 0x03 (payload depends on chip)
                 // 030401    → Enable data producer on register 0x04
@@ -914,13 +896,7 @@ namespace Cellular.Services
                 await WriteCommandAsync(configCommand);
                 await Task.Delay(100);
 
-                // Step 2: Enable data producer - register 0x04 (phyphox: 030401)
-                byte[] enableProducer = new byte[] { 0x03, 0x04, 0x01 };
-                DebugLog($"[Accelerometer] Enable producer (register 0x04): [{string.Join(", ", enableProducer.Select(b => $"0x{b:X2}"))}]");
-                await WriteCommandAsync(enableProducer);
-                await Task.Delay(100);
-
-                // Step 3: Subscribe to data - register 0x02 (phyphox: 03020100)
+                // Step 2: Subscribe to data - register 0x02 (phyphox: 03020100)
                 byte[] setRoute = new byte[] { 0x03, 0x02, 0x01, 0x00 };
                 DebugLog($"[Accelerometer] Subscribe (register 0x02): [{string.Join(", ", setRoute.Select(b => $"0x{b:X2}"))}]");
                 await WriteCommandAsync(setRoute);
@@ -986,29 +962,31 @@ namespace Cellular.Services
                     DebugLog($"[Accelerometer] Error disabling module: {ex2.Message}");
                 }
                 
-                // Step 3: Remove route using Route Manager (module 0x11 or 0x12, register 0x02)
-                try
+                // Step 3: Remove route using Route Manager — only if the sensor was active
+                // (sending remove-route to a device with no route set up can crash the firmware)
+                if (_accelerometerActive)
                 {
-                    // Try Route Manager 0x12 first (standard)
-                    byte[] removeRouteCommand = new byte[] { 0x12, 0x02, 0x01 }; // Route Manager, remove route 0x01
-                    DebugLog($"[Accelerometer] Removing route (0x12): [{string.Join(", ", removeRouteCommand.Select(b => $"0x{b:X2}"))}]");
-                    await WriteCommandAsync(removeRouteCommand);
-                    await Task.Delay(100);
-                }
-                catch (Exception ex3)
-                {
-                    DebugLog($"[Accelerometer] Error removing route (0x12): {ex3.Message}");
-                    // Try alternative route manager 0x11
                     try
                     {
-                        byte[] removeRouteCommand2 = new byte[] { 0x11, 0x02, 0x01 }; // Route Manager 0x11, remove route 0x01
-                        DebugLog($"[Accelerometer] Removing route (0x11): [{string.Join(", ", removeRouteCommand2.Select(b => $"0x{b:X2}"))}]");
-                        await WriteCommandAsync(removeRouteCommand2);
+                        byte[] removeRouteCommand = new byte[] { 0x12, 0x02, 0x01 };
+                        DebugLog($"[Accelerometer] Removing route (0x12): [{string.Join(", ", removeRouteCommand.Select(b => $"0x{b:X2}"))}]");
+                        await WriteCommandAsync(removeRouteCommand);
                         await Task.Delay(100);
                     }
-                    catch (Exception ex4)
+                    catch (Exception ex3)
                     {
-                        DebugLog($"[Accelerometer] Error removing route (0x11): {ex4.Message}");
+                        DebugLog($"[Accelerometer] Error removing route (0x12): {ex3.Message}");
+                        try
+                        {
+                            byte[] removeRouteCommand2 = new byte[] { 0x11, 0x02, 0x01 };
+                            DebugLog($"[Accelerometer] Removing route (0x11): [{string.Join(", ", removeRouteCommand2.Select(b => $"0x{b:X2}"))}]");
+                            await WriteCommandAsync(removeRouteCommand2);
+                            await Task.Delay(100);
+                        }
+                        catch (Exception ex4)
+                        {
+                            DebugLog($"[Accelerometer] Error removing route (0x11): {ex4.Message}");
+                        }
                     }
                 }
                 
@@ -1051,21 +1029,6 @@ namespace Cellular.Services
                     await Task.Delay(100);
                 }
                 
-                try
-                {
-                    DebugLog($"[Gyroscope] Stopping magnetometer (module 0x15) to prevent interference...");
-                    byte[] stopMagnetometer = new byte[] { 0x15, 0x02 };
-                    await WriteCommandAsync(stopMagnetometer);
-                    await Task.Delay(50);
-                    byte[] stopMagnetometer2 = new byte[] { 0x15, 0x01 };
-                    await WriteCommandAsync(stopMagnetometer2);
-                    await Task.Delay(50);
-                }
-                catch (Exception ex)
-                {
-                    DebugLog($"[Gyroscope] Error stopping magnetometer: {ex.Message}");
-                }
-
                 // BMI160 (MMC): ODR byte 0x28 (100Hz, normal BWP), range 0x00 = ±2000 dps
                 // BMI270 (MMS): ODR byte 0xA8 (100Hz, performance mode), range 0x00 = ±2000 dps
                 byte gyroOdrByte = _isMms ? (byte)0xA8 : (byte)0x28;
@@ -1073,13 +1036,6 @@ namespace Cellular.Services
 
                 DebugLog($"[Gyroscope] Sending config command {(_isMms ? "BMI270(MMS)" : "BMI160(MMC)")}: [{string.Join(", ", configCommand.Select(b => $"0x{b:X2}"))}]");
                 await WriteCommandAsync(configCommand);
-                await Task.Delay(100);
-
-                // BMI160 (MMC): DATA register = 0x05 | BMI270 (MMS): DATA register = 0x04
-                byte gyroDataReg = _isMms ? (byte)0x04 : (byte)0x05;
-                byte[] enableProducer = new byte[] { 0x13, gyroDataReg, 0x01 };
-                DebugLog($"[Gyroscope] Enabling producer (register 0x{gyroDataReg:X2}): [{string.Join(", ", enableProducer.Select(b => $"0x{b:X2}"))}]");
-                await WriteCommandAsync(enableProducer);
                 await Task.Delay(100);
 
                 byte[] setRoute = new byte[] { 0x13, 0x02, 0x01, 0x00 };
@@ -1126,16 +1082,19 @@ namespace Cellular.Services
                 await WriteCommandAsync(stopCommand1);
                 await Task.Delay(50);
                 
-                try
+                if (_gyroscopeActive)
                 {
-                    byte[] removeRouteCommand = new byte[] { 0x12, 0x02, 0x02 };
-                    DebugLog($"[Gyroscope] Removing route: [{string.Join(", ", removeRouteCommand.Select(b => $"0x{b:X2}"))}]");
-                    await WriteCommandAsync(removeRouteCommand);
-                    await Task.Delay(50);
-                }
-                catch (Exception ex2)
-                {
-                    DebugLog($"[Gyroscope] Error removing route: {ex2.Message}");
+                    try
+                    {
+                        byte[] removeRouteCommand = new byte[] { 0x12, 0x02, 0x02 };
+                        DebugLog($"[Gyroscope] Removing route: [{string.Join(", ", removeRouteCommand.Select(b => $"0x{b:X2}"))}]");
+                        await WriteCommandAsync(removeRouteCommand);
+                        await Task.Delay(50);
+                    }
+                    catch (Exception ex2)
+                    {
+                        DebugLog($"[Gyroscope] Error removing route: {ex2.Message}");
+                    }
                 }
                 
                 _gyroscopeActive = false;
@@ -1418,7 +1377,8 @@ namespace Cellular.Services
             {
                 DebugLog($"[Magnetometer] Error starting magnetometer: {ex.Message}");
                 _magnetometerActive = false;
-                throw;
+                // Do not re-throw — a magnetometer failure must not abort StartBufferingAsync
+                // before StartLightSensorAsync is reached (light sensor triggers the recording).
             }
         }
 
@@ -1473,14 +1433,15 @@ namespace Cellular.Services
 
                 // For LTR-329ALS-01 light sensor (module 0x14):
                 // Step 1: Configure the light sensor
-                // Register 0x04: Configuration (gain, integration time, measurement rate)
+                // Register 0x02 = CONFIG (gain, integration time, measurement rate) — per SDK AmbientLightLtr329Impl
+                // gain bitmask is shifted left 2 bits into ALS_CONTR register (bits [4:2])
                 // gain: 0=1x, 1=2x, 2=4x, 3=8x, 6=48x, 7=96x
                 // integrationTime: 0=100ms, 1=50ms, 2=200ms, 3=400ms, 4=150ms, 5=250ms, 6=300ms, 7=350ms
                 // measurementRate: 0=50ms, 1=100ms, 2=200ms, 3=500ms, 4=1000ms, 5=2000ms
                 byte[] configCommand = new byte[]
                 {
-                    0x14, 0x04,                                             // Module, Register
-                    gain,                                                   // Gain setting
+                    0x14, 0x02,                                             // Module, CONFIG register (0x02)
+                    (byte)(gain << 2),                                      // Gain bitmask shifted into bits [4:2]
                     (byte)((integrationTime << 3) | (measurementRate & 0x7)) // Integration + rate packed
                 };
                 
