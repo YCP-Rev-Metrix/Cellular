@@ -17,8 +17,10 @@ public class CiclopesBallPointsDrawable : IDrawable
     // Visual width of each gutter as a fraction of the (exaggerated) lane width.
     private const float GutterFraction = 0.12f;
 
-    // Smoothing tension for the Catmull-Rom spline (0 = sharp, 0.5 = standard).
-    private const float SplineTension = 0.5f;
+    // Centripetal Catmull-Rom alpha. 0.5 avoids the loops/cusps that uniform
+    // Catmull-Rom can create when ball samples are unevenly spaced.
+    private const float SplineAlpha = 0.5f;
+    private const float MinSplinePointDistancePixels = 0.75f;
 
     // Default single-shot stroke color — matches the purple used in the multi-shot palette.
     private static readonly Color SingleShotColor = Color.FromArgb("#8E44AD");
@@ -145,8 +147,11 @@ public class CiclopesBallPointsDrawable : IDrawable
                     laneRect.Bottom - ny * laneRect.Height);
             }
 
+            var splinePoints = FilterSplinePoints(screen, MinSplinePointDistancePixels);
+            if (splinePoints.Count < 2) continue;
+
             canvas.StrokeColor = color;
-            canvas.DrawPath(BuildCatmullRomPath(screen, SplineTension));
+            canvas.DrawPath(BuildCatmullRomPath(splinePoints, SplineAlpha));
         }
 
         canvas.RestoreState();
@@ -348,37 +353,153 @@ public class CiclopesBallPointsDrawable : IDrawable
     }
 
     /// <summary>
-    /// Builds a smooth Catmull-Rom spline through the given control points,
-    /// converted to a sequence of cubic Bezier segments. Endpoint tangents are
-    /// mirrored so the curve passes through the first and last sample without
-    /// overshooting.
+    /// Removes non-finite and visually duplicate points before spline fitting.
+    /// Near-duplicate samples are common at the start of a shot and make
+    /// Catmull-Rom endpoint tangents unstable enough to show as a small cusp.
     /// </summary>
-    private static PathF BuildCatmullRomPath(PointF[] pts, float tension)
+    private static List<PointF> FilterSplinePoints(IReadOnlyList<PointF> pts, float minDistancePixels)
+    {
+        var filtered = new List<PointF>(pts.Count);
+        var minDistanceSquared = minDistancePixels * minDistancePixels;
+
+        foreach (var pt in pts)
+        {
+            if (!float.IsFinite(pt.X) || !float.IsFinite(pt.Y))
+            {
+                continue;
+            }
+
+            if (filtered.Count == 0 || DistanceSquared(filtered[^1], pt) >= minDistanceSquared)
+            {
+                filtered.Add(pt);
+            }
+            else
+            {
+                // Keep the most recent location for sub-pixel clusters so the
+                // rendered line still ends at the newest detection.
+                filtered[^1] = pt;
+            }
+        }
+
+        return filtered;
+    }
+
+    /// <summary>
+    /// Builds a smooth centripetal Catmull-Rom spline through the control
+    /// points. The older uniform Catmull-Rom Bezier conversion can overshoot
+    /// badly with unevenly spaced samples, especially at release when several
+    /// detections may be packed into the same rendered pixel.
+    /// </summary>
+    private static PathF BuildCatmullRomPath(IReadOnlyList<PointF> pts, float alpha)
     {
         var path = new PathF();
         path.MoveTo(pts[0]);
 
-        if (pts.Length == 2)
+        if (pts.Count == 2)
         {
             path.LineTo(pts[1]);
             return path;
         }
 
-        var s = (1f - tension) / 6f;
-
-        for (var i = 0; i < pts.Length - 1; i++)
+        for (var i = 0; i < pts.Count - 1; i++)
         {
-            var p0 = i == 0 ? pts[0] : pts[i - 1];
+            var p0 = i == 0 ? ReflectPoint(pts[0], pts[1]) : pts[i - 1];
             var p1 = pts[i];
             var p2 = pts[i + 1];
-            var p3 = i + 2 < pts.Length ? pts[i + 2] : pts[i + 1];
+            var p3 = i + 2 < pts.Count ? pts[i + 2] : ReflectPoint(pts[i + 1], pts[i]);
 
-            var c1 = new PointF(p1.X + s * (p2.X - p0.X), p1.Y + s * (p2.Y - p0.Y));
-            var c2 = new PointF(p2.X - s * (p3.X - p1.X), p2.Y - s * (p3.Y - p1.Y));
-            path.CurveTo(c1, c2, p2);
+            AddCentripetalSegment(path, p0, p1, p2, p3, alpha);
         }
 
         return path;
+    }
+
+    private static void AddCentripetalSegment(
+        PathF path,
+        PointF p0,
+        PointF p1,
+        PointF p2,
+        PointF p3,
+        float alpha)
+    {
+        var t0 = 0f;
+        var t1 = GetKnot(t0, p0, p1, alpha);
+        var t2 = GetKnot(t1, p1, p2, alpha);
+        var t3 = GetKnot(t2, p2, p3, alpha);
+
+        if (t2 <= t1)
+        {
+            path.LineTo(p2);
+            return;
+        }
+
+        var segmentLength = MathF.Sqrt(DistanceSquared(p1, p2));
+        var steps = Math.Clamp((int)MathF.Ceiling(segmentLength / 6f), 6, 24);
+        for (var step = 1; step <= steps; step++)
+        {
+            var t = t1 + (t2 - t1) * step / steps;
+            path.LineTo(InterpolateCentripetal(p0, p1, p2, p3, t0, t1, t2, t3, t));
+        }
+    }
+
+    private static PointF InterpolateCentripetal(
+        PointF p0,
+        PointF p1,
+        PointF p2,
+        PointF p3,
+        float t0,
+        float t1,
+        float t2,
+        float t3,
+        float t)
+    {
+        var a1 = Interpolate(p0, p1, t0, t1, t);
+        var a2 = Interpolate(p1, p2, t1, t2, t);
+        var a3 = Interpolate(p2, p3, t2, t3, t);
+        var b1 = Interpolate(a1, a2, t0, t2, t);
+        var b2 = Interpolate(a2, a3, t1, t3, t);
+
+        return Interpolate(b1, b2, t1, t2, t);
+    }
+
+    private static PointF Interpolate(PointF a, PointF b, float ta, float tb, float t)
+    {
+        var span = tb - ta;
+        if (span <= float.Epsilon)
+        {
+            return b;
+        }
+
+        var weightA = (tb - t) / span;
+        var weightB = (t - ta) / span;
+        return new PointF(
+            a.X * weightA + b.X * weightB,
+            a.Y * weightA + b.Y * weightB);
+    }
+
+    private static float GetKnot(float previous, PointF a, PointF b, float alpha)
+    {
+        var distanceSquared = DistanceSquared(a, b);
+        if (distanceSquared <= float.Epsilon)
+        {
+            return previous;
+        }
+
+        return previous + MathF.Pow(distanceSquared, alpha * 0.5f);
+    }
+
+    private static PointF ReflectPoint(PointF through, PointF point)
+    {
+        return new PointF(
+            through.X + (through.X - point.X),
+            through.Y + (through.Y - point.Y));
+    }
+
+    private static float DistanceSquared(PointF a, PointF b)
+    {
+        var dx = a.X - b.X;
+        var dy = a.Y - b.Y;
+        return dx * dx + dy * dy;
     }
 
     private static (float renderStartY, float renderLengthY) ComputeRenderWindow(IReadOnlyList<CiclopesBallPoint> points)

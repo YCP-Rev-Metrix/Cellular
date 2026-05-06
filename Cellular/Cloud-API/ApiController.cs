@@ -24,6 +24,7 @@ public enum EntityType
     CiclopesAggRun,
     CiclopesLaneBallsRun,
     CiclopesFourDBodyRun,
+    CiclopesQueryNames,
     CiclopesLaneBallsQuery,
     CiclopesFourDBodyQuery
 }
@@ -451,6 +452,19 @@ public class ApiController
         }
     }
 
+    public async Task<CiclopesQueryNamesResponse?> ExecuteCiclopesQueryNamesRequest()
+    {
+        using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(120) };
+        var executor = new ApiExecutor(EntityType.CiclopesQueryNames, OperationType.Get);
+        var requestUrl = executor.GetUrl();
+
+        var response = await client.GetAsync(requestUrl).ConfigureAwait(false);
+        response.EnsureSuccessStatusCode();
+        var responseBody = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+        Debug.WriteLine(responseBody);
+        return JsonSerializer.Deserialize<CiclopesQueryNamesResponse>(responseBody, JsonOptions);
+    }
+
     public async Task<LaneBallsQueryResponse?> ExecuteLaneBallsQueryRequest(CiclopesQueryRequest requestData)
     {
         using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(120) };
@@ -464,7 +478,13 @@ public class ApiController
         response.EnsureSuccessStatusCode();
         var responseBody = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
         Debug.WriteLine(responseBody);
-        return JsonSerializer.Deserialize<LaneBallsQueryResponse>(responseBody, JsonOptions);
+        var result = JsonSerializer.Deserialize<LaneBallsQueryResponse>(responseBody, JsonOptions);
+        if (result is not null && result.Shots.Count == 0 && result.Runs.Count > 0)
+        {
+            result.Shots = result.Runs;
+        }
+
+        return result;
     }
 
     public async Task<FourDBodyQueryResponse?> ExecuteFourDBodyQueryRequest(CiclopesQueryRequest requestData)
@@ -480,7 +500,13 @@ public class ApiController
         response.EnsureSuccessStatusCode();
         var responseBody = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
         Debug.WriteLine(responseBody);
-        return JsonSerializer.Deserialize<FourDBodyQueryResponse>(responseBody, JsonOptions);
+        var result = JsonSerializer.Deserialize<FourDBodyQueryResponse>(responseBody, JsonOptions);
+        if (result is not null && result.Shots.Count == 0 && result.Runs.Count > 0)
+        {
+            result.Shots = result.Runs;
+        }
+
+        return result;
     }
 
     private static bool TryExtractTokenFromAuthBody(string authResponseBody, out string? tokenValue)

@@ -10,7 +10,7 @@ public class CiclopesTestViewModel
         var controller = new ApiController();
         var request = new CiclopesRunRequest
         {
-            VideoKey = "videos/310fceda-dac8-4bf0-a25c-2d1ba360ea68_shot1.mp4",
+            VideoKey = "videos/hake_test_2_edited.mp4",
             SdKey = "key"
         };
 
@@ -20,10 +20,16 @@ public class CiclopesTestViewModel
         return (laneBallsTask, fourDBodyTask);
     }
 
-    public (Task<LaneBallsQueryResponse?> LaneBallsTask, Task<FourDBodyQueryResponse?> FourDBodyTask) QueryTestAsync(List<int> shotNumbers)
+    public Task<CiclopesQueryNamesResponse?> GetQueryNamesAsync()
     {
         var controller = new ApiController();
-        var request = new CiclopesQueryRequest { ShotNumbers = shotNumbers };
+        return controller.ExecuteCiclopesQueryNamesRequest();
+    }
+
+    public (Task<LaneBallsQueryResponse?> LaneBallsTask, Task<FourDBodyQueryResponse?> FourDBodyTask) QueryTestAsync(List<string> names)
+    {
+        var controller = new ApiController();
+        var request = new CiclopesQueryRequest { Names = names };
         return (
             controller.ExecuteLaneBallsQueryRequest(request),
             controller.ExecuteFourDBodyQueryRequest(request)

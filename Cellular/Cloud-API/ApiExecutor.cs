@@ -36,6 +36,7 @@ public class ApiExecutor
             EntityType.CiclopesAggRun => "agg/run",
             EntityType.CiclopesLaneBallsRun => "laneballs/run",
             EntityType.CiclopesFourDBodyRun => "fourdbody/run",
+            EntityType.CiclopesQueryNames => "query/names",
             EntityType.CiclopesLaneBallsQuery => "laneballs/query",
             EntityType.CiclopesFourDBodyQuery => "fourdbody/query",
             _ => string.Empty
@@ -44,6 +45,16 @@ public class ApiExecutor
         if (string.IsNullOrEmpty(route))
         {
             return false;
+        }
+
+        if (EntityType == EntityType.CiclopesQueryNames)
+        {
+            if (OperationType != OperationType.Get)
+            {
+                throw new NotImplementedException($"{EntityType} only supports GET.");
+            }
+
+            return true;
         }
 
         if (OperationType != OperationType.Post)

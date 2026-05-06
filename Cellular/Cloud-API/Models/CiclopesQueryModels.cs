@@ -4,14 +4,23 @@ namespace Cellular.Cloud_API.Models;
 
 public class CiclopesQueryRequest
 {
-    [JsonPropertyName("shot_numbers")]
-    public List<int> ShotNumbers { get; set; } = [];
+    [JsonPropertyName("names")]
+    public List<string> Names { get; set; } = [];
+}
+
+public class CiclopesQueryNamesResponse
+{
+    [JsonPropertyName("names")]
+    public List<string> Names { get; set; } = [];
 }
 
 public class LaneBallsQueryResponse
 {
     [JsonPropertyName("shots")]
     public Dictionary<string, LaneBallsShotData> Shots { get; set; } = [];
+
+    [JsonPropertyName("runs")]
+    public Dictionary<string, LaneBallsShotData> Runs { get; set; } = [];
 }
 
 public class LaneBallsShotData
@@ -30,6 +39,9 @@ public class FourDBodyQueryResponse
 {
     [JsonPropertyName("shots")]
     public Dictionary<string, FourDBodyShotData> Shots { get; set; } = [];
+
+    [JsonPropertyName("runs")]
+    public Dictionary<string, FourDBodyShotData> Runs { get; set; } = [];
 }
 
 public class FourDBodyShotData

@@ -83,7 +83,10 @@ public partial class CiclopesResultPopup : Popup
         _isMultiMode = true;
 
         _laneShots = laneBallsQuery.Shots ?? [];
-        _shotOrder = _laneShots.Keys.OrderBy(k => int.TryParse(k, out var n) ? n : 0).ToList();
+        _shotOrder = _laneShots.Keys
+            .OrderBy(k => int.TryParse(k, out var n) ? n : int.MaxValue)
+            .ThenBy(k => k, StringComparer.OrdinalIgnoreCase)
+            .ToList();
 
         for (var i = 0; i < _shotOrder.Count; i++)
             _shotColors[_shotOrder[i]] = ShotPalette[i % ShotPalette.Length];
@@ -185,7 +188,7 @@ public partial class CiclopesResultPopup : Popup
                 Padding = new Thickness(10, 4),
                 Content = new Label
                 {
-                    Text = $"Shot {key}",
+                    Text = key,
                     FontSize = 11,
                     FontAttributes = FontAttributes.Bold,
                     TextColor = color,
