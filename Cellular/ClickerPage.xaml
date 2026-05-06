@@ -6,24 +6,25 @@
     <ScrollView>
         <VerticalStackLayout
             Padding="30,0"
-            Spacing="25">
+            Spacing="25"
+            VerticalOptions="Center">
             <Image
-                Source="logo.png"
-                HeightRequest="185"
+                x:Name="BallImage"
+                Source="ball.png"
+                HeightRequest="200"
                 Aspect="AspectFit"
-                SemanticProperties.Description="RevMetrix Bowling Ball Logo" />
+                SemanticProperties.Description="RevMetrix Bowling Ball Logo">
+                <Image.GestureRecognizers>
+                    <TapGestureRecognizer Tapped="OnCounterClicked" />
+                </Image.GestureRecognizers>
+            </Image>
 
             <Label
-                Text="RevMetrix"
-                Style="{StaticResource Headline}"
-                SemanticProperties.HeadingLevel="Level1" />
-
-            <Button
                 x:Name="CounterBtn"
-                Text="Click me" 
-                SemanticProperties.Hint="Counts the number of times you click"
-                Clicked="OnCounterClicked"
-                HorizontalOptions="Fill" />
+                Text="Click me"
+                Style="{StaticResource Headline}"
+                SemanticProperties.HeadingLevel="Level1"
+                HorizontalOptions="Center" />
         </VerticalStackLayout>
     </ScrollView>
 

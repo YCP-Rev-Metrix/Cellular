@@ -13,6 +13,8 @@ namespace Cellular
         private int userId;
         private MainViewModel? viewModel;
         private UserRepository? _userRepository;
+        private int _logoTapCount;
+        private DateTime _lastLogoTap = DateTime.MinValue;
 
         public MainPage()
         {
@@ -58,6 +60,24 @@ namespace Cellular
             API.IsVisible = isLoggedIn;
             ciclopesTest.IsVisible = isLoggedIn;
             BlankPage.IsVisible = isLoggedIn;
+        }
+
+        private async void OnLogoTapped(object sender, TappedEventArgs e)
+        {
+            if (!isLoggedIn) return;
+
+            // Reset the streak if more than 2 seconds have passed since the last tap
+            if ((DateTime.Now - _lastLogoTap).TotalSeconds > 2)
+                _logoTapCount = 0;
+
+            _lastLogoTap = DateTime.Now;
+            _logoTapCount++;
+
+            if (_logoTapCount >= 10)
+            {
+                _logoTapCount = 0;
+                await Navigation.PushAsync(new ClickerPage());
+            }
         }
 
         private async void OnLoginClicked(object sender, EventArgs e)

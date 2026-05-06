@@ -15,7 +15,11 @@
                    Aspect="AspectFit"
                    HorizontalOptions="Center"
                    Margin="0,0,0,12"
-                   SemanticProperties.Description="RevMetrix Logo" />
+                   SemanticProperties.Description="RevMetrix Logo">
+                <Image.GestureRecognizers>
+                    <TapGestureRecognizer Tapped="OnLogoTapped" />
+                </Image.GestureRecognizers>
+            </Image>
 
             <!-- Welcome row — shown when logged in -->
             <HorizontalStackLayout x:Name="welcomeRow"
