@@ -10,7 +10,7 @@ public class CiclopesTestViewModel
         var controller = new ApiController();
         var request = new CiclopesRunRequest
         {
-            VideoKey = "videos/hake_test_2_edited.mp4",
+            VideoKey = "videos/de842d42-cd80-4f37-936b-13fe298b61ff_rm_20260506_185744.mp4",
             SdKey = "key"
         };
 

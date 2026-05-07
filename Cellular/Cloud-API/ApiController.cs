@@ -390,7 +390,7 @@ public class ApiController
 
     public async Task<LaneBallsRunResponse?> ExecuteLaneBallsRunRequest(CiclopesRunRequest requestData)
     {
-        using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(120) };
+        using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(240) };
         ApiExecutor executor = new ApiExecutor(EntityType.CiclopesLaneBallsRun, OperationType.Post);
         string requestUrl = executor.GetUrl();
 
@@ -422,7 +422,7 @@ public class ApiController
 
     public async Task<FourDBodyRunResponse?> ExecuteFourDBodyRunRequest(CiclopesRunRequest requestData)
     {
-        using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(120) };
+        using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(240) };
         ApiExecutor executor = new ApiExecutor(EntityType.CiclopesFourDBodyRun, OperationType.Post);
         string requestUrl = executor.GetUrl();
 
@@ -467,7 +467,7 @@ public class ApiController
 
     public async Task<LaneBallsQueryResponse?> ExecuteLaneBallsQueryRequest(CiclopesQueryRequest requestData)
     {
-        using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(120) };
+        using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(240) };
         var executor = new ApiExecutor(EntityType.CiclopesLaneBallsQuery, OperationType.Post);
         var requestUrl = executor.GetUrl();
 
@@ -489,7 +489,7 @@ public class ApiController
 
     public async Task<FourDBodyQueryResponse?> ExecuteFourDBodyQueryRequest(CiclopesQueryRequest requestData)
     {
-        using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(120) };
+        using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(240) };
         var executor = new ApiExecutor(EntityType.CiclopesFourDBodyQuery, OperationType.Post);
         var requestUrl = executor.GetUrl();
 
