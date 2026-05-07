@@ -296,33 +296,42 @@ namespace Cellular
             currentFrame.OnPropertyChanged(nameof(currentFrame.CenterPinColors));
             currentFrame.OnPropertyChanged(nameof(currentFrame.PinColors));
             viewModel.OnPropertyChanged(nameof(viewModel.Frames));
+            UpdateNextButtonState();
         }
 
         private async void OnCommentClicked(Object sender, EventArgs e)
         {
-            string initial = viewModel.Comment ?? "";
-            var popup = new CommentEditorPopup(initial);
-
-            // Ensure Completion is set if the popup is closed by other means.
-            popup.Closed += (s, args) =>
+            _isShowingPopup = true;
+            try
             {
-                if (!popup.Completion.Task.IsCompleted)
+                string initial = viewModel.Comment ?? "";
+                var popup = new CommentEditorPopup(initial);
+
+                // Ensure Completion is set if the popup is closed by other means.
+                popup.Closed += (s, args) =>
                 {
-                    popup.Completion.TrySetResult(null);
+                    if (!popup.Completion.Task.IsCompleted)
+                    {
+                        popup.Completion.TrySetResult(null);
+                    }
+                };
+
+                this.ShowPopup(popup);
+
+                // Await the completion source that the popup sets on save/cancel/close
+                var result = await popup.Completion.Task;
+
+                // Only update viewModel when the user explicitly saved (non-null result)
+                if (result is string text && text != null)
+                {
+                    viewModel.Comment = text;
+                    viewModel.OnPropertyChanged(nameof(viewModel.Comment));
+                    Debug.WriteLine($"Comment saved: {viewModel.Comment}");
                 }
-            };
-
-            this.ShowPopup(popup);
-
-            // Await the completion source that the popup sets on save/cancel/close
-            var result = await popup.Completion.Task;
-
-            // Only update viewModel when the user explicitly saved (non-null result)
-            if (result is string text && text != null)
+            }
+            finally
             {
-                viewModel.Comment = text;
-                viewModel.OnPropertyChanged(nameof(viewModel.Comment));
-                Debug.WriteLine($"Comment saved: {viewModel.Comment}");
+                _isShowingPopup = false;
             }
         }
 
@@ -477,6 +486,7 @@ namespace Cellular
 
             // Notify property change
             viewModel.OnPropertyChanged(nameof(viewModel.Frames));
+            UpdateNextButtonState();
         }
 
         private void ApplyFirstShotColors(ShotPageFrame currentFrame)
@@ -549,6 +559,7 @@ namespace Cellular
             string display = isFoul ? "F" : "";
             currentFrame.UpdateShotBox(viewModel.CurrentShot, display);
             viewModel.OnPropertyChanged(nameof(viewModel.Frames));
+            UpdateNextButtonState();
         }
 
         private void OnGutterClicked(object sender, EventArgs e)
@@ -590,8 +601,9 @@ namespace Cellular
 
             currentFrame.UpdateShotBox(viewModel.CurrentShot, "-");
             viewModel.OnPropertyChanged(nameof(viewModel.Frames));
+            UpdateNextButtonState();
         }
-        
+
         private void OnSpareClicked(object sender, EventArgs e)
         {
             var currentFrame = viewModel.Frames.FirstOrDefault(f => f.FrameNumber == viewModel.CurrentFrame);
@@ -604,6 +616,7 @@ namespace Cellular
             foreach (var pin in pins) pin.BackgroundColor = Colors.LightSlateGrey;
 
             viewModel.OnPropertyChanged(nameof(viewModel.pinStates));
+            UpdateNextButtonState();
         }
 
         private void OnStrikeClicked(object sender, EventArgs e)
@@ -618,6 +631,7 @@ namespace Cellular
             foreach (var pin in pins) pin.BackgroundColor = Colors.LightSlateGrey;
 
             viewModel.OnPropertyChanged(nameof(viewModel.Frames));
+            UpdateNextButtonState();
         }
 
         private async Task<int> UpdateGameAsync()
@@ -1341,6 +1355,7 @@ namespace Cellular
             viewModel.OnPropertyChanged(nameof(viewModel.Frames));
             // Recalculate UI frame backgrounds now that frames and current frame are loaded
             viewModel.RefreshFrameBackgrounds();
+            UpdateNextButtonState();
         }
 
         private void HandleEditFrame()
@@ -1353,6 +1368,19 @@ namespace Cellular
             currentFrame.OnPropertyChanged(nameof(currentFrame.CenterPinColors));
             currentFrame.OnPropertyChanged(nameof(currentFrame.PinColors));
             viewModel.OnPropertyChanged(nameof(viewModel.Frames));
+        }
+
+        // Enables the Next button only when the current shot box has a value.
+        private void UpdateNextButtonState()
+        {
+            var currentFrame = viewModel.Frames.FirstOrDefault(f => f.FrameNumber == viewModel.CurrentFrame);
+            if (currentFrame == null)
+            {
+                nextButton.IsEnabled = false;
+                return;
+            }
+            string box = viewModel.CurrentShot == 1 ? currentFrame.ShotOneBox : currentFrame.ShotTwoBox;
+            nextButton.IsEnabled = !string.IsNullOrWhiteSpace(box);
         }
 
         // Helper used when reloading a saved game: process the first shot UI/state update

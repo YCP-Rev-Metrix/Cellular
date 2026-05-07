@@ -182,9 +182,12 @@ namespace Cellular.ViewModel
                     _currentShot = value;
                     OnPropertyChanged(nameof(CurrentShot));
                     OnPropertyChanged(nameof(FrameDisplay));
+                    OnPropertyChanged(nameof(IsShot1));
                 }
             }
         }
+
+        public bool IsShot1 => _currentShot == 1;
 
         // Public wrapper so views can request a refresh of frame backgrounds
         public void RefreshFrameBackgrounds()

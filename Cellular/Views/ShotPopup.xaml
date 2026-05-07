@@ -76,21 +76,25 @@
                         HorizontalOptions="FillAndExpand" />
             </StackLayout>
 
-            <!-- Position -->
-            <Label Text="Position" FontAttributes="Bold" TextColor="{StaticResource Primary}" />
+            <!-- Position (shot 1 only) -->
+            <Label Text="Position" FontAttributes="Bold" TextColor="{StaticResource Primary}"
+                   IsVisible="{Binding IsShot1}" />
             <Picker ItemsSource="{Binding PositionOptions}"
                     SelectedItem="{Binding SelectedPosition}"
                     TextColor="Black"
                     TitleColor="DimGray"
-                    Title="Select position" />
+                    Title="Select position"
+                    IsVisible="{Binding IsShot1}" />
 
-            <!-- Lane -->
-            <Label Text="Lane" FontAttributes="Bold" TextColor="{StaticResource Primary}" />
+            <!-- Lane (shot 1 only) -->
+            <Label Text="Lane" FontAttributes="Bold" TextColor="{StaticResource Primary}"
+                   IsVisible="{Binding IsShot1}" />
             <Picker ItemsSource="{Binding LaneNumbers}"
                     SelectedItem="{Binding SelectedLane}"
                     TextColor="Black"
                     TitleColor="DimGray"
-                    Title="Select lane" />
+                    Title="Select lane"
+                    IsVisible="{Binding IsShot1}" />
 
             <!-- Buttons -->
             <StackLayout Orientation="Horizontal" HorizontalOptions="Center" Spacing="20" Margin="0,8,0,0">
