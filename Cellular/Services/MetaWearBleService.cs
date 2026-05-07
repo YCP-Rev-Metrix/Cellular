@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Plugin.BLE;
 using Plugin.BLE.Abstractions.Contracts;
@@ -72,6 +73,10 @@ namespace Cellular.Services
         private DateTime _lastMagnetometerLogTime = DateTime.MinValue; // Track last log time for magnetometer
         private bool _isDebugLogging = false; // Guard to prevent re-entrancy in DebugLog
         private const int GattWriteTimeoutMs = 3000;
+        // Prevents concurrent sensor start/stop operations that interleave BLE commands and crash firmware.
+        // Uses Interlocked for atomic test-and-set so it's safe across async continuations.
+        // 0 = free, 1 = busy. Start/Stop methods CAS from 0→1 on entry and reset to 0 on exit.
+        private int _sensorBusy = 0;
         private Guid _savedDeviceId = Guid.Empty;      // Saved before clearing on disconnect, used for reconnect
         private bool _intentionalDisconnect = false;    // Set true in DisconnectAsync to suppress auto-reconnect
         private CancellationTokenSource? _reconnectCts; // Cancels in-progress reconnect on intentional disconnect
@@ -382,166 +387,37 @@ namespace Cellular.Services
                 
                 // Start receiving notifications
                 await _notificationCharacteristic.StartUpdatesAsync();
-                
+
                 DebugLog("Notifications enabled successfully");
 
-                // Stop any active sensors from previous sessions
-                // Stop light sensor (module 0x14) - it's often active by default
-                try
-                {
-                    DebugLog("[Connection] Stopping light sensor (module 0x14)...");
-                    byte[] stopLightSensor = new byte[] { 0x14, 0x01 };
-                    await WriteCommandAsync(stopLightSensor);
-                    await Task.Delay(100);
-                    
-                    byte[] stopLightSensorProducer = new byte[] { 0x14, 0x03 };
-                    await WriteCommandAsync(stopLightSensorProducer);
-                    await Task.Delay(100);
-                    DebugLog("[Connection] Light sensor stop commands sent");
-                }
-                catch (Exception ex)
-                {
-                    DebugLog($"[Connection] Error stopping light sensor: {ex.Message}");
-                }
+                // Negotiate a fast BLE connection interval before sending any sensor commands.
+                // MetaBase app does this (Settings.editBleConnParams + 1000 ms delay) to prevent
+                // GATT congestion when starting multiple sensors on Android.
+                await RequestFastConnectionAsync();
 
-                // Stop magnetometer (module 0x15)
-                try
-                {
-                    DebugLog("[Connection] Stopping magnetometer (module 0x15)...");
-                    try
-                    {
-                        byte[] stopProducerCommand = new byte[] { 0x15, 0x05 };
-                        await WriteCommandAsync(stopProducerCommand);
-                        await Task.Delay(50);
-                    }
-                    catch { }
-                    
-                    try
-                    {
-                        byte[] stopProducerCommand2 = new byte[] { 0x15, 0x06 };
-                        await WriteCommandAsync(stopProducerCommand2);
-                        await Task.Delay(50);
-                    }
-                    catch { }
-                    
-                    try
-                    {
-                        byte[] removeRouteCommand = new byte[] { 0x12, 0x02, 0x03 };
-                        await WriteCommandAsync(removeRouteCommand);
-                        await Task.Delay(50);
-                    }
-                    catch { }
-                    
-                    try
-                    {
-                        byte[] disableModule = new byte[] { 0x15, 0x01, 0x00 };
-                        await WriteCommandAsync(disableModule);
-                        await Task.Delay(50);
-                    }
-                    catch { }
-                    
-                    try
-                    {
-                        byte[] stopCommand1 = new byte[] { 0x15, 0x01 };
-                        await WriteCommandAsync(stopCommand1);
-                        await Task.Delay(50);
-                    }
-                    catch { }
-                    
-                    _magnetometerActive = false;
-                    DebugLog("[Connection] Magnetometer stop commands sent");
-                }
-                catch (Exception ex)
-                {
-                    DebugLog($"[Connection] Error stopping magnetometer: {ex.Message}");
-                    _magnetometerActive = false;
-                }
+                // Quiesce any sensors that may have been left running from a previous session.
+                // Each block sends the correct 3-byte stop sequence; errors are swallowed so one
+                // failed stop doesn't prevent the others from running.
+                try { await WriteCommandAsync(new byte[] { 0x03, 0x04, 0x00 }); await Task.Delay(30); } catch { } // accel stream off
+                try { await WriteCommandAsync(new byte[] { 0x03, 0x02, 0x00, 0x01 }); await Task.Delay(30); } catch { } // accel unsub
+                try { await WriteCommandAsync(new byte[] { 0x03, 0x01, 0x00 }); await Task.Delay(30); } catch { } // accel power off
+                _accelerometerActive = false;
 
-                // Stop accelerometer (module 0x03)
-                try
-                {
-                    DebugLog("[Connection] Stopping accelerometer (module 0x03)...");
-                    byte[] disableProducer = new byte[] { 0x03, 0x04, 0x00 };
-                    await WriteCommandAsync(disableProducer);
-                    await Task.Delay(50);
-                    
-                    byte[] disableModule = new byte[] { 0x03, 0x01, 0x00 };
-                    await WriteCommandAsync(disableModule);
-                    await Task.Delay(50);
-                    
-                    try
-                    {
-                        byte[] removeRouteCommand12 = new byte[] { 0x12, 0x02, 0x01 };
-                        await WriteCommandAsync(removeRouteCommand12);
-                        await Task.Delay(50);
-                    }
-                    catch { }
-                    
-                    try
-                    {
-                        byte[] removeRouteCommand11 = new byte[] { 0x11, 0x02, 0x01 };
-                        await WriteCommandAsync(removeRouteCommand11);
-                        await Task.Delay(50);
-                    }
-                    catch { }
-                    
-                    byte[] fallbackStopCommand = new byte[] { 0x03, 0x05 };
-                    await WriteCommandAsync(fallbackStopCommand);
-                    await Task.Delay(50);
-                    
-                    _accelerometerActive = false;
-                    DebugLog("[Connection] Accelerometer stop commands sent");
-                }
-                catch (Exception ex)
-                {
-                    DebugLog($"[Connection] Error stopping accelerometer: {ex.Message}");
-                    _accelerometerActive = false;
-                }
+                try { await WriteCommandAsync(new byte[] { 0x13, 0x04, 0x00 }); await Task.Delay(30); } catch { } // gyro stream off
+                try { await WriteCommandAsync(new byte[] { 0x13, 0x02, 0x00, 0x01 }); await Task.Delay(30); } catch { } // gyro unsub
+                try { await WriteCommandAsync(new byte[] { 0x13, 0x01, 0x00 }); await Task.Delay(30); } catch { } // gyro power off
+                _gyroscopeActive = false;
 
-                // Stop gyroscope (module 0x13)
-                try
-                {
-                    DebugLog("[Connection] Stopping gyroscope (module 0x13)...");
-                    byte[] stopProducerCommand = new byte[] { 0x13, 0x05 };
-                    await WriteCommandAsync(stopProducerCommand);
-                    await Task.Delay(50);
-                    
-                    byte[] stopCommand1 = new byte[] { 0x13, 0x01 };
-                    await WriteCommandAsync(stopCommand1);
-                    await Task.Delay(50);
-                    
-                    byte[] disableProducer13 = new byte[] { 0x13, 0x04, 0x00 };
-                    await WriteCommandAsync(disableProducer13);
-                    await Task.Delay(50);
-                    
-                    byte[] disableModule13 = new byte[] { 0x13, 0x01, 0x00 };
-                    await WriteCommandAsync(disableModule13);
-                    await Task.Delay(50);
-                    
-                    try
-                    {
-                        byte[] removeRouteCommand = new byte[] { 0x12, 0x02, 0x02 };
-                        await WriteCommandAsync(removeRouteCommand);
-                        await Task.Delay(50);
-                    }
-                    catch { }
-                    
-                    try
-                    {
-                        byte[] removeRouteCommand11 = new byte[] { 0x11, 0x02, 0x02 };
-                        await WriteCommandAsync(removeRouteCommand11);
-                        await Task.Delay(50);
-                    }
-                    catch { }
-                    
-                    _gyroscopeActive = false;
-                    DebugLog("[Connection] Gyroscope stop commands sent");
-                }
-                catch (Exception ex)
-                {
-                    DebugLog($"[Connection] Error stopping gyroscope: {ex.Message}");
-                    _gyroscopeActive = false;
-                }
+                try { await WriteCommandAsync(new byte[] { 0x15, 0x05, 0x00 }); await Task.Delay(30); } catch { } // mag stream off
+                try { await WriteCommandAsync(new byte[] { 0x15, 0x02, 0x00, 0x01 }); await Task.Delay(30); } catch { } // mag unsub
+                try { await WriteCommandAsync(new byte[] { 0x15, 0x01, 0x00 }); await Task.Delay(30); } catch { } // mag power off
+                _magnetometerActive = false;
+
+                try { await WriteCommandAsync(new byte[] { 0x14, 0x03, 0x00 }); await Task.Delay(30); } catch { } // light stream off
+                try { await WriteCommandAsync(new byte[] { 0x14, 0x01, 0x00 }); await Task.Delay(30); } catch { } // light power off
+                _lightSensorActive = false;
+
+                DebugLog("[Connection] All sensors quiesced");
 
                 DebugLog("MetaWear device connected successfully!");
 
@@ -666,20 +542,7 @@ namespace Cellular.Services
                 byte moduleId = data[0];
                 byte registerId = data[1];
 
-                // Log ALL notifications for accelerometer, gyroscope, magnetometer, and light sensor to debug
-                if (moduleId == MW_MODULE_ACCELEROMETER || moduleId == MW_MODULE_GYRO || moduleId == MW_MODULE_AMBIENT_LIGHT || moduleId == MW_MODULE_MAGNETOMETER)
-                {
-                    DebugLog($"[Notification] Module: 0x{moduleId:X2}, Reg: 0x{registerId:X2}, Len: {data.Length}, Raw: [{string.Join(", ", data.Select(b => $"0x{b:X2}"))}]");
-                }
-                else
-                {
-                    // Reduced logging for other modules - only log occasionally to avoid performance issues
-                    // Data comes at 50-100Hz, so logging every single packet causes lag
-                    if (data.Length <= 20 && (DateTime.Now.Millisecond % 1000) < 10) // Only log ~1% of packets
-                    {
-                        DebugLog($"[Notification] Module: 0x{moduleId:X2}, Reg: 0x{registerId:X2}, Len: {data.Length}");
-                    }
-                }
+                DebugLog($"[Notification] Module: 0x{moduleId:X2}, Reg: 0x{registerId:X2}, Len: {data.Length}");
 
                 // Module IDs from C++ SDK core/module.h (MBL_MW_MODULE_*)
                 bool isAccelerometer = (moduleId == MW_MODULE_ACCELEROMETER);
@@ -689,19 +552,8 @@ namespace Cellular.Services
                 
                 if (isAccelerometer)
                 {
-                    // Always log accelerometer notifications for debugging (even if not active) to verify we're receiving data
-                    DebugLog($"[Accelerometer] DEBUG: Received accelerometer notification! Module: 0x{data[0]:X2}, Reg: 0x{data[1]:X2}, Len: {data.Length}, Active: {_accelerometerActive}");
-                    DebugLog($"[Accelerometer] DEBUG: Raw data: [{string.Join(", ", data.Select(b => $"0x{b:X2}"))}]");
-                    
                     if (_accelerometerActive)
-                    {
-                        // Parse without logging every packet (too verbose at 100Hz)
                         ParseAccelerometerData(data);
-                    }
-                    else
-                    {
-                        DebugLog($"[Accelerometer] DEBUG: Accelerometer not active, ignoring data");
-                    }
                 }
                 else if (isGyroscope)
                 {
@@ -837,12 +689,6 @@ namespace Cellular.Services
                 float yDps = y / GYRO_SCALE_2000DPS;
                 float zDps = z / GYRO_SCALE_2000DPS;
 
-                // Reduced logging - only log occasionally (every 2 seconds) to avoid performance issues
-                if ((DateTime.Now.Millisecond % 2000) < 10)
-                {
-                    DebugLog($"[Gyroscope] Data - X: {xDps:F2}°/s, Y: {yDps:F2}°/s, Z: {zDps:F2}°/s");
-                }
-
                 GyroscopeDataReceived?.Invoke(this, new MetaWearGyroscopeData
                 {
                     X = xDps,
@@ -863,6 +709,11 @@ namespace Cellular.Services
             if (_commandCharacteristic == null || !IsConnected)
                 throw new InvalidOperationException("Device not connected");
 
+            if (Interlocked.CompareExchange(ref _sensorBusy, 1, 0) != 0)
+            {
+                DebugLog("[Accelerometer] Start ignored — sensor operation already in progress");
+                return;
+            }
             try
             {
                 DebugLog($"[Accelerometer] Starting accelerometer - SampleRate: {sampleRate}Hz, Range: {range}G");
@@ -873,43 +724,31 @@ namespace Cellular.Services
                 if (_accelerometerActive)
                 {
                     DebugLog($"[Accelerometer] Stopping existing accelerometer first...");
-                    await StopAccelerometerAsync();
+                    await StopAccelerometerCoreAsync();
                     await Task.Delay(100); // Small delay between stop and start
                 }
                 
-                // Exact phyphox accelerometer sequence:
-                // 0303xxxx  → Config on register 0x03 (payload depends on chip)
-                // 030401    → Enable data producer on register 0x04
-                // 03020100  → Subscribe on register 0x02
-                // 030101    → Enable module on register 0x01
-
-                // Step 1: Configure accelerometer - register 0x03. Build payload from range (C++ SDK: BMI160 vs BMI270).
-                // BMI160 (MMC): FSR 2g=0x3, 4g=0x5, 8g=0x8, 16g=0xc; first byte 0x28 (ODR/bwp/us).
-                // BMI270 (MMS): FSR 2g=0x0, 4g=0x1, 8g=0x2, 16g=0x3; first byte 0xa8 (SDK default).
+                // Step 1: Configure — register 0x03.
+                // ODR byte (Bosch BMI160/BMI270): 0x05=12.5Hz, 0x06=25Hz, 0x07=50Hz, 0x08=100Hz, 0x09=200Hz
+                // Config byte = bwp_bits | odr: BMI160 bwp=normal→0x20; BMI270 performance→0xA0
+                byte odrByte = sampleRate switch { <= 12.5f => 0x05, <= 25f => 0x06, <= 50f => 0x07, <= 100f => 0x08, _ => 0x09 };
+                byte configByte0 = _isMms ? (byte)(0xA0 | odrByte) : (byte)(0x20 | odrByte);
+                // BMI160 FSR: 2g=0x3, 4g=0x5, 8g=0x8, 16g=0xC.  BMI270 FSR: 2g=0, 4g=1, 8g=2, 16g=3
                 int rangeIndex = range <= 2f ? 0 : range <= 4f ? 1 : range <= 8f ? 2 : 3;
-                byte configByte0 = _isMms ? (byte)0xa8 : (byte)0x28;
                 byte rangeByte = _isMms
                     ? (byte)rangeIndex
-                    : (byte)(rangeIndex == 0 ? 0x3 : rangeIndex == 1 ? 0x5 : rangeIndex == 2 ? 0x8 : 0xc);
-                byte[] configCommand = new byte[] { 0x03, 0x03, configByte0, rangeByte };
-                DebugLog($"[Accelerometer] Config (register 0x03) {(_isMms ? "BMI270(MMS)" : "BMI160(MMC)")} {range}G: [{string.Join(", ", configCommand.Select(b => $"0x{b:X2}"))}]");
-                await WriteCommandAsync(configCommand);
+                    : (byte)(rangeIndex == 0 ? 0x3 : rangeIndex == 1 ? 0x5 : rangeIndex == 2 ? 0x8 : 0xC);
+                await WriteCommandAsync(new byte[] { 0x03, 0x03, configByte0, rangeByte }); // config
                 await Task.Delay(100);
-
-                // Step 2: Subscribe to data - register 0x02 (phyphox: 03020100)
-                byte[] setRoute = new byte[] { 0x03, 0x02, 0x01, 0x00 };
-                DebugLog($"[Accelerometer] Subscribe (register 0x02): [{string.Join(", ", setRoute.Select(b => $"0x{b:X2}"))}]");
-                await WriteCommandAsync(setRoute);
+                await WriteCommandAsync(new byte[] { 0x03, 0x04, 0x01 }); // enable stream
                 await Task.Delay(100);
-                
-                // Enable module: 0x03, 0x01, 0x01
-                byte[] enableModule = new byte[] { 0x03, 0x01, 0x01 };
-                DebugLog($"[Accelerometer] Enabling module: [{string.Join(", ", enableModule.Select(b => $"0x{b:X2}"))}]");
-                await WriteCommandAsync(enableModule);
+                await WriteCommandAsync(new byte[] { 0x03, 0x02, 0x01, 0x00 }); // subscribe
+                await Task.Delay(100);
+                await WriteCommandAsync(new byte[] { 0x03, 0x01, 0x01 }); // power on
                 await Task.Delay(200);
-                
+
                 _accelerometerActive = true;
-                DebugLog($"[Accelerometer] Accelerometer started successfully - expecting notifications with Module 0x03, Register 0x04 (phyphox pattern)");
+                DebugLog($"[Accelerometer] Started {sampleRate}Hz {range}G {(_isMms ? "BMI270" : "BMI160")}");
             }
             catch (Exception ex)
             {
@@ -918,9 +757,86 @@ namespace Cellular.Services
                 _accelerometerActive = false;
                 throw;
             }
+            finally
+            {
+                Interlocked.Exchange(ref _sensorBusy, 0);
+            }
         }
 
         public async Task StopAccelerometerAsync()
+        {
+            if (Interlocked.CompareExchange(ref _sensorBusy, 1, 0) != 0)
+            {
+                DebugLog("[Accelerometer] Stop ignored — sensor operation already in progress");
+                return;
+            }
+            try { await StopAccelerometerCoreAsync(); }
+            finally { Interlocked.Exchange(ref _sensorBusy, 0); }
+        }
+
+        /// <summary>
+        /// Negotiates a faster BLE connection interval so the Android stack can keep up with
+        /// multi-sensor command sequences. Must be called after notifications are enabled.
+        /// Two-pronged: Android CONNECTION_PRIORITY_HIGH + MetaWear firmware BLE conn-params command.
+        /// </summary>
+        private async Task RequestFastConnectionAsync()
+        {
+            // Step 1: Android-side — ask the BT stack for a high-priority (low-latency) connection.
+            // Plugin.BLE doesn't expose this directly so we reach into its internal BluetoothGatt
+            // via reflection. This is safe to skip if reflection fails — the MetaWear command below
+            // also negotiates the interval from the peripheral side.
+#if __ANDROID__
+            try
+            {
+                var gattField = _device?.GetType().GetField("_gatt",
+                    System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                if (gattField?.GetValue(_device) is Android.Bluetooth.BluetoothGatt gatt)
+                {
+                    gatt.RequestConnectionPriority(Android.Bluetooth.GattConnectionPriority.High);
+                    DebugLog("[BLE] Android CONNECTION_PRIORITY_HIGH requested");
+                }
+                else
+                {
+                    DebugLog("[BLE] Could not get BluetoothGatt via reflection — skipping Android priority request");
+                }
+            }
+            catch (Exception ex)
+            {
+                DebugLog($"[BLE] Android priority request failed (non-fatal): {ex.Message}");
+            }
+#endif
+
+            // Step 2: MetaWear-side — tell the firmware to request a 7.5 ms connection interval.
+            // SETTINGS module (0x11), register CONNECTION_PARAMS (0x09).
+            // Payload (little-endian): minInterval=6, maxInterval=6, slaveLatency=0, timeout=600
+            //   6 × 1.25 ms = 7.5 ms connection interval (fastest Android allows).
+            //   600 × 10 ms = 6000 ms supervision timeout.
+            // MetaBase app sends this then waits 1000 ms before any sensor commands.
+            try
+            {
+                byte[] connParams = new byte[]
+                {
+                    0x11, 0x09,       // SETTINGS module, CONNECTION_PARAMS register
+                    0x06, 0x00,       // minConnectionInterval = 6 (7.5 ms)
+                    0x06, 0x00,       // maxConnectionInterval = 6 (7.5 ms)
+                    0x00, 0x00,       // slaveLatency = 0
+                    0x58, 0x02        // supervisorTimeout = 0x0258 = 600 (6000 ms)
+                };
+                DebugLog($"[BLE] Sending MetaWear BLE conn-params (7.5 ms interval): [{string.Join(", ", connParams.Select(b => $"0x{b:X2}"))}]");
+                await WriteCommandAsync(connParams);
+            }
+            catch (Exception ex)
+            {
+                DebugLog($"[BLE] MetaWear conn-params command failed (non-fatal): {ex.Message}");
+            }
+
+            // Wait for BLE stack to complete parameter negotiation before any sensor commands.
+            DebugLog("[BLE] Waiting 1000 ms for connection parameter negotiation...");
+            await Task.Delay(1000);
+            DebugLog("[BLE] Connection parameter negotiation complete");
+        }
+
+        private async Task StopAccelerometerCoreAsync()
         {
             if (_commandCharacteristic == null || !IsConnected)
             {
@@ -930,86 +846,82 @@ namespace Cellular.Services
 
             try
             {
-                DebugLog($"[Accelerometer] Stopping accelerometer...");
-                
-                // Stop accelerometer using reverse of phyphox pattern
-                // Start pattern: Enable producer (0x03, 0x04, 0x01) -> Set route (0x03, 0x02, 0x01, 0x00) -> Enable module (0x03, 0x01, 0x01)
-                // Stop pattern: Disable producer -> Disable module -> Remove route
-                
-                // Step 1: Disable the data producer (reverse of 0x03, 0x04, 0x01)
-                try
-                {
-                    byte[] disableProducer = new byte[] { 0x03, 0x04, 0x00 }; // Disable producer
-                    DebugLog($"[Accelerometer] Disabling producer: [{string.Join(", ", disableProducer.Select(b => $"0x{b:X2}"))}]");
-                    await WriteCommandAsync(disableProducer);
-                    await Task.Delay(100);
-                }
-                catch (Exception ex1)
-                {
-                    DebugLog($"[Accelerometer] Error disabling producer: {ex1.Message}");
-                }
-                
-                // Step 2: Disable the module (reverse of 0x03, 0x01, 0x01)
-                try
-                {
-                    byte[] disableModule = new byte[] { 0x03, 0x01, 0x00 }; // Disable module
-                    DebugLog($"[Accelerometer] Disabling module: [{string.Join(", ", disableModule.Select(b => $"0x{b:X2}"))}]");
-                    await WriteCommandAsync(disableModule);
-                    await Task.Delay(100);
-                }
-                catch (Exception ex2)
-                {
-                    DebugLog($"[Accelerometer] Error disabling module: {ex2.Message}");
-                }
-                
-                // Step 3: Remove route using Route Manager — only if the sensor was active
-                // (sending remove-route to a device with no route set up can crash the firmware)
-                if (_accelerometerActive)
-                {
-                    try
-                    {
-                        byte[] removeRouteCommand = new byte[] { 0x12, 0x02, 0x01 };
-                        DebugLog($"[Accelerometer] Removing route (0x12): [{string.Join(", ", removeRouteCommand.Select(b => $"0x{b:X2}"))}]");
-                        await WriteCommandAsync(removeRouteCommand);
-                        await Task.Delay(100);
-                    }
-                    catch (Exception ex3)
-                    {
-                        DebugLog($"[Accelerometer] Error removing route (0x12): {ex3.Message}");
-                        try
-                        {
-                            byte[] removeRouteCommand2 = new byte[] { 0x11, 0x02, 0x01 };
-                            DebugLog($"[Accelerometer] Removing route (0x11): [{string.Join(", ", removeRouteCommand2.Select(b => $"0x{b:X2}"))}]");
-                            await WriteCommandAsync(removeRouteCommand2);
-                            await Task.Delay(100);
-                        }
-                        catch (Exception ex4)
-                        {
-                            DebugLog($"[Accelerometer] Error removing route (0x11): {ex4.Message}");
-                        }
-                    }
-                }
-                
-                // Step 4: Additional stop commands as fallback
-                try
-                {
-                    byte[] stopCommand = new byte[] { 0x03, 0x05 }; // Stop command (register 0x05)
-                    DebugLog($"[Accelerometer] Sending stop command (0x05): [{string.Join(", ", stopCommand.Select(b => $"0x{b:X2}"))}]");
-                    await WriteCommandAsync(stopCommand);
-                    await Task.Delay(50);
-                }
-                catch (Exception ex5)
-                {
-                    DebugLog($"[Accelerometer] Error sending stop command: {ex5.Message}");
-                }
-                
+                DebugLog("[Accelerometer] Stopping...");
+                try { await WriteCommandAsync(new byte[] { 0x03, 0x04, 0x00 }); await Task.Delay(50); } catch { }
+                try { await WriteCommandAsync(new byte[] { 0x03, 0x02, 0x00, 0x01 }); await Task.Delay(50); } catch { }
+                try { await WriteCommandAsync(new byte[] { 0x03, 0x01, 0x00 }); await Task.Delay(50); } catch { }
                 _accelerometerActive = false;
-                DebugLog($"[Accelerometer] Accelerometer stopped successfully");
+                DebugLog("[Accelerometer] Stopped");
             }
             catch (Exception ex)
             {
-                DebugLog($"[Accelerometer] Error stopping accelerometer: {ex.Message}");
-                _accelerometerActive = false; // Reset flag even if write fails
+                DebugLog($"[Accelerometer] Stop error: {ex.Message}");
+                _accelerometerActive = false;
+            }
+        }
+
+        /// <summary>
+        /// Starts accelerometer + light sensor together following the MetaBase Android app pattern:
+        ///   Phase 1 — configure + subscribe both sensors (no power-on yet)
+        ///   Phase 2 — power on both sensors
+        /// This prevents the MMC firmware from silently dropping the LTR-329 stream when the
+        /// BMI160 DATA_INTERRUPT is registered while the sensor is already running.
+        /// </summary>
+        public async Task StartAccelAndLightAsync(
+            float accelSampleRate = 50f, float accelRange = 16f,
+            float lightSampleRate = 10f, byte lightGain = 0,
+            byte lightIntegrationTime = 0, byte lightMeasurementRate = 1)
+        {
+            if (_commandCharacteristic == null || !IsConnected)
+                throw new InvalidOperationException("Device not connected");
+
+            if (Interlocked.CompareExchange(ref _sensorBusy, 1, 0) != 0)
+            {
+                DebugLog("[AccelLight] Start ignored — sensor operation already in progress");
+                return;
+            }
+            try
+            {
+                // Stop both cleanly before reconfiguring
+                if (_accelerometerActive) await StopAccelerometerCoreAsync();
+                if (_lightSensorActive) await StopLightSensorCoreAsync();
+                await Task.Delay(150);
+
+                // ── Phase 1: configure + subscribe both sensors ──────────────────────────
+                // Accel config
+                _accelLsbPerG = accelRange switch { <= 2f => ACC_SCALE_2G, <= 4f => ACC_SCALE_4G, <= 8f => ACC_SCALE_8G, _ => ACC_SCALE_16G };
+                byte odrByte = accelSampleRate switch { <= 12.5f => 0x05, <= 25f => 0x06, <= 50f => 0x07, <= 100f => 0x08, _ => 0x09 };
+                byte configByte0 = _isMms ? (byte)(0xA0 | odrByte) : (byte)(0x20 | odrByte);
+                int rangeIndex = accelRange <= 2f ? 0 : accelRange <= 4f ? 1 : accelRange <= 8f ? 2 : 3;
+                byte rangeByte = _isMms
+                    ? (byte)rangeIndex
+                    : (byte)(rangeIndex == 0 ? 0x3 : rangeIndex == 1 ? 0x5 : rangeIndex == 2 ? 0x8 : 0xC);
+                await WriteCommandAsync(new byte[] { 0x03, 0x03, configByte0, rangeByte }); await Task.Delay(30);
+                await WriteCommandAsync(new byte[] { 0x03, 0x04, 0x01 }); await Task.Delay(30); // accel enable stream
+                await WriteCommandAsync(new byte[] { 0x03, 0x02, 0x01, 0x00 }); await Task.Delay(30); // accel subscribe
+
+                // Light config — registered AFTER accel subscribe so it cannot be reset by it
+                await WriteCommandAsync(new byte[] { 0x14, 0x02, (byte)(lightGain << 2), (byte)((lightIntegrationTime << 3) | (lightMeasurementRate & 0x7)) }); await Task.Delay(30);
+                await WriteCommandAsync(new byte[] { 0x14, 0x03, 0x01 }); await Task.Delay(30); // light enable stream
+
+                // ── Phase 2: power on both sensors ──────────────────────────────────────
+                await WriteCommandAsync(new byte[] { 0x03, 0x01, 0x01 }); await Task.Delay(50); // accel power on
+                await WriteCommandAsync(new byte[] { 0x14, 0x01, 0x01 }); await Task.Delay(50); // light power on
+
+                _accelerometerActive = true;
+                _lightSensorActive = true;
+                DebugLog($"[AccelLight] Both sensors started: accel {accelSampleRate}Hz {accelRange}G, light {lightSampleRate}Hz");
+            }
+            catch (Exception ex)
+            {
+                DebugLog($"[AccelLight] Error: {ex.Message}");
+                _accelerometerActive = false;
+                _lightSensorActive = false;
+                throw;
+            }
+            finally
+            {
+                Interlocked.Exchange(ref _sensorBusy, 0);
             }
         }
 
@@ -1018,38 +930,36 @@ namespace Cellular.Services
             if (_commandCharacteristic == null || !IsConnected)
                 throw new InvalidOperationException("Device not connected");
 
+            if (Interlocked.CompareExchange(ref _sensorBusy, 1, 0) != 0)
+            {
+                DebugLog("[Gyroscope] Start ignored — sensor operation already in progress");
+                return;
+            }
             try
             {
-                DebugLog($"[Gyroscope] Starting gyroscope - SampleRate: {sampleRate}Hz, Range: {range} dps");
-                
+                DebugLog($"[Gyroscope] Starting {sampleRate}Hz {range}dps");
+
                 if (_gyroscopeActive)
                 {
-                    DebugLog($"[Gyroscope] Stopping existing gyroscope first...");
-                    await StopGyroscopeAsync();
+                    await StopGyroscopeCoreAsync();
                     await Task.Delay(100);
                 }
-                
-                // BMI160 (MMC): ODR byte 0x28 (100Hz, normal BWP), range 0x00 = ±2000 dps
-                // BMI270 (MMS): ODR byte 0xA8 (100Hz, performance mode), range 0x00 = ±2000 dps
-                byte gyroOdrByte = _isMms ? (byte)0xA8 : (byte)0x28;
-                byte[] configCommand = new byte[] { 0x13, 0x03, gyroOdrByte, 0x00 };
 
-                DebugLog($"[Gyroscope] Sending config command {(_isMms ? "BMI270(MMS)" : "BMI160(MMC)")}: [{string.Join(", ", configCommand.Select(b => $"0x{b:X2}"))}]");
-                await WriteCommandAsync(configCommand);
+                // ODR byte: BMI160 normal-BWP = 0x20|odr, BMI270 performance = 0xA0|odr
+                // odr: 0x07=100Hz, 0x06=50Hz
+                byte odrByte = sampleRate <= 50f ? (byte)0x06 : (byte)0x07;
+                byte gyroConfigByte = _isMms ? (byte)(0xA0 | odrByte) : (byte)(0x20 | odrByte);
+                await WriteCommandAsync(new byte[] { 0x13, 0x03, gyroConfigByte, 0x00 });
                 await Task.Delay(100);
-
-                byte[] setRoute = new byte[] { 0x13, 0x02, 0x01, 0x00 };
-                DebugLog($"[Gyroscope] Setting route ID: [{string.Join(", ", setRoute.Select(b => $"0x{b:X2}"))}]");
-                await WriteCommandAsync(setRoute);
+                await WriteCommandAsync(new byte[] { 0x13, 0x04, 0x01 }); // enable stream
                 await Task.Delay(100);
-
-                byte[] enableModule = new byte[] { 0x13, 0x01, 0x01 };
-                DebugLog($"[Gyroscope] Enabling module: [{string.Join(", ", enableModule.Select(b => $"0x{b:X2}"))}]");
-                await WriteCommandAsync(enableModule);
+                await WriteCommandAsync(new byte[] { 0x13, 0x02, 0x01, 0x00 }); // subscribe
+                await Task.Delay(100);
+                await WriteCommandAsync(new byte[] { 0x13, 0x01, 0x01 }); // power on
                 await Task.Delay(200);
 
                 _gyroscopeActive = true;
-                DebugLog($"[Gyroscope] Gyroscope started successfully");
+                DebugLog("[Gyroscope] Started");
             }
             catch (Exception ex)
             {
@@ -1058,9 +968,24 @@ namespace Cellular.Services
                 _gyroscopeActive = false;
                 throw;
             }
+            finally
+            {
+                Interlocked.Exchange(ref _sensorBusy, 0);
+            }
         }
 
         public async Task StopGyroscopeAsync()
+        {
+            if (Interlocked.CompareExchange(ref _sensorBusy, 1, 0) != 0)
+            {
+                DebugLog("[Gyroscope] Stop ignored — sensor operation already in progress");
+                return;
+            }
+            try { await StopGyroscopeCoreAsync(); }
+            finally { Interlocked.Exchange(ref _sensorBusy, 0); }
+        }
+
+        private async Task StopGyroscopeCoreAsync()
         {
             if (_commandCharacteristic == null || !IsConnected)
             {
@@ -1070,39 +995,16 @@ namespace Cellular.Services
 
             try
             {
-                DebugLog($"[Gyroscope] Stopping gyroscope...");
-                
-                byte[] stopProducerCommand = new byte[] { 0x13, 0x05 };
-                DebugLog($"[Gyroscope] Sending stop producer command (0x05): [{string.Join(", ", stopProducerCommand.Select(b => $"0x{b:X2}"))}]");
-                await WriteCommandAsync(stopProducerCommand);
-                await Task.Delay(50);
-                
-                byte[] stopCommand1 = new byte[] { 0x13, 0x01 };
-                DebugLog($"[Gyroscope] Sending stop command (0x01): [{string.Join(", ", stopCommand1.Select(b => $"0x{b:X2}"))}]");
-                await WriteCommandAsync(stopCommand1);
-                await Task.Delay(50);
-                
-                if (_gyroscopeActive)
-                {
-                    try
-                    {
-                        byte[] removeRouteCommand = new byte[] { 0x12, 0x02, 0x02 };
-                        DebugLog($"[Gyroscope] Removing route: [{string.Join(", ", removeRouteCommand.Select(b => $"0x{b:X2}"))}]");
-                        await WriteCommandAsync(removeRouteCommand);
-                        await Task.Delay(50);
-                    }
-                    catch (Exception ex2)
-                    {
-                        DebugLog($"[Gyroscope] Error removing route: {ex2.Message}");
-                    }
-                }
-                
+                DebugLog("[Gyroscope] Stopping...");
+                try { await WriteCommandAsync(new byte[] { 0x13, 0x04, 0x00 }); await Task.Delay(50); } catch { }
+                try { await WriteCommandAsync(new byte[] { 0x13, 0x02, 0x00, 0x01 }); await Task.Delay(50); } catch { }
+                try { await WriteCommandAsync(new byte[] { 0x13, 0x01, 0x00 }); await Task.Delay(50); } catch { }
                 _gyroscopeActive = false;
-                DebugLog($"[Gyroscope] Gyroscope stopped successfully");
+                DebugLog("[Gyroscope] Stopped");
             }
             catch (Exception ex)
             {
-                DebugLog($"[Gyroscope] Error stopping gyroscope: {ex.Message}");
+                DebugLog($"[Gyroscope] Stop error: {ex.Message}");
                 _gyroscopeActive = false;
             }
         }
@@ -1299,12 +1201,6 @@ namespace Cellular.Services
 
                 ushort visible = BitConverter.ToUInt16(data, 2);
 
-                // Reduced logging - only log occasionally (every 2 seconds) to avoid performance issues
-                if ((DateTime.Now.Millisecond % 2000) < 10)
-                {
-                    DebugLog($"[LightSensor] Data - Visible: {visible}");
-                }
-
                 LightSensorDataReceived?.Invoke(this, new MetaWearLightSensorData
                 {
                     Visible = visible,
@@ -1329,15 +1225,27 @@ namespace Cellular.Services
                 return;
             }
 
+            if (Interlocked.CompareExchange(ref _sensorBusy, 1, 0) != 0)
+            {
+                DebugLog("[Magnetometer] Start ignored — sensor operation already in progress");
+                return;
+            }
             try
             {
                 DebugLog($"[Magnetometer] Starting magnetometer (MMC/BMM150)");
 
                 if (_magnetometerActive)
                 {
-                    await StopMagnetometerAsync();
+                    await StopMagnetometerCoreAsync();
                     await Task.Delay(150);
                 }
+
+                // SDK configure().commit() always calls stop() first to put BMM150 in sleep mode
+                // before writing to configuration registers (required by BMM150 hardware)
+                byte[] sleepCommand = new byte[] { 0x15, 0x01, 0x00 };
+                DebugLog($"[Magnetometer] Putting BMM150 in sleep mode before config: [{string.Join(", ", sleepCommand.Select(b => $"0x{b:X2}"))}]");
+                await WriteCommandAsync(sleepCommand);
+                await Task.Delay(100);
 
                 // Regular preset: 9 XY reps, 15 Z reps
                 // DATA_REPETITIONS register 0x04: xy_byte=(9-1)/2=4, z_byte=15-1=14(0x0E)
@@ -1380,9 +1288,24 @@ namespace Cellular.Services
                 // Do not re-throw — a magnetometer failure must not abort StartBufferingAsync
                 // before StartLightSensorAsync is reached (light sensor triggers the recording).
             }
+            finally
+            {
+                Interlocked.Exchange(ref _sensorBusy, 0);
+            }
         }
 
         public async Task StopMagnetometerAsync()
+        {
+            if (Interlocked.CompareExchange(ref _sensorBusy, 1, 0) != 0)
+            {
+                DebugLog("[Magnetometer] Stop ignored — sensor operation already in progress");
+                return;
+            }
+            try { await StopMagnetometerCoreAsync(); }
+            finally { Interlocked.Exchange(ref _sensorBusy, 0); }
+        }
+
+        private async Task StopMagnetometerCoreAsync()
         {
             if (_isMms) { _magnetometerActive = false; return; }
             if (_commandCharacteristic == null || !IsConnected)
@@ -1398,8 +1321,8 @@ namespace Cellular.Services
                 // Disable data producer: MAG_DATA register 0x05
                 try { await WriteCommandAsync(new byte[] { 0x15, 0x05, 0x00 }); await Task.Delay(50); } catch { }
 
-                // Disable subscribe: DATA_INTERRUPT_ENABLE register 0x02
-                try { await WriteCommandAsync(new byte[] { 0x15, 0x02, 0x00, 0x00 }); await Task.Delay(50); } catch { }
+                // Disable subscribe: DATA_INTERRUPT_ENABLE register 0x02 (enable_mask=0x00, disable_mask=0x01)
+                try { await WriteCommandAsync(new byte[] { 0x15, 0x02, 0x00, 0x01 }); await Task.Delay(50); } catch { }
 
                 // Power off: POWER_MODE register 0x01
                 try { await WriteCommandAsync(new byte[] { 0x15, 0x01, 0x00 }); await Task.Delay(50); } catch { }
@@ -1419,79 +1342,56 @@ namespace Cellular.Services
             if (_commandCharacteristic == null || !IsConnected)
                 throw new InvalidOperationException("Device not connected");
 
+            if (Interlocked.CompareExchange(ref _sensorBusy, 1, 0) != 0)
+            {
+                DebugLog("[LightSensor] Start ignored — sensor operation already in progress");
+                return;
+            }
             try
             {
                 DebugLog($"[LightSensor] Starting light sensor - SampleRate: {sampleRate}Hz");
-                
+
                 // Stop light sensor first if already running
                 if (_lightSensorActive)
                 {
                     DebugLog($"[LightSensor] Stopping existing light sensor first...");
-                    await StopLightSensorAsync();
+                    await StopLightSensorCoreAsync();
                     await Task.Delay(100);
                 }
 
-                // For LTR-329ALS-01 light sensor (module 0x14):
-                // Step 1: Configure the light sensor
-                // Register 0x02 = CONFIG (gain, integration time, measurement rate) — per SDK AmbientLightLtr329Impl
-                // gain bitmask is shifted left 2 bits into ALS_CONTR register (bits [4:2])
-                // gain: 0=1x, 1=2x, 2=4x, 3=8x, 6=48x, 7=96x
-                // integrationTime: 0=100ms, 1=50ms, 2=200ms, 3=400ms, 4=150ms, 5=250ms, 6=300ms, 7=350ms
-                // measurementRate: 0=50ms, 1=100ms, 2=200ms, 3=500ms, 4=1000ms, 5=2000ms
+                // LTR-329ALS-01 (module 0x14) startup sequence.
+                // SDK order (AmbientLightLtr329Impl + StreamedDataConsumer):
+                //   1. Configure (register 0x02): gain, integration time, measurement rate
+                //   2. Enable stream (register 0x03, 0x01): registers the BLE notification consumer
+                //   3. Start module (register 0x01, 0x01): begins sampling
+                // IMPORTANT: stream enable MUST come before module start. If the module starts
+                // before the stream consumer is registered the firmware drops readings silently,
+                // which is the root cause of "light sensor stops working when accelerometer is on."
+
+                // Step 1 — Configure
+                // gain bitmask: bits [4:2] of ALS_CONTR (gain: 0=1x,1=2x,2=4x,3=8x,6=48x,7=96x)
+                // measurementRate: 0=50ms,1=100ms,2=200ms,3=500ms,4=1000ms,5=2000ms
+                // integrationTime: 0=100ms,1=50ms,2=200ms,3=400ms,4=150ms,5=250ms,6=300ms,7=350ms
                 byte[] configCommand = new byte[]
                 {
-                    0x14, 0x02,                                             // Module, CONFIG register (0x02)
-                    (byte)(gain << 2),                                      // Gain bitmask shifted into bits [4:2]
-                    (byte)((integrationTime << 3) | (measurementRate & 0x7)) // Integration + rate packed
+                    0x14, 0x02,
+                    (byte)(gain << 2),
+                    (byte)((integrationTime << 3) | (measurementRate & 0x7))
                 };
-                
-                DebugLog($"[LightSensor] Sending config command: [{string.Join(", ", configCommand.Select(b => $"0x{b:X2}"))}]");
+                DebugLog($"[LightSensor] Config: [{string.Join(", ", configCommand.Select(b => $"0x{b:X2}"))}]");
                 await WriteCommandAsync(configCommand);
                 await Task.Delay(50);
 
-                // Step 2: Create route using Route Manager
-                try
-                {
-                    DebugLog($"[LightSensor] Creating route using Route Manager...");
-                    byte[] createRouteCommand = new byte[]
-                    {
-                        0x12, 0x03,  // Route Manager (module 0x12, register 0x03 - create route)
-                        0x14, 0x03,  // Producer: light sensor (0x14), data producer (0x03)
-                        0x04,        // Route ID: 0x04
-                        0x01,        // Endpoint type: 0x01 = stream (notifications)
-                        0x00         // Endpoint ID: 0x00 = default
-                    };
-                    
-                    DebugLog($"[LightSensor] Creating route: [{string.Join(", ", createRouteCommand.Select(b => $"0x{b:X2}"))}]");
-                    await WriteCommandAsync(createRouteCommand);
-                    await Task.Delay(150);
-                }
-                catch (Exception routeEx)
-                {
-                    DebugLog($"[LightSensor] Error creating route: {routeEx.Message}");
-                }
+                // Step 2 — Enable stream (register stream consumer before the sensor starts)
+                byte[] enableStream = new byte[] { 0x14, 0x03, 0x01 };
+                DebugLog($"[LightSensor] Enable stream: [{string.Join(", ", enableStream.Select(b => $"0x{b:X2}"))}]");
+                await WriteCommandAsync(enableStream);
+                await Task.Delay(50);
 
-                // Step 3: Enable the light sensor module
-                try
-                {
-                    byte[] enableModule = new byte[] { 0x14, 0x01, 0x01 }; // Module 0x14, Register 0x01, Enable
-                    DebugLog($"[LightSensor] Enabling light sensor module: [{string.Join(", ", enableModule.Select(b => $"0x{b:X2}"))}]");
-                    await WriteCommandAsync(enableModule);
-                    await Task.Delay(50);
-                }
-                catch (Exception enableEx)
-                {
-                    DebugLog($"[LightSensor] Error enabling module: {enableEx.Message}");
-                }
-
-                // Step 4: Enable the light sensor data producer
-                byte[] enableProducer = new byte[]
-                {
-                    0x14, 0x03, 0x04  // Module ID: 0x14 (Light Sensor), Register ID: 0x03 (Data producer), Route ID: 0x04
-                };
-
-                DebugLog($"[LightSensor] Enabling light sensor data producer: [{string.Join(", ", enableProducer.Select(b => $"0x{b:X2}"))}]");
-                await WriteCommandAsync(enableProducer);
+                // Step 3 — Start module (sensor begins sampling)
+                byte[] enableModule = new byte[] { 0x14, 0x01, 0x01 };
+                DebugLog($"[LightSensor] Start module: [{string.Join(", ", enableModule.Select(b => $"0x{b:X2}"))}]");
+                await WriteCommandAsync(enableModule);
                 await Task.Delay(100);
 
                 _lightSensorActive = true;
@@ -1503,9 +1403,24 @@ namespace Cellular.Services
                 _lightSensorActive = false;
                 throw;
             }
+            finally
+            {
+                Interlocked.Exchange(ref _sensorBusy, 0);
+            }
         }
 
         public async Task StopLightSensorAsync()
+        {
+            if (Interlocked.CompareExchange(ref _sensorBusy, 1, 0) != 0)
+            {
+                DebugLog("[LightSensor] Stop ignored — sensor operation already in progress");
+                return;
+            }
+            try { await StopLightSensorCoreAsync(); }
+            finally { Interlocked.Exchange(ref _sensorBusy, 0); }
+        }
+
+        private async Task StopLightSensorCoreAsync()
         {
             if (_commandCharacteristic == null || !IsConnected)
             {
@@ -1516,29 +1431,31 @@ namespace Cellular.Services
             try
             {
                 DebugLog($"[LightSensor] Stopping light sensor...");
-                
-                // Stop light sensor - try multiple methods
-                byte[] stopProducerCommand = new byte[] { 0x14, 0x03 }; // Stop data producer
-                DebugLog($"[LightSensor] Sending stop producer command (0x03): [{string.Join(", ", stopProducerCommand.Select(b => $"0x{b:X2}"))}]");
-                await WriteCommandAsync(stopProducerCommand);
-                await Task.Delay(50);
-                
-                byte[] stopCommand1 = new byte[] { 0x14, 0x01 }; // General stop
-                DebugLog($"[LightSensor] Sending stop command (0x01): [{string.Join(", ", stopCommand1.Select(b => $"0x{b:X2}"))}]");
-                await WriteCommandAsync(stopCommand1);
-                await Task.Delay(50);
-                
-                // Remove route using Route Manager
+
+                // Disable data stream (reverse of enableStream { 0x14, 0x03, 0x01 })
                 try
                 {
-                    byte[] removeRouteCommand = new byte[] { 0x12, 0x02, 0x04 }; // Route Manager, remove route 0x04
-                    DebugLog($"[LightSensor] Removing route: [{string.Join(", ", removeRouteCommand.Select(b => $"0x{b:X2}"))}]");
-                    await WriteCommandAsync(removeRouteCommand);
+                    byte[] disableStream = new byte[] { 0x14, 0x03, 0x00 };
+                    DebugLog($"[LightSensor] Disabling data stream (register 0x03): [{string.Join(", ", disableStream.Select(b => $"0x{b:X2}"))}]");
+                    await WriteCommandAsync(disableStream);
                     await Task.Delay(50);
                 }
                 catch (Exception ex2)
                 {
-                    DebugLog($"[LightSensor] Error removing route: {ex2.Message}");
+                    DebugLog($"[LightSensor] Error disabling stream: {ex2.Message}");
+                }
+
+                // Power off (reverse of { 0x14, 0x01, 0x01 })
+                try
+                {
+                    byte[] disableModule = new byte[] { 0x14, 0x01, 0x00 };
+                    DebugLog($"[LightSensor] Disabling module (register 0x01): [{string.Join(", ", disableModule.Select(b => $"0x{b:X2}"))}]");
+                    await WriteCommandAsync(disableModule);
+                    await Task.Delay(50);
+                }
+                catch (Exception ex3)
+                {
+                    DebugLog($"[LightSensor] Error disabling module: {ex3.Message}");
                 }
 
                 _lightSensorActive = false;
@@ -1595,113 +1512,26 @@ namespace Cellular.Services
             }
         }
 
-        public async Task StartBarometerAsync(byte oversampling = 3, byte iirFilter = 0, byte standbyTime = 0)
-        {
-            if (_commandCharacteristic == null || !IsConnected)
-                throw new InvalidOperationException("Device not connected");
+        public Task StartBarometerAsync(byte oversampling = 3, byte iirFilter = 0, byte standbyTime = 0)
+            => Task.CompletedTask; // Not used for MMC/MMS sensor recording
 
-            try
-            {
-                DebugLog($"[Barometer] Configuring - Oversampling: {oversampling}, IIR: {iirFilter}, Standby: {standbyTime}");
-
-                // BMP280 module (0x12) — set pressure oversampling
-                // Register 0x01: pressure oversampling (0=ULP,1=LP,2=Standard,3=High,4=UltraHigh)
-                byte[] oversamplingCmd = new byte[] { 0x12, 0x01, oversampling };
-                await WriteCommandAsync(oversamplingCmd);
-                await Task.Delay(50);
-
-                // Register 0x02: IIR filter (bits [4:2]) + standby time (bits [7:5])
-                byte configByte = (byte)((standbyTime << 5) | (iirFilter << 2));
-                byte[] configCmd = new byte[] { 0x12, 0x02, configByte };
-                await WriteCommandAsync(configCmd);
-                await Task.Delay(50);
-
-                // Register 0x03: Start periodic measurement
-                byte[] startCmd = new byte[] { 0x12, 0x03, 0x01 };
-                await WriteCommandAsync(startCmd);
-                DebugLog("[Barometer] Barometer started");
-            }
-            catch (Exception ex)
-            {
-                DebugLog($"[Barometer] Error starting barometer: {ex.Message}");
-                throw;
-            }
-        }
-
-        public async Task StopBarometerAsync()
-        {
-            if (_commandCharacteristic == null || !IsConnected)
-                return;
-
-            try
-            {
-                byte[] stopCmd = new byte[] { 0x12, 0x04, 0x00 };
-                await WriteCommandAsync(stopCmd);
-                DebugLog("[Barometer] Barometer stopped");
-            }
-            catch (Exception ex)
-            {
-                DebugLog($"[Barometer] Error stopping barometer: {ex.Message}");
-            }
-        }
+        public Task StopBarometerAsync()
+            => Task.CompletedTask;
 
         public async Task ProbeDeviceAsync()
         {
             if (_commandCharacteristic == null || !IsConnected)
             {
-                DebugLog("[Probe] Cannot probe - not connected");
+                System.Diagnostics.Debug.WriteLine("[Probe] Cannot probe — not connected");
                 return;
             }
 
-            try
-            {
-                DebugLog("[Probe] ========================================");
-                DebugLog("[Probe] Starting device probe based on phyphox pattern");
-                DebugLog("[Probe] ========================================");
-                
-                // First, reset using phyphox pattern
-                DebugLog("[Probe] Step 1: Reset sequence (phyphox pattern)...");
-                await WriteCommandAsync(new byte[] { 0x0B, 0x84 });
-                await Task.Delay(100);
-                await WriteCommandAsync(new byte[] { 0x0F, 0x08 });
-                await Task.Delay(100);
-                await WriteCommandAsync(new byte[] { 0xFE, 0x05 });
-                await Task.Delay(200);
-
-                // Try phyphox accelerometer setup sequence exactly as documented
-                DebugLog("[Probe] Step 2: Phyphox accelerometer setup sequence...");
-                await WriteCommandAsync(new byte[] { 0x0B, 0x84 });
-                await Task.Delay(100);
-                // Route manager setup: 0x11, 0x09, 0x06, 0x00, 0x06, 0x00, 0x00, 0x00, 0x58, 0x02
-                await WriteCommandAsync(new byte[] { 0x11, 0x09, 0x06, 0x00, 0x06, 0x00, 0x00, 0x00, 0x58, 0x02 });
-                await Task.Delay(200);
-                // Config: 0x03, 0x04, 0x28, 0x0C (ODR=0=100Hz, Range=3=16G)
-                await WriteCommandAsync(new byte[] { 0x03, 0x04, 0x28, 0x0C });
-                await Task.Delay(100);
-                // Enable producer: 0x03, 0x04, 0x01 (module 0x03, register 0x04, enable)
-                await WriteCommandAsync(new byte[] { 0x03, 0x04, 0x01 });
-                await Task.Delay(100);
-                // Set route: 0x03, 0x02, 0x01, 0x00 (module 0x03, register 0x02, route ID 0x0100)
-                await WriteCommandAsync(new byte[] { 0x03, 0x02, 0x01, 0x00 });
-                await Task.Delay(100);
-                // Enable module: 0x03, 0x01, 0x01
-                await WriteCommandAsync(new byte[] { 0x03, 0x01, 0x01 });
-                await Task.Delay(200);
-
-                DebugLog("[Probe] Accelerometer setup complete!");
-                DebugLog("[Probe] Expecting notifications: Module 0x03, Register 0x04");
-                DebugLog("[Probe] Waiting 5 seconds for accelerometer data...");
-                await Task.Delay(5000);
-
-                DebugLog("[Probe] ========================================");
-                DebugLog("[Probe] Probe complete. Check logs above for notification patterns.");
-                DebugLog("[Probe] ========================================");
-            }
-            catch (Exception ex)
-            {
-                DebugLog($"[Probe] Error during probe: {ex.Message}");
-                DebugLog($"Stack trace: {ex.StackTrace}");
-            }
+            // Read device info and log BLE connection state for diagnostics
+            System.Diagnostics.Debug.WriteLine("[Probe] ---- Device probe ----");
+            System.Diagnostics.Debug.WriteLine($"[Probe] Model: {_cachedDeviceInfo?.Model ?? "unknown"}  MMS={_isMms}");
+            System.Diagnostics.Debug.WriteLine($"[Probe] Accel={_accelerometerActive}  Gyro={_gyroscopeActive}  Mag={_magnetometerActive}  Light={_lightSensorActive}");
+            System.Diagnostics.Debug.WriteLine("[Probe] Done");
+            await Task.CompletedTask;
         }
     }
 }

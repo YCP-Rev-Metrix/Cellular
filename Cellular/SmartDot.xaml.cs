@@ -1137,19 +1137,24 @@ namespace Cellular
 
         private async void OnStartAccelerometerClicked(object sender, EventArgs e)
         {
+            System.Diagnostics.Debug.WriteLine($"[UI] OnStartAccelerometerClicked — IsConnected={_metaWearService.IsConnected} thread={System.Threading.Thread.CurrentThread.ManagedThreadId}");
             try
             {
-                await _metaWearService.StartAccelerometerAsync(100f, 16f); // Increased to 100Hz to match gyroscope
+                System.Diagnostics.Debug.WriteLine($"[UI] Calling StartAccelerometerAsync...");
+                await _metaWearService.StartAccelerometerAsync(50f, 16f);
+                System.Diagnostics.Debug.WriteLine($"[UI] StartAccelerometerAsync returned OK");
                 StatusLabel.Text = "Accelerometer started";
             }
             catch (Exception ex)
             {
+                System.Diagnostics.Debug.WriteLine($"[UI] StartAccelerometerAsync THREW: {ex.Message}");
                 await DisplayAlertAsync("Error", ex.Message, "OK");
             }
         }
 
         private async void OnStopAccelerometerClicked(object sender, EventArgs e)
         {
+            System.Diagnostics.Debug.WriteLine($"[UI] OnStopAccelerometerClicked — IsConnected={_metaWearService.IsConnected}");
             try
             {
                 await _metaWearService.StopAccelerometerAsync();
@@ -1158,25 +1163,31 @@ namespace Cellular
             }
             catch (Exception ex)
             {
+                System.Diagnostics.Debug.WriteLine($"[UI] StopAccelerometerAsync THREW: {ex.Message}");
                 await DisplayAlertAsync("Error", ex.Message, "OK");
             }
         }
 
         private async void OnStartGyroscopeClicked(object sender, EventArgs e)
         {
+            System.Diagnostics.Debug.WriteLine($"[UI] OnStartGyroscopeClicked — IsConnected={_metaWearService.IsConnected} thread={System.Threading.Thread.CurrentThread.ManagedThreadId}");
             try
             {
+                System.Diagnostics.Debug.WriteLine($"[UI] Calling StartGyroscopeAsync...");
                 await _metaWearService.StartGyroscopeAsync(100f, 2000f);
+                System.Diagnostics.Debug.WriteLine($"[UI] StartGyroscopeAsync returned OK");
                 StatusLabel.Text = "Gyroscope started";
             }
             catch (Exception ex)
             {
+                System.Diagnostics.Debug.WriteLine($"[UI] StartGyroscopeAsync THREW: {ex.Message}");
                 await DisplayAlertAsync("Error", ex.Message, "OK");
             }
         }
 
         private async void OnStopGyroscopeClicked(object sender, EventArgs e)
         {
+            System.Diagnostics.Debug.WriteLine($"[UI] OnStopGyroscopeClicked — IsConnected={_metaWearService.IsConnected}");
             try
             {
                 await _metaWearService.StopGyroscopeAsync();
@@ -1185,25 +1196,31 @@ namespace Cellular
             }
             catch (Exception ex)
             {
+                System.Diagnostics.Debug.WriteLine($"[UI] StopGyroscopeAsync THREW: {ex.Message}");
                 await DisplayAlertAsync("Error", ex.Message, "OK");
             }
         }
 
         private async void OnStartMagnetometerClicked(object sender, EventArgs e)
         {
+            System.Diagnostics.Debug.WriteLine($"[UI] OnStartMagnetometerClicked — IsConnected={_metaWearService.IsConnected} thread={System.Threading.Thread.CurrentThread.ManagedThreadId}");
             try
             {
+                System.Diagnostics.Debug.WriteLine($"[UI] Calling StartMagnetometerAsync...");
                 await _metaWearService.StartMagnetometerAsync(25f);
+                System.Diagnostics.Debug.WriteLine($"[UI] StartMagnetometerAsync returned OK");
                 StatusLabel.Text = "Magnetometer started";
             }
             catch (Exception ex)
             {
+                System.Diagnostics.Debug.WriteLine($"[UI] StartMagnetometerAsync THREW: {ex.Message}");
                 await DisplayAlertAsync("Error", ex.Message, "OK");
             }
         }
 
         private async void OnStopMagnetometerClicked(object sender, EventArgs e)
         {
+            System.Diagnostics.Debug.WriteLine($"[UI] OnStopMagnetometerClicked — IsConnected={_metaWearService.IsConnected}");
             try
             {
                 await _metaWearService.StopMagnetometerAsync();
@@ -1212,25 +1229,31 @@ namespace Cellular
             }
             catch (Exception ex)
             {
+                System.Diagnostics.Debug.WriteLine($"[UI] StopMagnetometerAsync THREW: {ex.Message}");
                 await DisplayAlertAsync("Error", ex.Message, "OK");
             }
         }
 
         private async void OnStartLightSensorClicked(object sender, EventArgs e)
         {
+            System.Diagnostics.Debug.WriteLine($"[UI] OnStartLightSensorClicked — IsConnected={_metaWearService.IsConnected} thread={System.Threading.Thread.CurrentThread.ManagedThreadId}");
             try
             {
+                System.Diagnostics.Debug.WriteLine($"[UI] Calling StartLightSensorAsync...");
                 await _metaWearService.StartLightSensorAsync(10f);
+                System.Diagnostics.Debug.WriteLine($"[UI] StartLightSensorAsync returned OK");
                 StatusLabel.Text = "Light sensor started";
             }
             catch (Exception ex)
             {
+                System.Diagnostics.Debug.WriteLine($"[UI] StartLightSensorAsync THREW: {ex.Message}");
                 await DisplayAlertAsync("Error", ex.Message, "OK");
             }
         }
 
         private async void OnStopLightSensorClicked(object sender, EventArgs e)
         {
+            System.Diagnostics.Debug.WriteLine($"[UI] OnStopLightSensorClicked — IsConnected={_metaWearService.IsConnected}");
             try
             {
                 await _metaWearService.StopLightSensorAsync();
@@ -1239,6 +1262,7 @@ namespace Cellular
             }
             catch (Exception ex)
             {
+                System.Diagnostics.Debug.WriteLine($"[UI] StopLightSensorAsync THREW: {ex.Message}");
                 await DisplayAlertAsync("Error", ex.Message, "OK");
             }
         }

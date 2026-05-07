@@ -141,6 +141,16 @@ namespace Cellular.Services
         /// Probes the device to discover available modules and registers
         /// </summary>
         Task ProbeDeviceAsync();
+
+        /// <summary>
+        /// Starts accelerometer and light sensor together using the MetaBase subscribe-all-then-start-all
+        /// pattern: configure both → subscribe both → power on both. This prevents the MMC firmware from
+        /// dropping the light sensor stream when the accelerometer interrupt is enabled mid-sequence.
+        /// </summary>
+        Task StartAccelAndLightAsync(
+            float accelSampleRate = 50f, float accelRange = 16f,
+            float lightSampleRate = 10f, byte lightGain = 0,
+            byte lightIntegrationTime = 0, byte lightMeasurementRate = 1);
     }
 
     /// <summary>

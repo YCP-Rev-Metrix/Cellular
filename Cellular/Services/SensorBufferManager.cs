@@ -184,14 +184,8 @@ namespace Cellular.Services
 
             try
             {
-                
-                // Stop light sensor first to ensure a clean state between recordings
                 await _metaWearService.StopLightSensorAsync();
-                await Task.Delay(150); // Brief settle time for BLE stack
-
-                // Only start the light sensor — it is the recording trigger.
-                // Accelerometer and gyroscope are temporarily disabled here until MMC
-                // multi-sensor coexistence is confirmed working.
+                await Task.Delay(100);
                 await _metaWearService.StartLightSensorAsync(LightSampleRate, (byte)LightGain, (byte)LightIntegrationTime, (byte)LightMeasurementRate);
 
                 lock (_bufferLock)
@@ -202,7 +196,6 @@ namespace Cellular.Services
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Error starting sensors for buffering: {ex.Message}");
-                // Ensure buffering is off if sensors failed to start
                 lock (_bufferLock) { _isBuffering = false; }
             }
         }
@@ -231,10 +224,6 @@ namespace Cellular.Services
 
             try
             {
-                // Stop all sensors
-                await _metaWearService.StopAccelerometerAsync();
-                await _metaWearService.StopGyroscopeAsync();
-                await _metaWearService.StopMagnetometerAsync();
                 await _metaWearService.StopLightSensorAsync();
             }
             catch (Exception ex)
