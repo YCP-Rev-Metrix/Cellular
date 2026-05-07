@@ -301,20 +301,26 @@ namespace Cellular
         {
             try
             {
-                isRecording = true;
-                RecordBtn.Text = "Stop";
-                RecordBtn.BackgroundColor = Colors.Red;
-
                 string targetFolder = Path.Combine(FileSystem.AppDataDirectory, "MyVideos");
                 Directory.CreateDirectory(targetFolder);
                 string fileName = $"rm_{DateTime.Now:yyyyMMdd_HHmmss}.mp4";
                 currentVideoPath = Path.Combine(targetFolder, fileName);
 
-                if (_sensorBufferManager != null)
+                if (_sensorBufferManager != null && _metaWearService.IsConnected)
                 {
+                    // Show waiting state while BLE sensor setup runs
+                    RecordBtn.Text = "Waiting...";
+                    RecordBtn.IsEnabled = false;
+                    RecordBtn.BackgroundColor = Colors.DarkOrange;
+
                     string baseFileName = Path.GetFileNameWithoutExtension(fileName);
                     await _sensorBufferManager.StartBufferingAsync(baseFileName);
                 }
+
+                isRecording = true;
+                RecordBtn.Text = "Stop";
+                RecordBtn.IsEnabled = true;
+                RecordBtn.BackgroundColor = Colors.Red;
 
                 // On Android, the toolkit reuses the same Recorder between recordings.
                 // After the first stop, the Recorder's MediaCodec audio encoder is left in a
@@ -340,11 +346,10 @@ namespace Cellular
             {
                 await DisplayAlertAsync("Error", $"Failed to start recording: {ex.Message}", "OK");
                 isRecording = false;
-                RecordBtn.Text = "Record";
-                RecordBtn.BackgroundColor = Color.FromArgb("#9880e5");
                 if (_sensorBufferManager != null)
                     await _sensorBufferManager.StopBufferingAsync();
                 CleanupStream();
+                await UpdateRecordButtonStateAsync();
             }
         }
 

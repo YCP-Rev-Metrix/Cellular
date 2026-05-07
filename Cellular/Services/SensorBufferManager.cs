@@ -185,17 +185,13 @@ namespace Cellular.Services
             try
             {
                 
-                // Always stop all sensors first to ensure a clean state between recordings
-                await _metaWearService.StopAccelerometerAsync();
-                await _metaWearService.StopGyroscopeAsync();
+                // Stop light sensor first to ensure a clean state between recordings
                 await _metaWearService.StopLightSensorAsync();
                 await Task.Delay(150); // Brief settle time for BLE stack
 
-                // Start all sensors needed for buffering, using saved configuration.
-                // Magnetometer is intentionally skipped here: the recording is triggered by the
-                // light sensor, and the current BMM150 command sequence crashes the MMC device.
-                await _metaWearService.StartAccelerometerAsync(AccelSampleRate, AccelRange);
-                await _metaWearService.StartGyroscopeAsync(GyroSampleRate, GyroRange);
+                // Only start the light sensor — it is the recording trigger.
+                // Accelerometer and gyroscope are temporarily disabled here until MMC
+                // multi-sensor coexistence is confirmed working.
                 await _metaWearService.StartLightSensorAsync(LightSampleRate, (byte)LightGain, (byte)LightIntegrationTime, (byte)LightMeasurementRate);
 
                 lock (_bufferLock)
